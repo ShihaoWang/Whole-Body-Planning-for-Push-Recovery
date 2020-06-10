@@ -17,8 +17,9 @@ std::vector<LinkInfo> ContactInfoLoader(const string & ContactLinkFile, int & Co
 std::vector<ContactStatusInfo> ContactStatusInfoLoader(const string & ContactStatusFile);
 
 /* 1. Environment Geometry */
-SignedDistanceFieldInfo SignedDistanceFieldGene(const RobotWorld& WorldObj, const int& GridsNo);
-SignedDistanceFieldInfo SignedDistanceFieldLoader(const int GridsNo);
+SignedDistanceFieldInfo SignedDistanceFieldGene(const string & SDFPath, const RobotWorld& WorldObj, const int& GridsNo);
+SignedDistanceFieldInfo SignedDistanceFieldLoader(const string & SDFPath, const int GridsNo);
+ReachabilityMap ReachabilityMapGenerator(Robot & SimRobot, const std::vector<LinkInfo> & RobotLinkInfo, const std::vector<int> & TorsoLink);
 
 /* 2. Robot State File Operations */
 void RobotConfigLoader(Robot &SimRobot, const string &user_path, const string &file_name);

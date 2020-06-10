@@ -10,25 +10,17 @@
 #include <KrisLibrary/geometry/PQP/src/PQP.h>
 #include "Modeling/Paths.h"
 
-struct LinkInfo
-{
+struct LinkInfo {
   LinkInfo(){LinkIndex = -1;}
   LinkInfo(const int &link_index){ LinkIndex = link_index; }
   void AddLocalConact(const Vector3& local_contact){ LocalContacts.push_back(local_contact); }
-  void AvgContactUpdate()
-  {
-    switch (LocalContacts.size())
-    {
-      case 0:
-      {
-        throw std::invalid_argument( "LocalContacts should have been initialized!" );
-      }
+  void AvgContactUpdate(){
+    switch (LocalContacts.size()){
+      case 0: throw std::invalid_argument( "LocalContacts should have been initialized!" );
       break;
-      default:
-      {
+      default:{
         Vector3 SumLocalContacts(0.0, 0.0, 0.0);
-        for (int i = 0; i < LocalContacts.size(); i++)
-        {
+        for (int i = 0; i < LocalContacts.size(); i++){
           SumLocalContacts.x = SumLocalContacts.x + LocalContacts[i].x;
           SumLocalContacts.y = SumLocalContacts.y + LocalContacts[i].y;
           SumLocalContacts.z = SumLocalContacts.z + LocalContacts[i].z;
@@ -48,16 +40,12 @@ struct LinkInfo
   Vector3 AvgLocalContact;
 };
 
-struct ContactStatusInfo
-{
-  // This struct saves the information of the contact status of each link end effector
+struct ContactStatusInfo{
   ContactStatusInfo(){ LinkIndex = -1;}
   ContactStatusInfo(const int & link_index){ LinkIndex = link_index; }
   void AddLocalConactStatus(const int & _contactstatus){ LocalContactStatus.push_back(_contactstatus); }
-  void StatusSwitch(const int & Val)
-  {
-    for(int i = 0; i<LocalContactStatus.size(); i++)
-    {
+  void StatusSwitch(const int & Val){
+    for(int i = 0; i<LocalContactStatus.size(); i++){
       LocalContactStatus[i] = Val;
     }
   }
@@ -65,9 +53,7 @@ struct ContactStatusInfo
   std::vector<int> LocalContactStatus;
 };
 
-struct TerrainInfo
-{
-  // Each terrain has a TerrainInfo struct
+struct TerrainInfo{
   TerrainInfo(){num_tris = -1;}
   int num_tris;
   std::vector<Tri> Tris;
@@ -75,11 +61,8 @@ struct TerrainInfo
   std::vector<int> Indices;
 };
 
-struct SignedDistanceFieldInfo
-{
-  // This struct is used to save the information of the signed distance field
-  SignedDistanceFieldInfo()
-  {
+struct SignedDistanceFieldInfo{
+  SignedDistanceFieldInfo(){
     Envi_x_min = 0;           Envi_x_max = 0;
     Envi_y_min = 0;           Envi_y_max = 0;
     Envi_z_min = 0;           Envi_z_max = 0;
@@ -87,8 +70,7 @@ struct SignedDistanceFieldInfo
     Envi_x_length = 0;        Envi_y_length = 0;        Envi_z_length = 0;
     GridNo = 0;
   }
-  SignedDistanceFieldInfo(const Eigen::Tensor<double, 3>& _SDFTensor, const std::vector<double> &_SDFSpecs)
-  {
+  SignedDistanceFieldInfo(const Eigen::Tensor<double, 3>& _SDFTensor, const std::vector<double> &_SDFSpecs){
     SDFTensor = _SDFTensor;
     Envi_x_min = _SDFSpecs[0];          Envi_x_max = _SDFSpecs[1];
     Envi_y_min = _SDFSpecs[2];          Envi_y_max = _SDFSpecs[3];
@@ -97,11 +79,7 @@ struct SignedDistanceFieldInfo
     Envi_x_length = _SDFSpecs[9];       Envi_y_length = _SDFSpecs[10];      Envi_z_length = _SDFSpecs[11];
     GridNo = (int)_SDFSpecs[12];
   }
-  double SignedDistance(const Vector3 &Point) const
-  {
-    // This function is used to compute the distance from a 3D point to the environment terrain
-    // The first job is to figure out the nearest neighbours of the Points
-
+  double SignedDistance(const Vector3 &Point) const{
     double x_FloatIndex = (Point.x - Envi_x_min)/Envi_x_unit * 1.0;
     double y_FloatIndex = (Point.y - Envi_y_min)/Envi_y_unit * 1.0;
     double z_FloatIndex = (Point.z - Envi_z_min)/Envi_z_unit * 1.0;
@@ -110,38 +88,26 @@ struct SignedDistanceFieldInfo
     int y_leftindex = std::floor(y_FloatIndex);
     int z_leftindex = std::floor(z_FloatIndex);
 
-    if(x_leftindex<0)
-    {
+    if(x_leftindex<0){
       x_leftindex = 0;
-    }
-    else
-    {
-      if(x_leftindex>GridNo-2)
-      {
+    } else {
+      if(x_leftindex>GridNo-2) {
         x_leftindex = GridNo-2;
       }
     }
 
-    if(y_leftindex<0)
-    {
+    if(y_leftindex<0) {
       y_leftindex = 0;
-    }
-    else
-    {
-      if(y_leftindex>GridNo-2)
-      {
+    } else {
+      if(y_leftindex>GridNo-2) {
         y_leftindex = GridNo-2;
       }
     }
 
-    if(z_leftindex<0)
-    {
+    if(z_leftindex<0) {
       z_leftindex = 0;
-    }
-    else
-    {
-      if(z_leftindex>GridNo-2)
-      {
+    } else {
+      if(z_leftindex>GridNo-2) {
         z_leftindex = GridNo-2;
       }
     }
@@ -192,8 +158,7 @@ struct SignedDistanceFieldInfo
 
     return valMABCDEFHG;
   }
-  Vector3 SignedDistanceNormal(const Vector3 &Point) const
-  {
+  Vector3 SignedDistanceNormal(const Vector3 &Point) const {
     // This function is used to calculate the (1 x 3) Jacobian matrix given the current Position
     // This function is used to compute the distance from a 3D point to the environment terrain
     // The first job is to figure out the nearest neighbours of the Points
@@ -206,38 +171,26 @@ struct SignedDistanceFieldInfo
     int y_leftindex = std::floor(y_FloatIndex);
     int z_leftindex = std::floor(z_FloatIndex);
 
-    if(x_leftindex<0)
-    {
+    if(x_leftindex<0) {
       x_leftindex = 0;
-    }
-    else
-    {
-      if(x_leftindex>GridNo-2)
-      {
+    } else {
+      if(x_leftindex>GridNo-2) {
         x_leftindex = GridNo-2;
       }
     }
 
-    if(y_leftindex<0)
-    {
+    if(y_leftindex<0) {
       y_leftindex = 0;
-    }
-    else
-    {
-      if(y_leftindex>GridNo-2)
-      {
+    } else {
+      if(y_leftindex>GridNo-2) {
         y_leftindex = GridNo-2;
       }
     }
 
-    if(z_leftindex<0)
-    {
+    if(z_leftindex<0) {
       z_leftindex = 0;
-    }
-    else
-    {
-      if(z_leftindex>GridNo-2)
-      {
+    } else {
+      if(z_leftindex>GridNo-2) {
         z_leftindex = GridNo-2;
       }
     }
@@ -308,19 +261,15 @@ struct SignedDistanceFieldInfo
   int GridNo;
 };
 
-struct RMPoint
-{
+struct RMPoint {
   // This struct is used to save the information of a point in Reachability Map.
-  RMPoint()
-  {
-  }
-  RMPoint(const double & r, const Vector3 & Pos)
-  {
+  RMPoint();
+  RMPoint(const double & r, const Vector3 & Pos) {
     // Constructor
     Radius = r;
     Position = Pos;
     Direction = Position;
-    double PositionLength = sqrt(Position.x * Position.x + Position.y * Position.y + Position.z * Position.z);
+    double PositionLength = std::sqrt(Position.x * Position.x + Position.y * Position.y + Position.z * Position.z);
     Direction.x = Direction.x/PositionLength;
     Direction.y = Direction.y/PositionLength;
     Direction.z = Direction.z/PositionLength;
@@ -330,43 +279,33 @@ struct RMPoint
   Vector3 Direction;
 };
 
-struct ReachabilityMap
-{
+struct ReachabilityMap {
   // This struct is used to save the reachability map
-  ReachabilityMap()
-  {}
-  ReachabilityMap(const std::map<int, std::vector<RMPoint>> & _RMLayers)
-  {
-    RMLayers = _RMLayers;
-  };
-  void ReachabilityMapPara(const double & _MaxRadius, const int & _LayerNumber, const int & _PointNumberOnInner, const double & _LayerDiff, const double & _MinRadius)
-  {
+  ReachabilityMap();
+  ReachabilityMap(const std::map<int, std::vector<RMPoint>> & _RMLayers):RMLayers(_RMLayers){};
+  void ReachabilityMapPara(const double _MaxRadius, const int _LayerNumber, const int _PointNumberOnInner, const double _LayerDiff, const double _MinRadius){
     MaxRadius = _MaxRadius;
     LayerNumber = _LayerNumber;
     PointNumberOnInner = _PointNumberOnInner;
     LayerDiff = _LayerDiff;
     MinRadius = _MinRadius;
   }
-  std::vector<Vector3> IdealReachablePointsFinder(const Robot & SimRobot, const int & LinkInfoIndex)
-  {
+  std::vector<Vector3> IdealReachablePointsFinder(const Robot & SimRobot, const int & LinkInfoIndex){
     std::vector<Vector3> ReachablePoints;
     ReachablePoints.reserve(TotalPoint);
     double PivotalLinkIndex = EndEffectorPivotalIndex[LinkInfoIndex];
     Vector3 RefPoint, ZeroPos(0.0, 0.0, 0.0);
     SimRobot.GetWorldPosition(ZeroPos, PivotalLinkIndex, RefPoint);
-    for (int i = 0; i < LayerNumber; i++)
-    {
+    for (int i = 0; i < LayerNumber; i++){
       std::vector<RMPoint> RMLayer_i = RMLayers[i];
-      for (int j = 0; j < RMLayer_i.size(); j++)
-      {
+      for (int j = 0; j < RMLayer_i.size(); j++){
         Vector3 RMPointPos = RMLayer_i[j].Position + RefPoint;
         ReachablePoints.push_back(RMPointPos);
       }
     }
     return ReachablePoints;
   }
-  std::vector<Vector3> ReachablePointsFinder(const Robot & SimRobot, const int & LinkInfoIndex, SignedDistanceFieldInfo & SDFInfo, const Vector3 & COMVel)
-  {
+  std::vector<Vector3> ReachablePointsFinder(const Robot & SimRobot, const int & LinkInfoIndex, SignedDistanceFieldInfo & SDFInfo, const Vector3 & COMVel){
     double Radius = EndEffectorRadius[LinkInfoIndex];
     double PivotalLinkIndex = EndEffectorPivotalIndex[LinkInfoIndex];
 
@@ -375,8 +314,7 @@ struct ReachabilityMap
     int ReachablePointNo = 0;
     return ReachablePointsGene(RefPoint, Radius, SDFInfo, ReachablePointNo, COMVel);
   }
-  std::vector<Vector3> ReachablePointsFinder(const Robot & SimRobot, const int & LinkInfoIndex, SignedDistanceFieldInfo & SDFInfo)
-  {
+  std::vector<Vector3> ReachablePointsFinder(const Robot & SimRobot, const int & LinkInfoIndex, SignedDistanceFieldInfo & SDFInfo){
     double Radius = EndEffectorRadius[LinkInfoIndex];
     double PivotalLinkIndex = EndEffectorPivotalIndex[LinkInfoIndex];
 
@@ -386,8 +324,7 @@ struct ReachabilityMap
     int ReachablePointNo = 0;
     return ReachablePointsGene(RefPoint, Radius, SDFInfo, ReachablePointNo, COMVel);
   }
-  std::vector<Vector3> ReachablePointsGene(const Vector3 & RefPoint, const double & Radius, SignedDistanceFieldInfo & SDFInfo, int & ReachablePointNo, const Vector3 & COMVel)
-  {
+  std::vector<Vector3> ReachablePointsGene(const Vector3 & RefPoint, const double & Radius, SignedDistanceFieldInfo & SDFInfo, int & ReachablePointNo, const Vector3 & COMVel){
     // Here MinRadius is used for comparison while Radius is the maximum allowed radius of robot's end effector.
     // This function is used to get presumably active ReachablePointsGene() from all sampled points.
     const double DisTol = 0.01;        // 1cm as a signed distance tolerance.
@@ -396,30 +333,22 @@ struct ReachabilityMap
     ReachablePointNo = 0;
     int LayerIndex = 0;
     double LayerRadius = MinRadius;
-    if(Radius>MaxRadius)
-    {
-      // Then LayerNumber can all be used.
+    if(Radius>MaxRadius){
       LayerIndex = LayerNumber-1;
-    }
-    else
-    {
-      while (LayerRadius<Radius)
-      {
+    } else{
+      while (LayerRadius<Radius){
         LayerRadius+=LayerDiff;
         LayerIndex++;
       }
       LayerRadius-=LayerDiff;
     }
 
-    for (int i = 0; i < LayerIndex; i++)
-    {
+    for (int i = 0; i < LayerIndex; i++){
       std::vector<RMPoint> RMLayer_i = RMLayers[i];
-      for (int j = 0; j < RMLayer_i.size(); j++)
-      {
+      for (int j = 0; j < RMLayer_i.size(); j++){
         Vector3 RMPointPos = RMLayer_i[j].Position + RefPoint;
         double CurrentDist = SDFInfo.SignedDistance(RMPointPos);
-        if(CurrentDist*CurrentDist<DisTol*DisTol)
-        {
+        if(CurrentDist*CurrentDist<DisTol*DisTol){
           ReachablePoints.push_back(RMPointPos);
           ReachablePointNo++;
         }
@@ -427,39 +356,34 @@ struct ReachabilityMap
     }
     return ReachablePoints;
   }
-  std::vector<Vector3> ContactFreePointsFinder(const double & radius, const std::vector<Vector3> & ReachablePoints,const std::vector<std::pair<Vector3, double>> & ContactFreeInfo)
-  {
+  std::vector<Vector3> ContactFreePointsFinder(const double & radius, const std::vector<Vector3> & ReachablePoints,const std::vector<std::pair<Vector3, double>> & ContactFreeInfo){
     // This function can only be called after ReachablePointsFinder() to reduce the extra point further.
     std::vector<Vector3> ContactFreePoints;
     ContactFreePoints.reserve(ReachablePoints.size());
     int ContactFreeNo = 0;
-    for (int i = 0; i < ReachablePoints.size(); i++)
-    {
+    for (int i = 0; i < ReachablePoints.size(); i++){
       Vector3 ReachablePoint = ReachablePoints[i];
       bool ContactFreeFlag = true;
       int ContactFreeInfoIndex = 0;
-      while (ContactFreeInfoIndex<ContactFreeInfo.size())
-      {
+      while (ContactFreeInfoIndex<ContactFreeInfo.size()){
         Vector3 RefPoint = ContactFreeInfo[ContactFreeInfoIndex].first;
         double Radius = ContactFreeInfo[ContactFreeInfoIndex].second;
         Vector3 PosDiff = ReachablePoint - RefPoint;
         double PosDiffDis = sqrt(PosDiff.x * PosDiff.x + PosDiff.y * PosDiff.y + PosDiff.z * PosDiff.z);
-        if(PosDiffDis<=(Radius + radius))
-        {
+        if(PosDiffDis<=(Radius + radius)){
           ContactFreeFlag = false;
           break;
         }
         ContactFreeInfoIndex++;
       }
-      if(ContactFreeFlag)
-      {
+      if(ContactFreeFlag){
         ContactFreePoints.push_back(ReachablePoints[i]);
         ContactFreeNo++;
       }
     }
     return ContactFreePoints;
   };
-  std::map<int, std::vector<RMPoint>> RMLayers;       // Each layer contains several data points.
+  std::map<int, std::vector<RMPoint>> RMLayers;
   std::vector<double> EndEffectorCollisionRadius;
   std::vector<double> EndEffectorRadius;
   std::vector<int> EndEffectorLinkIndex;              //
