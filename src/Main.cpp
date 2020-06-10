@@ -11,12 +11,11 @@
 
 SignedDistanceFieldInfo NonlinearOptimizerInfo::SDFInfo;
 std::vector<LinkInfo>   NonlinearOptimizerInfo::RobotLinkInfo;
-static bool SDFFlag = false;
 
 int main()
 {
   /* 1. Load the Contact Link file */
-  const std::string UserFilePath = "../user/hrp2/";
+  const std::string UserFilePath = "../user/";
   const std::string ContactLinkPath = UserFilePath + "ContactLink.txt";
   int NumberOfContactPoints;
   NonlinearOptimizerInfo::RobotLinkInfo = ContactInfoLoader(ContactLinkPath, NumberOfContactPoints);
@@ -26,16 +25,12 @@ int main()
   std::vector<int> SelfCollisionFreeLink = TorsoLinkReader(SelfCollisionFreeLinkFilePath);
 
   /* 2. Load the Envi and Contact Status file */
-  std::ifstream FolderPathFile("./Specs/EnviSpecs.txt");
-  std::string EnviName;
+  std::ifstream FolderPathFile("../user/CaseSpecs.txt");
   std::string ExpName;
-  std::string ContactType;
-  std::getline(FolderPathFile, EnviName);
   std::getline(FolderPathFile, ExpName);
-  std::getline(FolderPathFile, ContactType);
   FolderPathFile.close();
 
-  const std::string ExperimentPath = "../result/" + ExpName + "/" + ContactType;
+  const std::string ExperimentPath = "/home/motion/Desktop/Whole-Body-Planning-for-Push-Recovery-Data/result/" + ExpName;
 
   std::ifstream SettingsFile(ExperimentPath + "/" + "Settings.txt");
   std::string ForceMaxStr, PushDurationStr, DetectionWaitStr;
@@ -50,30 +45,30 @@ int main()
   RobotWorld worldObj;
   SimGUIBackend BackendObj(&worldObj);
   WorldSimulation& SimObj = BackendObj.sim;
-  string XMLFileStrObj =  "../" + EnviName;
+  string XMLFileStrObj =  ExperimentPath + "/" + "Environment.xml";
   const char* XMLFileObj = XMLFileStrObj.c_str();    // Here we must give abstract path to the file
   if(!BackendObj.LoadAndInitSim(XMLFileObj))
   {
-    std::cerr<< EnviName<<" file does not exist in that path!"<<endl;
+    std::cerr<< XMLFileStrObj<<" file does not exist in that path!"<<endl;
     return -1;
   }
 
-  /* 3. Environment Geometry and Reachability Map */
-  const int GridsNo = 251;
-  struct stat buffer;   // This is used to check whether "SDFSpecs.bin" exists or not.
-  const string SDFSpecsName = "./SDFs/SDFSpecs.bin";
-  if(stat (SDFSpecsName.c_str(), &buffer) == 0)
-  {
-    NonlinearOptimizerInfo::SDFInfo = SignedDistanceFieldLoader(GridsNo);
-  }
-  else
-  {
-    if(!SDFFlag)
-    {
-      NonlinearOptimizerInfo::SDFInfo = SignedDistanceFieldGene(worldObj, GridsNo);
-      SDFFlag = true;
-    }
-  }
+  // /* 3. Environment Geometry and Reachability Map */
+  // const int GridsNo = 251;
+  // struct stat buffer;   // This is used to check whether "SDFSpecs.bin" exists or not.
+  // const string SDFSpecsName = "./SDFs/SDFSpecs.bin";
+  // if(stat (SDFSpecsName.c_str(), &buffer) == 0)
+  // {
+  //   NonlinearOptimizerInfo::SDFInfo = SignedDistanceFieldLoader(GridsNo);
+  // }
+  // else
+  // {
+  //   if(!SDFFlag)
+  //   {
+  //     NonlinearOptimizerInfo::SDFInfo = SignedDistanceFieldGene(worldObj, GridsNo);
+  //     SDFFlag = true;
+  //   }
+  // }
   // ReachabilityMap RMObject = ReachabilityMapGenerator(*worldObj.robots[0], NonlinearOptimizerInfo::RobotLinkInfo, TorsoLink);
   //
   // const int NumberOfTerrains = worldObj.terrains.size();
