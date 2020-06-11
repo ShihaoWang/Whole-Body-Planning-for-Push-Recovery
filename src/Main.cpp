@@ -8,9 +8,11 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <string>
+#include "RobotInfo.h"
 
-SignedDistanceFieldInfo NonlinearOptimizerInfo::SDFInfo;
 std::vector<LinkInfo>   NonlinearOptimizerInfo::RobotLinkInfo;
+SignedDistanceFieldInfo NonlinearOptimizerInfo::SDFInfo;
+AnyCollisionGeometry3D  NonlinearOptimizerInfo::TerrColGeom;
 
 int main(){
   /* 1. Load the Contact Link file */
@@ -29,9 +31,9 @@ int main(){
   std::getline(FolderPathFile, ExpName);
   FolderPathFile.close();
 
-  const std::string ExperimentPath = "/home/motion/Desktop/Whole-Body-Planning-for-Push-Recovery-Data/result/" + ExpName + "/";
+  const std::string ExperimentFolderPath = "/home/motion/Desktop/Whole-Body-Planning-for-Push-Recovery-Data/result/" + ExpName + "/";
 
-  std::ifstream SettingsFile(ExperimentPath + "Settings.txt");
+  std::ifstream SettingsFile(ExperimentFolderPath + "Settings.txt");
   std::string ForceMaxStr, PushDurationStr, DetectionWaitStr;
   std::getline(SettingsFile, ForceMaxStr);
   std::getline(SettingsFile, PushDurationStr);
@@ -40,96 +42,83 @@ int main(){
   double ForceMax = std::stod(ForceMaxStr);
   double PushDuration = std::stod(PushDurationStr);
   double DetectionWait = std::stod(DetectionWaitStr);
+  SimPara SimParaObj(ForceMax, PushDuration, DetectionWait);
 
   RobotWorld worldObj;
   SimGUIBackend BackendObj(&worldObj);
   WorldSimulation& SimObj = BackendObj.sim;
-  string XMLFileStrObj =  ExperimentPath + "Environment.xml";
+  string XMLFileStrObj =  ExperimentFolderPath + "Environment.xml";
   const char* XMLFileObj = XMLFileStrObj.c_str();    // Here we must give abstract path to the file
   if(!BackendObj.LoadAndInitSim(XMLFileObj)){
     std::cerr<< XMLFileStrObj<<" file does not exist in that path!"<<endl;
     return -1;
   }
 
-  /* 3. Environment Geometry and Reachability Map */
+  /* 3. Environment Geometry, Reachability Map and BBs for Self-collision Test */
   const int GridsNo = 251;
   struct stat buffer;   // This is used to check whether "SDFSpecs.bin" exists or not.
-  const string SDFPath = ExperimentPath + "SDFs/";
+  const string SDFPath = ExperimentFolderPath + "SDFs/";
   const string SDFSpecsName = SDFPath + "SDFSpecs.bin";
   if(stat (SDFSpecsName.c_str(), &buffer) == 0){
     NonlinearOptimizerInfo::SDFInfo = SignedDistanceFieldLoader(SDFPath, GridsNo);
   } else {
       NonlinearOptimizerInfo::SDFInfo = SignedDistanceFieldGene(SDFPath, worldObj, GridsNo);
   }
-
   ReachabilityMap RMObject = ReachabilityMapGenerator(*worldObj.robots[0], NonlinearOptimizerInfo::RobotLinkInfo, TorsoLink);
-  // int a = 1;
-  //
-  // const int NumberOfTerrains = worldObj.terrains.size();
-  // std::shared_ptr<Terrain> Terrain_ptr = std::make_shared<Terrain>(*worldObj.terrains[0]);
-  // Meshing::TriMesh EnviTriMesh  = Terrain_ptr->geometry->AsTriangleMesh();
-  // for (int i = 0; i < NumberOfTerrains-1; i++)
-  // {
-  //   std::shared_ptr<Terrain> Terrain_ptr = std::make_shared<Terrain>(*worldObj.terrains[i+1]);
-  //   Meshing::TriMesh EnviTriMesh_i  = Terrain_ptr->geometry->AsTriangleMesh();
-  //   EnviTriMesh.MergeWith(EnviTriMesh_i);
-  // }
-  // AnyCollisionGeometry3D TerrColGeom(EnviTriMesh);
-  //
-  // /* 4. BBs for Robot's Links */
-  // SelfLinkGeoInfo SelfLinkGeoObj(*worldObj.robots[0], RMObject.EndEffectorLink2Pivotal, SelfCollisionFreeLink);      // Here SelfLinkGeoObj is instantiated with robot at zero configuration.
-  //
-  // int FileIndex = FileIndexFinder(false);
-  // int TotalNumber = 100;
-  //
-  // string PlanningType = "RHP";
-  // // string PlanningType = "OLP";
-  //
-  // /* 5. Internal Experimentation Loop */
-  // while(FileIndex<=TotalNumber)
-  // {
-  //   string SpecificPath = ExperimentPath + "/" + std::to_string(FileIndex) + "/";
-  //
-  //   RobotWorld world;
-  //   SimGUIBackend Backend(&world);
-  //   WorldSimulation& Sim = Backend.sim;
-  //
-  //   string XMLFileStr = "../" + EnviName;
-  //   const char* XMLFile = XMLFileStr.c_str();    // Here we must give abstract path to the file
-  //   if(!Backend.LoadAndInitSim(XMLFile))
-  //   {
-  //     std::cerr<< EnviName << " file does not exist in that path!" << endl;
-  //     return -1;
-  //   }
-  //   Robot SimRobot = *world.robots[0];
-  //   RobotConfigLoader(SimRobot, SpecificPath, "InitConfig.config");
-  //
-  //   const std::string ContactStatusPath = SpecificPath + "ContactStatus.txt";
-  //   std::vector<ContactStatusInfo> RobotContactInfo = ContactStatusInfoLoader(ContactStatusPath);
-  //
-  //   std::vector<double> InitRobotConfig(SimRobot.q);
-  //   std::vector<double> InitRobotVelocity(SimRobot.q.size(), 0.0);
-  //   std::vector<double> RobotConfigRef = InitRobotVelocity;
-  //
-  //   //  Given the optimized result to be the initial state
-  //   Sim.world->robots[0]->UpdateConfig(Config(InitRobotConfig));
-  //   Sim.world->robots[0]->dq = InitRobotVelocity;
-  //
-  //   Sim.controlSimulators[0].oderobot->SetConfig(Config(InitRobotConfig));
-  //   Sim.controlSimulators[0].oderobot->SetVelocities(Config(InitRobotVelocity));
-  //
-  //   int PushRecovFlag = 0;
-  //   int FailureFlag = 0;
-  //   SpecificPath+= PlanningType + "/";
-  //   FilePathManager(SpecificPath);
-  //
-  //   SimulationTest(Sim, NonlinearOptimizerInfo::RobotLinkInfo, RobotContactInfo, RMObject, TerrColGeom, SelfLinkGeoObj, SpecificPath, ForceMax, PushDuration, DetectionWait, PushRecovFlag, FailureFlag, PlanningType);
-  //   if(FailureFlag)
-  //   {
-  //     PlanResWriter(SpecificPath, PushRecovFlag);
-  //     FileIndex = FileIndexFinder(true);
-  //     FileIndex++;
-  //   }
-  // }
+  const int NumberOfTerrains = worldObj.terrains.size();
+  std::shared_ptr<Terrain> Terrain_ptr = std::make_shared<Terrain>(*worldObj.terrains[0]);
+  Meshing::TriMesh EnviTriMesh  = Terrain_ptr->geometry->AsTriangleMesh();
+  for (int i = 0; i < NumberOfTerrains-1; i++){
+    std::shared_ptr<Terrain> Terrain_ptr = std::make_shared<Terrain>(*worldObj.terrains[i+1]);
+    Meshing::TriMesh EnviTriMesh_i  = Terrain_ptr->geometry->AsTriangleMesh();
+    EnviTriMesh.MergeWith(EnviTriMesh_i);
+  }
+  AnyCollisionGeometry3D TerrColGeom(EnviTriMesh);
+  NonlinearOptimizerInfo::TerrColGeom = TerrColGeom;
+  SelfLinkGeoInfo SelfLinkGeoObj(*worldObj.robots[0], RMObject.EndEffectorLink2Pivotal, SelfCollisionFreeLink);
+
+  /* 5. Internal Experimentation Loop */
+  int TotalNumber = 100;
+  int FileIndex = FileIndexFinder(false);
+  while(FileIndex<=TotalNumber){
+    RobotWorld world;
+    SimGUIBackend Backend(&world);
+    WorldSimulation& Sim = Backend.sim;
+
+    string XMLFileStr =  ExperimentFolderPath + "Environment.xml";
+    const char* XMLFile = XMLFileStr.c_str();    // Here we must give abstract path to the file
+    if(!Backend.LoadAndInitSim(XMLFile)){
+      std::cerr<<XMLFileStr<< "file does not exist in that path!" << endl;
+      return -1;
+    }
+    Robot SimRobot = *world.robots[0];
+    string CurrentCasePath = ExperimentFolderPath + std::to_string(FileIndex) + "/";
+    RobotConfigLoader(SimRobot, CurrentCasePath, "InitConfig.config");
+    const std::string ContactStatusPath = CurrentCasePath + "ContactStatus.txt";
+    std::vector<ContactStatusInfo> InitContactInfo = ContactStatusInfoLoader(ContactStatusPath);
+    SimParaObj.CurrentCasePathUpdate(CurrentCasePath);
+
+    std::vector<double> InitConfig(SimRobot.q);
+    std::vector<double> InitVelocity(SimRobot.q.size(), 0.0);
+    std::vector<double> RobotConfigRef = InitVelocity;
+
+    //  Given the optimized result to be the initial state
+    Sim.world->robots[0]->UpdateConfig(Config(InitConfig));
+    Sim.world->robots[0]->dq = InitVelocity;
+    Sim.controlSimulators[0].oderobot->SetConfig(Config(InitConfig));
+    Sim.controlSimulators[0].oderobot->SetVelocities(Config(InitVelocity));
+    int SimRes = SimulationTest(Sim, InitContactInfo, RMObject, SelfLinkGeoObj, SimParaObj);
+    // int SimulationTest(Sim, InitContactInfo, RMObject, SelfLinkGeoObj)
+
+    // CurrentCasePath+= PlanningType + "/";
+    // FilePathManager(CurrentCasePath);
+    // SimulationTest(Sim, InitContactInfo, SelfLinkGeoObj, SimParaObj);
+    // if(FailureFlag)
+    // {
+    //   PlanResWriter(CurrentCasePath, PushRecovFlag);
+    //   FileIndex = FileIndexFinder(true);
+    //   FileIndex++;
+    // }
+  }
   return 1;
 }

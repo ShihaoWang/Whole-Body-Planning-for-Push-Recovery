@@ -47,7 +47,9 @@ add_executable(MyApp
                src/CommonHeader.h
                src/ContactInfoLoader.cpp
                src/EnviGeometry.cpp
-	       src/RobotStateFiler.cpp)
+	       src/RobotStateFiler.cpp
+	       src/RobotUtils.cpp
+	       src/SimulationTest.cpp)
 
 target_link_libraries(MyApp  ${KLAMPT_LIBRARIES} ${SNOPT_LIBRARIES} ${GLEW_LIBRARY})
 #set_property(TARGET MyApp PROPERTY INTERPROCEDURAL_OPTIMIZATION True)

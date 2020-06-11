@@ -26,4 +26,12 @@ void RobotConfigLoader(Robot &SimRobot, const string &user_path, const string &f
 void RobotConfigWriter(const std::vector<double> & Config, const string &user_path, const string &config_file_name);
 std::vector<int> TorsoLinkReader(const string & TorsoLinkFilePath);
 
+/* 3. Robot Utilities*/
+int FileIndexFinder(bool UpdateFlag);
+void FilePathManager(const string & SpecificPath);
+
+/* 4. Main Simulation*/
+int SimulationTest(const WorldSimulation & Sim, std::vector<ContactStatusInfo> InitContactInfo, ReachabilityMap & RMObject, SelfLinkGeoInfo & SelfLinkGeoObj, SimPara SimParaObj);
+
+
 #endif

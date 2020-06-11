@@ -398,4 +398,183 @@ struct ReachabilityMap {
   int TotalPoint;
 };
 
+struct SelfLinkGeoInfo{
+  SelfLinkGeoInfo();
+  SelfLinkGeoInfo(const Robot & SimRobot, const std::map<int, std::vector<int>> & EndEffectorLink2Pivotal, const std::vector<int> & SelfCollisionFreeLink){
+    for (int i = 5; i < SimRobot.q.size(); i++){
+      AABB3D AABB3D_i = SimRobot.geometry[i]->GetAABBTight();
+      Frame3D LinkTransforms_i = SimRobot.links[i].T_World;
+      LinkBBs.push_back(AABB3D_i);
+      LinkTransforms.push_back(LinkTransforms_i);
+    }
+
+    for (int i = 0; i < EndEffectorLink2Pivotal.size(); i++){
+      std::vector<int> EndLink2PivIndices = EndEffectorLink2Pivotal.at(i);
+      for (int j = 5; j < SimRobot.q.size(); j++){
+        if(std::find(EndLink2PivIndices.begin(), EndLink2PivIndices.end(), j) == EndLink2PivIndices.end()){
+          if(std::find(SelfCollisionFreeLink.begin(), SelfCollisionFreeLink.end(), j) == SelfCollisionFreeLink.end()){
+            SelfCollisionLinkMap[i].push_back(j-5);
+          }
+        }
+      }
+    }
+  };
+  void LinkBBsUpdate(const Robot& SimRobot){
+    for (int i = 5; i < SimRobot.q.size(); i++){
+      AABB3D AABB3D_i = SimRobot.geometry[i]->GetAABBTight();
+      LinkBBs[i-5] = AABB3D_i;
+      Frame3D LinkTransforms_i = SimRobot.links[i].T_World;
+      LinkTransforms[i-5] = LinkTransforms_i;
+    }
+  }
+  double SingleLinkDist(const int & LinkCountIndex, const Vector3 & GlobalPoint){
+    return LinkBBs[LinkCountIndex].signedDistance(GlobalPoint);
+  }
+
+  void SingleLinkDistNGrad(const int & LinkCountIndex, const Vector3 & GlobalPoint, double & Dist, Vector3 & DistGrad){
+    const int GridNo = 100;
+    double dx = LinkBBs[LinkCountIndex].size().x/(1.0 * GridNo);
+    double dy = LinkBBs[LinkCountIndex].size().y/(1.0 * GridNo);
+    double dz = LinkBBs[LinkCountIndex].size().z/(1.0 * GridNo);
+
+    Dist = LinkBBs[LinkCountIndex].signedDistance(GlobalPoint);
+
+    Vector3 GlobalPointx = GlobalPoint;
+    GlobalPointx.x += dx;
+    double Distx = LinkBBs[LinkCountIndex].signedDistance(GlobalPointx);
+
+    Vector3 GlobalPointy = GlobalPoint;
+    GlobalPointy.y += dy;
+    double Disty = LinkBBs[LinkCountIndex].signedDistance(GlobalPointy);
+
+    Vector3 GlobalPointz = GlobalPoint;
+    GlobalPointz.z += dz;
+    double Distz = LinkBBs[LinkCountIndex].signedDistance(GlobalPointz);
+
+    DistGrad.x = (Distx - Dist)/dx;
+    DistGrad.y = (Disty - Dist)/dy;
+    DistGrad.z = (Distz - Dist)/dz;
+    DistGrad.getNormalized(DistGrad);
+  }
+
+  std::vector<Vector3> BBVertices(const int & BBIndex){
+    std::vector<Vector3> Vertices(8);
+    // This function calculates the vertices for current bounding box.
+    AABB3D CurBB = LinkBBs[BBIndex];
+    Vector3 CurBBSize = CurBB.size();
+    RigidTransform CurBBtoWorld = LinkTransforms[BBIndex];
+
+    Vector3 bmin = CurBB.bmin;
+    Vector3 bmax = CurBB.bmax;
+
+    Vector3 bmin2bmax = bmax - bmin;
+
+    Vector3 xAxis(CurBBtoWorld.R.data[0][0], CurBBtoWorld.R.data[0][1], CurBBtoWorld.R.data[0][2]);
+    Vector3 yAxis(CurBBtoWorld.R.data[1][0], CurBBtoWorld.R.data[1][1], CurBBtoWorld.R.data[1][2]);
+    Vector3 zAxis(CurBBtoWorld.R.data[2][0], CurBBtoWorld.R.data[2][1], CurBBtoWorld.R.data[2][2]);
+
+    double xbmin2bmax = xAxis.dot(bmin2bmax);
+    double ybmin2bmax = yAxis.dot(bmin2bmax);
+    double zbmin2bmax = zAxis.dot(bmin2bmax);
+
+    // Now we can have eight points explicitly.
+    Vertices[0] = bmin;
+    Vertices[1] = bmin + xbmin2bmax * xAxis;
+    Vertices[2] = bmin + zbmin2bmax * zAxis;
+    Vertices[3] = bmin + xbmin2bmax * xAxis + zbmin2bmax * zAxis;
+
+    Vertices[4] = bmin + ybmin2bmax * yAxis;
+    Vertices[5] = bmin + ybmin2bmax * yAxis + xbmin2bmax * xAxis;
+    Vertices[6] = bmin + ybmin2bmax * yAxis + zbmin2bmax * zAxis;
+    Vertices[7] = bmin + ybmin2bmax * yAxis + xbmin2bmax * xAxis + zbmin2bmax * zAxis;
+    return Vertices;
+  }
+
+  void Vector3Writer(const std::vector<Vector3> & ContactPoints, const std::string &ContactPointFileName){
+    if(ContactPoints.size()==0){
+      std::cerr<< " ContactPoints has zero element!\n" << endl;
+    }
+    int NumberOfContactPoints = ContactPoints.size();
+    std::vector<double> FlatContactPoints(3 * NumberOfContactPoints);
+    int FlatContactPointIndex = 0;
+    for (int i = 0; i < NumberOfContactPoints; i++){
+      FlatContactPoints[FlatContactPointIndex] = ContactPoints[i].x;
+      FlatContactPointIndex++;
+      FlatContactPoints[FlatContactPointIndex] = ContactPoints[i].y;
+      FlatContactPointIndex++;
+      FlatContactPoints[FlatContactPointIndex] = ContactPoints[i].z;
+      FlatContactPointIndex++;
+    }
+    FILE * FlatContactPointsFile = NULL;
+    string ContactPointFile = ContactPointFileName + ".bin";
+    const char *ContactPointFile_Name = ContactPointFile.c_str();
+    FlatContactPointsFile = fopen(ContactPointFile_Name, "wb");
+    fwrite(&FlatContactPoints[0], sizeof(double), FlatContactPoints.size(), FlatContactPointsFile);
+    fclose(FlatContactPointsFile);
+    return;
+  }
+
+  double SelfCollisionDist(const int & LinkIndex, const Vector3 & GlobalPoint){
+    const int ActLinkNo = SelfCollisionLinkMap[LinkIndex].size();
+    std::vector<double> DistVec;
+    DistVec.reserve(ActLinkNo);
+    for (int i = 0; i < ActLinkNo; i++){
+      int SelfLinkIndex = SelfCollisionLinkMap[LinkIndex][i];
+      double Dist_i = LinkBBs[SelfLinkIndex].signedDistance(GlobalPoint);
+      DistVec.push_back(Dist_i);
+    }
+    double Dist = *std::min_element(DistVec.begin(), DistVec.end());
+    return Dist;
+  }
+
+  void SelfCollisionDistNGrad(const int & LinkIndex, const Vector3 & GlobalPoint, double & Dist, Vector3 & Grad){
+    // This function is used to calculate robot's self-collision distance given a point
+    const int ActLinkNo = SelfCollisionLinkMap[LinkIndex].size();
+    std::vector<double> DistVec;
+    DistVec.reserve(ActLinkNo);
+    std::vector<Vector3> GradVec;
+    GradVec.reserve(ActLinkNo);
+    std::vector<double> DistWeights;
+    DistWeights.reserve(ActLinkNo);
+    double Dist_i;
+    Vector3 Grad_i;
+    for (int i = 0; i < ActLinkNo; i++){
+      int SelfLinkIndex = SelfCollisionLinkMap[LinkIndex][i];
+      SingleLinkDistNGrad(SelfLinkIndex, GlobalPoint, Dist_i, Grad_i);
+      DistVec.push_back(Dist_i);
+      GradVec.push_back(Grad_i);
+    }
+    Dist = *std::min_element(DistVec.begin(), DistVec.end());
+    double Scale = abs(Dist);
+    for (int i = 0; i < ActLinkNo; i++){
+      DistWeights.push_back(exp(-1.0 * DistVec[i]/Scale));
+    }
+    // Set its value to be zero!
+    Grad.x = 0.0;
+    Grad.y = 0.0;
+    Grad.z = 0.0;
+    for (int i = 0; i < ActLinkNo; i++){
+      Grad+=DistWeights[i] * GradVec[i];
+    }
+    Grad.getNormalized(Grad);
+  }
+  std::vector<AABB3D> LinkBBs;
+  std::vector<RigidTransform> LinkTransforms;
+  std::map<int, std::vector<int>> SelfCollisionLinkMap;       // This map saves intermediate joint from End Effector Joint to Pivotal Joint.
+};
+
+struct SimPara{
+  SimPara();
+  SimPara(const double _ForceMax,
+          const double _PushDuration,
+          const double _DetectionWait):ForceMax(_ForceMax), PushDuration(_PushDuration), DetectionWait(_DetectionWait){}
+  void CurrentCasePathUpdate(const string _CurrentCasePath){
+    CurrentCasePath = _CurrentCasePath;
+  }
+  double ForceMax;
+  double PushDuration;
+  double DetectionWait;
+  std::string CurrentCasePath;
+};
+
 #endif

@@ -182,14 +182,9 @@ struct NonlinearOptimizerInfo
   int StartType; //     (Cold = 0, Basis = 1, Warm = 2;)
 
   // The following variables are used as internal variables.
-  // Robot SimRobotObj;
   static std::vector<LinkInfo> RobotLinkInfo;
-  // std::vector<ContactStatusInfo> RobotContactInfo;
-  // static std::vector<double> RobotConfigRef;                // This serves as a reference for robot configurations
-  // std::vector<double> RobotVelocityRef;              // This serves as a reference for robot velocities.
-
   static SignedDistanceFieldInfo SDFInfo;
-  // FailureMetricInfo FailureMetricObj;
+  static AnyCollisionGeometry3D TerrColGeom;
 };
 
 #endif
