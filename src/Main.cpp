@@ -39,10 +39,13 @@ int main(){
   std::getline(SettingsFile, PushDurationStr);
   std::getline(SettingsFile, DetectionWaitStr);
   SettingsFile.close();
-  double ForceMax = std::stod(ForceMaxStr);
-  double PushDuration = std::stod(PushDurationStr);
-  double DetectionWait = std::stod(DetectionWaitStr);
-  SimPara SimParaObj(ForceMax, PushDuration, DetectionWait);
+  double ForceMax       = std::stod(ForceMaxStr);
+  double PushDuration   = std::stod(PushDurationStr);
+  double DetectionWait  = std::stod(DetectionWaitStr);
+  double TimeStep       = 0.025;
+  double  InitDuration    = 2.0;
+  double  TotalDuration   = 5.0;                // Simulation lasts for 5s after initial duration
+  SimPara SimParaObj(ForceMax, PushDuration, DetectionWait, TimeStep, InitDuration, TotalDuration);
 
   RobotWorld worldObj;
   SimGUIBackend BackendObj(&worldObj);
@@ -107,6 +110,7 @@ int main(){
     Sim.world->robots[0]->dq = InitVelocity;
     Sim.controlSimulators[0].oderobot->SetConfig(Config(InitConfig));
     Sim.controlSimulators[0].oderobot->SetVelocities(Config(InitVelocity));
+
     int SimRes = SimulationTest(Sim, InitContactInfo, RMObject, SelfLinkGeoObj, SimParaObj);
     // int SimulationTest(Sim, InitContactInfo, RMObject, SelfLinkGeoObj)
 

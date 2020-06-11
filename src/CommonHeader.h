@@ -25,13 +25,15 @@ ReachabilityMap ReachabilityMapGenerator(Robot & SimRobot, const std::vector<Lin
 void RobotConfigLoader(Robot &SimRobot, const string &user_path, const string &file_name);
 void RobotConfigWriter(const std::vector<double> & Config, const string &user_path, const string &config_file_name);
 std::vector<int> TorsoLinkReader(const string & TorsoLinkFilePath);
+void StateTrajAppender(const char *stateTrajFile_Name, const double & Time_t, const std::vector<double> & Configuration);
 
 /* 3. Robot Utilities*/
 int FileIndexFinder(bool UpdateFlag);
 void FilePathManager(const string & SpecificPath);
+std::vector<string>  EdgeFileNamesGene(const string & CurrentCasePath);
 
 /* 4. Main Simulation*/
-int SimulationTest(const WorldSimulation & Sim, std::vector<ContactStatusInfo> InitContactInfo, ReachabilityMap & RMObject, SelfLinkGeoInfo & SelfLinkGeoObj, SimPara SimParaObj);
-
+LinearPath InitialSimulation(WorldSimulation & Sim, const SimPara & SimParaObj);
+int SimulationTest(WorldSimulation & Sim, const std::vector<ContactStatusInfo> & _InitContactInfo, ReachabilityMap & RMObject, SelfLinkGeoInfo & SelfLinkGeoObj, const SimPara & _SimParaObj);
 
 #endif

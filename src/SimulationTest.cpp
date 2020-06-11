@@ -6,46 +6,37 @@
 #include "Control/JointTrackingController.h"
 #include "NonlinearOptimizerInfo.h"
 
-int SimulationTest(const WorldSimulation & Sim, std::vector<ContactStatusInfo> InitContactInfo, ReachabilityMap & RMObject, SelfLinkGeoInfo & SelfLinkGeoObj, SimPara SimParaObj)
+int SimulationTest(WorldSimulation & Sim, const std::vector<ContactStatusInfo> & _InitContactInfo, ReachabilityMap & RMObject, SelfLinkGeoInfo & SelfLinkGeoObj, const SimPara & SimParaObj)
 {
   /* Simulation parameters */
-  double  TimeStep        = 0.025;
-  int DOF = Sim.world->robots[0]->q.size();
-  double  InitDuration    = 2.0;
-  double  DetectionWaitMeasure = SimParaObj.DetectionWait;
-  double  SimTotalTime    = 5.0;                                      // Simulation lasts for 5s.
-  bool    FailureFlag     = false;
-  int     PlanningSteps   = 0;                                        // Total Planning Step Number
-  double  MPCCount        = 0.0;
-  double  MPCDuration     = 0.1;                                      // Duration for MPC executation until the next planning
-  bool    InMPCFlag       = false;
-  bool    TouchDownFlag   = true;                                    // Used for final touch down counting
+  int     DOF             = Sim.world->robots[0]->q.size();
+  double  DetectionWait   = SimParaObj.DetectionWait;
+  int     PlanStageIndex  = 0;
+  double  MPCCounter      = 0.0;
+  double  MPCDuration     = 0.1;                // Duration for MPC executation until next planning
+  bool    MPCFlag         = false;              // True means MPC planning is working.
+  bool    TouchDownFlag   = false;
 
-  // std::vector<string> EdgeFileNames = EdgeFileNamesGene(SpecificPath);
-  // // Three types of trajectories should be saved for visualization purpose.
-  // string FailureStateTrajStr =  SpecificPath + "FailureStateTraj.path";
-  // const char *FailureStateTrajStr_Name = FailureStateTrajStr.c_str();
-  // string CtrlStateTrajStr =     SpecificPath + "CtrlStateTraj.path";
-  // const char *CtrlStateTrajStr_Name = CtrlStateTrajStr.c_str();
-  // string PlanStateTrajFileStr = SpecificPath + "PlanStateTraj.path";
-  // const char *PlanStateTrajStr_Name = PlanStateTrajFileStr.c_str();
-  //
-  // /* Override the default controller with a PolynomialPathController */
-  // auto NewControllerPtr = std::make_shared<PolynomialPathController>(*Sim.world->robots[0]);
-  // Sim.SetController(0, NewControllerPtr);
-  // NewControllerPtr->SetConstant(Sim.world->robots[0]->q);
-  //
-  // // Initial Simulation
-  // LinearPath FailureStateTraj, CtrlStateTraj, PlanStateTraj;
-  // InitialSimulation(Sim, FailureStateTraj, CtrlStateTraj, PlanStateTraj, InitDuration, TimeStep, SpecificPath);
-  // SimTotalTime           += Sim.time;
-  // std::printf("Initial Simulation Done!\n");
-  //
-  // std::vector<double> qDes = PlanStateTraj.milestones[PlanStateTraj.milestones.size()-1];               // This is commanded robot configuration to the controller.
-  // Vector3 COMPos(0.0, 0.0, 0.0), COMVel(0.0, 0.0, 0.0);
-  // double InitTime = Sim.time;
-  // double CurTime = Sim.time;
-  //
+  /* Override the default controller with a PolynomialPathController */
+  auto NewControllerPtr = std::make_shared<PolynomialPathController>(*Sim.world->robots[0]);
+  Sim.SetController(0, NewControllerPtr);
+  NewControllerPtr->SetConstant(Sim.world->robots[0]->q);
+
+  // Initial Simulation
+  LinearPath InitTraj, FailureStateTraj, CtrlStateTraj, PlanStateTraj;
+  InitTraj  = InitialSimulation(Sim, SimParaObj);
+  FailureStateTraj = InitTraj;
+  CtrlStateTraj = InitTraj;
+  PlanStateTraj = InitTraj;
+
+  double TotalDuration = SimParaObj.TotalDuration + Sim.time;
+  std::printf("Initial Simulation Done!\n");
+
+  std::vector<double> qDes = PlanStateTraj.milestones[PlanStateTraj.milestones.size()-1];               // This is commanded robot configuration to the controller.
+  Vector3 COMPos(0.0, 0.0, 0.0), COMVel(0.0, 0.0, 0.0);
+  double InitTime = Sim.time;
+  double CurTime = Sim.time;
+  // 
   // ControlReferenceInfo ControlReference;                            // Used for control reference generation.
   // FailureStateInfo FailureStateObj;
   //
@@ -58,9 +49,9 @@ int SimulationTest(const WorldSimulation & Sim, std::vector<ContactStatusInfo> I
   // bool RHPFlag = false;
   // std::string PlanningTypeStr("RHP");
   // if(PlanningTypeStr.compare(PlanningType)==0) RHPFlag = true;
-  //
+
   // // This loop is used for push recovery experimentation.
-  // while(Sim.time <= SimTotalTime){
+  // while(Sim.time <= TotalDuration){
   //   SimRobot = *Sim.world->robots[0];
   //   PushImposer(Sim, ImpulseForceMax,  InitTime, PushDuration, FailureFlag, SpecificPath);
   //
@@ -74,18 +65,18 @@ int SimulationTest(const WorldSimulation & Sim, std::vector<ContactStatusInfo> I
   //   double RefFailureMetric = CapturePointGenerator(PIPTotal, CPPIPIndex);
   //   std::printf("Simulation Time: %f, and Failure Metric: %f\n", Sim.time, RefFailureMetric);
   //   if((!RHPFlag)&&(FailureFlag)){
-  //     qDes = RawOnlineConfigReference(Sim, InitTime, ControlReference, TerrColGeom, SelfLinkGeoObj, DetectionWaitMeasure, InMPCFlag, RobotContactInfo, RMObject);
+  //     qDes = RawOnlineConfigReference(Sim, InitTime, ControlReference, TerrColGeom, SelfLinkGeoObj, DetectionWait, MPCFlag, RobotContactInfo, RMObject);
   //     ControlReference.RunningTime+=TimeStep;
   //     TouchDownFlag = ControlReference.TouchDownTerminalFlag;
   //   }
   //
-  //   if((InMPCFlag)&&(MPCCount<MPCDuration)&&(RHPFlag)){
-  //     qDes = OnlineConfigReference(Sim, InitTime, ControlReference, TerrColGeom, SelfLinkGeoObj, DetectionWaitMeasure, InMPCFlag, RobotContactInfo, RMObject, MPCCount);
+  //   if((MPCFlag)&&(MPCCount<MPCDuration)&&(RHPFlag)){
+  //     qDes = OnlineConfigReference(Sim, InitTime, ControlReference, TerrColGeom, SelfLinkGeoObj, DetectionWait, MPCFlag, RobotContactInfo, RMObject, MPCCount);
   //     ControlReference.RunningTime+=TimeStep;
   //     TouchDownFlag = ControlReference.TouchDownTerminalFlag;
   //     MPCCount+=TimeStep;
   //     printf("MPC count: %f\n", MPCCount);
-  //     if(!InMPCFlag) MPCCount = 0.0;
+  //     if(!MPCFlag) MPCCount = 0.0;
   //   }
   //   else{
   //     switch (CPPIPIndex){
@@ -99,43 +90,43 @@ int SimulationTest(const WorldSimulation & Sim, std::vector<ContactStatusInfo> I
   //       default:{
   //         FailureFlag = true;
   //         if(TouchDownFlag){
-  //           if(DetectionWaitMeasure>=DetectionWait){
+  //           if(DetectionWait>=DetectionWait){
   //             InitTime = Sim.time;
   //             ContactStatusOptionRef = -1;
   //             if(!FailureStateObj.FailureInitFlag)  FailureStateObj.FailureStateUpdate(InitTime, SimRobot.q, SimRobot.dq);
   //
   //             double PlanTime;
   //             SelfLinkGeoObj.LinkBBsUpdate(SimRobot);
-  //             ControlReference = ControlReferenceGeneration(SimRobot, COMPos, COMVel, RefFailureMetric, RobotContactInfo, RMObject, SelfLinkGeoObj, TimeStep, PlanTime, SpecificPath, PlanningSteps, DisTol, ContactStatusOptionRef, PreviousContactStatusIndex, Sim.time);
+  //             ControlReference = ControlReferenceGeneration(SimRobot, COMPos, COMVel, RefFailureMetric, RobotContactInfo, RMObject, SelfLinkGeoObj, TimeStep, PlanTime, SpecificPath, PlanStageIndex, DisTol, ContactStatusOptionRef, PreviousContactStatusIndex, Sim.time);
   //             if(ControlReference.ControlReferenceFlag){
   //               PlanTimeRecorder(PlanTime, SpecificPath);
   //               ContactStatusOptionRef = ControlReference.ContactStatusOptionIndex;
-  //               DetectionWaitMeasure = 0.0;
-  //               PlanningSteps++;
-  //               InMPCFlag = true;
+  //               DetectionWait = 0.0;
+  //               PlanStageIndex++;
+  //               MPCFlag = true;
   //               MPCCount = 0.0;
   //               TouchDownFlag = false;
   //             }
   //           }
-  //           else DetectionWaitMeasure+=TimeStep;
+  //           else DetectionWait+=TimeStep;
   //         }else{  // Then this is the MPC planning
   //           if(RHPFlag&&!ControlReference.TouchDownPhaseFlag){
   //             double PlanTime;
   //             SelfLinkGeoObj.LinkBBsUpdate(SimRobot);
-  //             ControlReferenceInfo ControlReferenceMPC = ControlReferenceGeneration(SimRobot, COMPos, COMVel, RefFailureMetric, RobotContactInfo, RMObject, SelfLinkGeoObj, TimeStep, PlanTime, SpecificPath, PlanningSteps, DisTol, ContactStatusOptionRef, PreviousContactStatusIndex, Sim.time);
+  //             ControlReferenceInfo ControlReferenceMPC = ControlReferenceGeneration(SimRobot, COMPos, COMVel, RefFailureMetric, RobotContactInfo, RMObject, SelfLinkGeoObj, TimeStep, PlanTime, SpecificPath, PlanStageIndex, DisTol, ContactStatusOptionRef, PreviousContactStatusIndex, Sim.time);
   //             if(ControlReferenceMPC.ControlReferenceFlag){
   //               double RunningTime = ControlReference.RunningTime;
   //               ControlReference = ControlReferenceMPC;
   //               ControlReference.RunningTime+=RunningTime;
   //               PlanTimeRecorder(PlanTime, SpecificPath);
   //               ContactStatusOptionRef = ControlReference.ContactStatusOptionIndex;
-  //               DetectionWaitMeasure = 0.0;
-  //               PlanningSteps++;
-  //               InMPCFlag = true;
+  //               DetectionWait = 0.0;
+  //               PlanStageIndex++;
+  //               MPCFlag = true;
   //               MPCCount = 0.0;
   //               TouchDownFlag = false;
   //             }else{
-  //               InMPCFlag = true;
+  //               MPCFlag = true;
   //               MPCCount = 0.0;
   //             }
   //           }

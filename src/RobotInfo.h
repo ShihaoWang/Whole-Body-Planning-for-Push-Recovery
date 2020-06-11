@@ -567,14 +567,56 @@ struct SimPara{
   SimPara();
   SimPara(const double _ForceMax,
           const double _PushDuration,
-          const double _DetectionWait):ForceMax(_ForceMax), PushDuration(_PushDuration), DetectionWait(_DetectionWait){}
+          const double _DetectionWait,
+          const double _TimeStep,
+          const double _InitDuration,
+          const double _TotalDuration):   ForceMax(_ForceMax),
+                                          PushDuration(_PushDuration),
+                                          DetectionWait(_DetectionWait),
+                                          TimeStep(_TimeStep),
+                                          InitDuration(_InitDuration),
+                                          TotalDuration(_TotalDuration){}
   void CurrentCasePathUpdate(const string _CurrentCasePath){
     CurrentCasePath = _CurrentCasePath;
+
+    string fEdgeAFile = CurrentCasePath + "EdgeATraj.txt";
+    // const char *fEdgeAFile_Name = fEdgeAFile.c_str();
+    string fEdgeBFile = CurrentCasePath + "EdgeBTraj.txt";
+    // const char *fEdgeBFile_Name = fEdgeBFile.c_str();
+    string fEdgeCOMFile = CurrentCasePath + "EdgeCOMTraj.txt";
+    // const char *fEdgeCOMFile_Name = fEdgeCOMFile.c_str();
+    string fEdgexTrajFile = CurrentCasePath + "EdgexTraj.txt";
+    // const char *fEdgexTrajFile_Name = fEdgexTrajFile.c_str();
+    string fEdgeyTrajFile = CurrentCasePath + "EdgeyTraj.txt";
+    // const char *fEdgeyTrajFile_Name = fEdgeyTrajFile.c_str();
+    string fEdgezTrajFile = CurrentCasePath + "EdgezTraj.txt";
+    // const char *fEdgezTrajFile_Name = fEdgezTrajFile.c_str();
+    string fVertexTrajFile = CurrentCasePath + "EdgeVertexTraj.txt";
+
+    EdgeFileNames.push_back(fEdgeAFile);
+    EdgeFileNames.push_back(fEdgeBFile);
+    EdgeFileNames.push_back(fEdgeCOMFile);
+    EdgeFileNames.push_back(fEdgexTrajFile);
+    EdgeFileNames.push_back(fEdgeyTrajFile);
+    EdgeFileNames.push_back(fEdgezTrajFile);
+    EdgeFileNames.push_back(fVertexTrajFile);
+
+    FailureStateTrajStr =  CurrentCasePath + "FailureStateTraj.path";
+    // const char *FailureStateTrajStr_Name = FailureStateTrajStr.c_str();
+    CtrlStateTrajStr    =  CurrentCasePath + "CtrlStateTraj.path";
+    // const char *CtrlStateTrajStr_Name = CtrlStateTrajStr.c_str();
+    PlanStateTrajFileStr = CurrentCasePath + "PlanStateTraj.path";
+    // const char *PlanStateTrajStr_Name = PlanStateTrajFileStr.c_str();
   }
   double ForceMax;
   double PushDuration;
   double DetectionWait;
+  double TimeStep;
+  double InitDuration;
+  double TotalDuration;
   std::string CurrentCasePath;
+  std::vector<string >EdgeFileNames;
+  string FailureStateTrajStr, CtrlStateTrajStr, PlanStateTrajFileStr;
 };
 
 #endif

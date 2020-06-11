@@ -5,8 +5,7 @@
 #include <Modeling/Robot.h>
 #include "CommonHeader.h"
 
-void RobotConfigLoader(Robot & SimRobot, const string & user_path, const string & file_name)
-{
+void RobotConfigLoader(Robot & SimRobot, const string & user_path, const string & file_name){
   string str_line, str_keyword;
   str_keyword = "\t";
   int flag = 0;
@@ -56,8 +55,7 @@ void RobotConfigLoader(Robot & SimRobot, const string & user_path, const string 
   return;
 }
 
-void RobotConfigWriter(const std::vector<double> & Config, const string &user_path, const string &config_file_name)
-{
+void RobotConfigWriter(const std::vector<double> & Config, const string &user_path, const string &config_file_name){
   std::ofstream ConfigInfoFile;
   std::string config_file_path = user_path + config_file_name;
   ConfigInfoFile.open (config_file_path);
@@ -69,8 +67,7 @@ void RobotConfigWriter(const std::vector<double> & Config, const string &user_pa
   ConfigInfoFile.close();
 }
 
-std::vector<int> TorsoLinkReader(const string & TorsoLinkFilePath)
-{
+std::vector<int> TorsoLinkReader(const string & TorsoLinkFilePath){
   ifstream TorsoLinkFile (TorsoLinkFilePath);
   std::vector<int> TorsoLinkVec;
   int LinkIndex = -1;
@@ -92,4 +89,16 @@ std::vector<int> TorsoLinkReader(const string & TorsoLinkFilePath)
     std::cerr<<"Robot Contact Status Info failed to be loaded!"<<"\n";
   }
   return TorsoLinkVec;
+}
+
+void StateTrajAppender(const char *stateTrajFile_Name, const double & Time_t, const std::vector<double> & Configuration){
+  std::ofstream StateTrajWriter;
+  StateTrajWriter.open(stateTrajFile_Name, std::ios_base::app);
+  StateTrajWriter<<std::to_string(Time_t)<<"\t";
+  StateTrajWriter<<std::to_string(Configuration.size())<<"\t";
+  for (int i = 0; i < Configuration.size()-1; i++){
+    StateTrajWriter<<std::to_string(Configuration[i])<<" ";
+  }
+  StateTrajWriter<<std::to_string(Configuration[Configuration.size()-1])<<"\n";
+  StateTrajWriter.close();
 }
