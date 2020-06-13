@@ -6,7 +6,7 @@
 #include "Control/JointTrackingController.h"
 #include "NonlinearOptimizerInfo.h"
 
-int SimulationTest(WorldSimulation & Sim, const std::vector<ContactStatusInfo> & _InitContactInfo, ReachabilityMap & RMObject, SelfLinkGeoInfo & SelfLinkGeoObj, const SimPara & SimParaObj)
+int SimulationTest(WorldSimulation & Sim, const std::vector<ContactStatusInfo> & InitContactInfo, ReachabilityMap & RMObject, SelfLinkGeoInfo & SelfLinkGeoObj, const SimPara & SimParaObj)
 {
   /* Simulation parameters */
   int     DOF             = Sim.world->robots[0]->q.size();
@@ -37,13 +37,15 @@ int SimulationTest(WorldSimulation & Sim, const std::vector<ContactStatusInfo> &
   double InitTime = Sim.time;
   double CurTime = Sim.time;
 
+  Vector3 ImpulseDirection = ImpulseDirectionGene(*Sim.world->robots[0], InitContactInfo, 1);
+  Vector3 ImpulseForceMax = SimParaObj.ForceMax * ImpulseDirection;
+
+
   //
   // ControlReferenceInfo ControlReference;                            // Used for control reference generation.
   // FailureStateInfo FailureStateObj;
   //
-  // Vector3 ImpulseDirection = ImpulseDirectionGene(*Sim.world->robots[0], NonlinearOptimizerInfo::RobotLinkInfo, RobotContactInfo, 1);
-  // Vector3 ImpulseForceMax = ForceMax * ImpulseDirection;
-  //
+
   // Robot SimRobot;
   // int ContactStatusOptionRef = -1, PreviousContactStatusIndex = -1;
   //

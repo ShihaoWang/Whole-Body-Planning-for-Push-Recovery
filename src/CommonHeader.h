@@ -31,9 +31,13 @@ void StateTrajAppender(const char *stateTrajFile_Name, const double & Time_t, co
 int FileIndexFinder(bool UpdateFlag);
 void FilePathManager(const string & SpecificPath);
 std::vector<string>  EdgeFileNamesGene(const string & CurrentCasePath);
+Vector3 ImpulseDirectionGene(Robot & SimRobotObj, const std::vector<ContactStatusInfo> & RobotContactInfo, const int & Option);
+Vector3 FlatRandomDirection();
 
 /* 4. Main Simulation*/
 LinearPath InitialSimulation(WorldSimulation & Sim, const SimPara & SimParaObj);
 int SimulationTest(WorldSimulation & Sim, const std::vector<ContactStatusInfo> & _InitContactInfo, ReachabilityMap & RMObject, SelfLinkGeoInfo & SelfLinkGeoObj, const SimPara & _SimParaObj);
 
+/* 5. Convex Polytope Functions*/
+FacetInfo FlatContactHullGeneration(const std::vector<Vector3> & ContactPoints, int & FacetFlag);
 #endif

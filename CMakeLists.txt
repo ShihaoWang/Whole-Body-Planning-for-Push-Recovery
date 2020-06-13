@@ -41,6 +41,16 @@ set(SNOPT_LIBRARIES snopt7_cpp snopt7)
 set(EIGEN3_INCLUDE_DIR "/home/motion/eigen-3.3.5")
 include_directories(${EIGEN3_INCLUDE_DIR})
 
+# CILANTRO CMake Properties
+set(CILANTRO_PATH "/home/motion/cilantro")
+include_directories(${CILANTRO_PATH}/include)
+include_directories(/home/motion/Pangolin/include)
+include_directories(/home/motion/Pangolin/build/src/include/)
+link_directories(${CILANTRO_PATH}/build/)
+link_directories(/usr/local/lib/)
+add_definitions(-DENABLE_NON_DETERMINISTIC_PARALLELISM -DHAVE_PANGOLIN)
+set(CILANTRO_LIBRARIES cilantro.so pangolin.so)
+
 # Main Code Properties
 add_executable(MyApp
                src/Main.cpp
@@ -50,9 +60,10 @@ add_executable(MyApp
 	       src/RobotStateFiler.cpp
 	       src/RobotUtils.cpp
 	       src/SimulationTest.cpp
-	       src/SimulationRelated.cpp)
+	       src/SimulationRelated.cpp
+	       src/ConvexPolytope.cpp)
 
-target_link_libraries(MyApp  ${KLAMPT_LIBRARIES} ${SNOPT_LIBRARIES} ${GLEW_LIBRARY})
+target_link_libraries(MyApp  ${KLAMPT_LIBRARIES} ${SNOPT_LIBRARIES} ${CILANTRO_LIBRARIES} ${GLEW_LIBRARY})
 #set_property(TARGET MyApp PROPERTY INTERPROCEDURAL_OPTIMIZATION True)
 get_property(dirs DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY INCLUDE_DIRECTORIES)
 foreach(dir ${dirs})

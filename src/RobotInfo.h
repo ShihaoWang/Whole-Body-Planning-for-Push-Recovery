@@ -677,5 +677,73 @@ struct ControlReferenceInfo{
   std::vector<ContactStatusInfo> GoalContactStatus;
 };
 
+struct FailureStateInfo{
+  FailureStateInfo(){
+    FailureTime = 0.0;
+    FailureStateFlag = false;
+  };
+  Config getFailureStateConfig() { return FailureConfig; }
+  Config getFailureStateVelocity(){ return FailureVelocity; }
+  bool   getFailureStateFlag() { return FailureStateFlag; }
+  void FailureStateUpdate(const double & _FailureTime, const Config & _FailureConfig, const Config & _FailureVelocity){
+    FailureTime = _FailureTime;
+    FailureConfig = _FailureConfig;
+    FailureVelocity = _FailureVelocity;
+    FailureStateFlag = true;
+  };
+  double  FailureTime;
+  Config  FailureConfig;
+  Config  FailureVelocity;
+  bool    FailureStateFlag;
+};
+
+struct FacetInfo{
+  FacetInfo(){};
+  void setFacetEdges(const std::vector<std::pair<Vector3, Vector3>> & _FacetEdges) { FacetEdges = _FacetEdges; }
+  void setFacetNorm(const Vector3& _FacetNorm){ FacetNorm = _FacetNorm;}
+  double ProjPoint2EdgeDist(const Vector3& _Point){
+    std::vector<double> ProjPoint2Edge_vec(EdgeNorms.size());
+    Vector3 Vertex2Point = _Point - FacetEdges[0].first;
+    double Point2Facet = Vertex2Point.dot(FacetNorm);
+    Vector3 Facet2Point = Point2Facet * FacetNorm;
+    for (int i = 0; i < EdgeNorms.size(); i++){
+      Vertex2Point = _Point - FacetEdges[i].first;
+      Vector3 Vertex2ProjPoint = Vertex2Point - Facet2Point;
+      double ProjPoint2Edge_i = Vertex2ProjPoint.dot(EdgeNorms[i]);
+      ProjPoint2Edge_vec[i] = ProjPoint2Edge_i;
+    }
+    return *min_element(ProjPoint2Edge_vec.begin(), ProjPoint2Edge_vec.end());
+  }
+  std::vector<double> ProjPoint2EdgeDistVec(const Vector3& _Point){
+    std::vector<double> ProjPoint2Edge_vec(EdgeNorms.size());
+    Vector3 Vertex2Point = _Point - FacetEdges[0].first;
+    double Point2Facet = Vertex2Point.dot(FacetNorm);
+    Vector3 Facet2Point = Point2Facet * FacetNorm;
+    for (int i = 0; i < EdgeNorms.size(); i++){
+      Vertex2Point = _Point - FacetEdges[i].first;
+      Vector3 Vertex2ProjPoint = Vertex2Point - Facet2Point;
+      double ProjPoint2Edge_i = Vertex2ProjPoint.dot(EdgeNorms[i]);
+      ProjPoint2Edge_vec[i] = ProjPoint2Edge_i;
+    }
+    return ProjPoint2Edge_vec;
+  }
+  void EdgesUpdate(){
+    Edges.reserve(EdgeNorms.size());
+    EdgesDirection.reserve(EdgeNorms.size());
+    for (int i = 0; i < EdgeNorms.size(); i++){
+      Vector3 Edge_i = FacetEdges[i].second - FacetEdges[i].first;
+      Edges.push_back(Edge_i);
+      Vector3 Edge_i_normalized;
+      Edge_i.getNormalized(Edge_i_normalized);
+      EdgesDirection.push_back(Edge_i_normalized);
+    }
+  }
+  std::vector<std::pair<Vector3, Vector3>> FacetEdges;
+  std::vector<Vector3> EdgeNorms;
+  Vector3 FacetNorm;
+  std::vector<Vector3> Edges;
+  std::vector<Vector3> EdgesDirection;
+};
+
 
 #endif
