@@ -36,7 +36,8 @@ int SimulationTest(WorldSimulation & Sim, const std::vector<ContactStatusInfo> &
   Vector3 COMPos(0.0, 0.0, 0.0), COMVel(0.0, 0.0, 0.0);
   double InitTime = Sim.time;
   double CurTime = Sim.time;
-  // 
+
+  //
   // ControlReferenceInfo ControlReference;                            // Used for control reference generation.
   // FailureStateInfo FailureStateObj;
   //

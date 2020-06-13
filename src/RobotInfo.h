@@ -565,17 +565,19 @@ struct SelfLinkGeoInfo{
 
 struct SimPara{
   SimPara();
-  SimPara(const double _ForceMax,
-          const double _PushDuration,
-          const double _DetectionWait,
-          const double _TimeStep,
-          const double _InitDuration,
-          const double _TotalDuration):   ForceMax(_ForceMax),
+  SimPara(const double & _ForceMax,
+          const double & _PushDuration,
+          const double & _DetectionWait,
+          const double & _TimeStep,
+          const double & _InitDuration,
+          const double & _TotalDuration,
+          const double & _PhaseRatio):    ForceMax(_ForceMax),
                                           PushDuration(_PushDuration),
                                           DetectionWait(_DetectionWait),
                                           TimeStep(_TimeStep),
                                           InitDuration(_InitDuration),
-                                          TotalDuration(_TotalDuration){}
+                                          TotalDuration(_TotalDuration),
+                                          PhaseRatio(_PhaseRatio){}
   void CurrentCasePathUpdate(const string _CurrentCasePath){
     CurrentCasePath = _CurrentCasePath;
 
@@ -614,9 +616,66 @@ struct SimPara{
   double TimeStep;
   double InitDuration;
   double TotalDuration;
+  double PhaseRatio;            // This ratio determines the boundary between acceleration and deceleration.
   std::string CurrentCasePath;
   std::vector<string >EdgeFileNames;
   string FailureStateTrajStr, CtrlStateTrajStr, PlanStateTrajFileStr;
 };
+
+struct ControlReferenceInfo{
+  ControlReferenceInfo(){
+    ReadyFlag = false;
+    ControlReferenceType = -1;
+    LinkInfoIndex = -1;           // Used for RobotLinkInfo
+    ContactStatusInfoIndex = -1;
+    GoalContactPos.setZero();
+    GoalContactGrad.setZero();
+    }
+  bool getReadyFlag(){ return ReadyFlag;}
+  void setReadyFlag(const bool & _ReadyFlag ){ ReadyFlag = _ReadyFlag; }
+  int  getControlReferenceType(){ return ControlReferenceType; }
+  void setControlReferenceType(const int &_ControlReferenceType) { ControlReferenceType = _ControlReferenceType; }
+  void setGoalContactPosNGrad(const Vector3 & _GoalContactPos, const Vector3 & _GoalContactGrad){
+    GoalContactPos = _GoalContactPos;
+    GoalContactGrad = _GoalContactGrad;
+  }
+  Vector3 getGoalContactPos(){  return GoalContactPos; }
+  Vector3 getGoalContactGrad(){ return GoalContactGrad;}
+
+  void SetInitContactStatus(const std::vector<ContactStatusInfo> &_InitContactStatus){ InitContactStatus = _InitContactStatus; }
+  std::vector<ContactStatusInfo> getInitContactStatus(){return InitContactStatus;}
+
+  void SetGoalContactStatus(const std::vector<ContactStatusInfo> & _GoalContactStatus) {GoalContactStatus = _GoalContactStatus;}
+  std::vector<ContactStatusInfo> getGoalContactStatus() {return GoalContactStatus;}
+
+  void TrajectoryUpdate(const std::vector<double> & timeTraj, const std::vector<Config> & configTraj, const std::vector<Vector3> & endeffectorTraj){
+    PlannedConfigTraj = LinearPath(timeTraj, configTraj);
+    std::vector<Vector> endeffectorPath;
+    for (Vector3 EndEffectorPos: endeffectorTraj){
+      Vector EndEffectorPosVec;
+      EndEffectorPosVec.resize(3);
+      EndEffectorPosVec[0] = EndEffectorPos[0];
+      EndEffectorPosVec[1] = EndEffectorPos[1];
+      EndEffectorPosVec[2] = EndEffectorPos[2];
+      endeffectorPath.push_back(EndEffectorPosVec);
+    }
+    EndEffectorTraj = LinearPath(timeTraj, endeffectorPath);
+  }
+
+  bool  ReadyFlag;
+  int   ControlReferenceType;
+  int   LinkInfoIndex;
+  int   ContactStatusInfoIndex;
+
+  Vector3 GoalContactPos;
+  Vector3 GoalContactGrad;
+
+  LinearPath PlannedConfigTraj;
+  LinearPath EndEffectorTraj;
+
+  std::vector<ContactStatusInfo> InitContactStatus;
+  std::vector<ContactStatusInfo> GoalContactStatus;
+};
+
 
 #endif

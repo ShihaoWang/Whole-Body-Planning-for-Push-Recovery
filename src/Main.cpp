@@ -43,9 +43,11 @@ int main(){
   double PushDuration   = std::stod(PushDurationStr);
   double DetectionWait  = std::stod(DetectionWaitStr);
   double TimeStep       = 0.025;
-  double  InitDuration    = 2.0;
-  double  TotalDuration   = 5.0;                // Simulation lasts for 5s after initial duration
-  SimPara SimParaObj(ForceMax, PushDuration, DetectionWait, TimeStep, InitDuration, TotalDuration);
+  double InitDuration    = 2.0;
+  double TotalDuration   = 5.0;                // Simulation lasts for 5s after initial duration
+  double PhaseRatio = 0.75;
+
+  SimPara SimParaObj(ForceMax, PushDuration, DetectionWait, TimeStep, InitDuration, TotalDuration, PhaseRatio);
 
   RobotWorld worldObj;
   SimGUIBackend BackendObj(&worldObj);
