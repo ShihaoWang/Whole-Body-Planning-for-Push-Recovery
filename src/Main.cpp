@@ -113,6 +113,9 @@ int main(){
     Sim.controlSimulators[0].oderobot->SetConfig(Config(InitConfig));
     Sim.controlSimulators[0].oderobot->SetVelocities(Config(InitVelocity));
 
+    Vector3 ImpulseDirection = ImpulseDirectionGene(*Sim.world->robots[0], InitContactInfo, 1);
+    SimParaObj.setImpulseForceMax(ImpulseDirection);
+
     int SimRes = SimulationTest(Sim, InitContactInfo, RMObject, SelfLinkGeoObj, SimParaObj);
     // int SimulationTest(Sim, InitContactInfo, RMObject, SelfLinkGeoObj)
 

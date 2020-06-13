@@ -102,3 +102,13 @@ void StateTrajAppender(const char *stateTrajFile_Name, const double & Time_t, co
   StateTrajWriter<<std::to_string(Configuration[Configuration.size()-1])<<"\n";
   StateTrajWriter.close();
 }
+
+void PushInfoFileAppender(const double & SimTime, const double & Fx_t, const double & Fy_t, const double & Fz_t, const string & SpecificPath){
+  std::ofstream PushInfoFileWriter;
+  string PushInfoFileStr = SpecificPath + "PushInfoFile.txt";
+  const char *PushInfoFileStr_Name = PushInfoFileStr.c_str();
+  PushInfoFileWriter.open(PushInfoFileStr_Name, std::ios_base::app);
+  PushInfoFileWriter<<std::to_string(SimTime)<<" "<< std::to_string(Fx_t)<<" "<<std::to_string(Fy_t)<<" "<<std::to_string(Fz_t)<<"\n";
+  PushInfoFileWriter.close();
+  return;
+}

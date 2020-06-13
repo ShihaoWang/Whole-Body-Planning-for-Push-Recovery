@@ -26,6 +26,7 @@ void RobotConfigLoader(Robot &SimRobot, const string &user_path, const string &f
 void RobotConfigWriter(const std::vector<double> & Config, const string &user_path, const string &config_file_name);
 std::vector<int> TorsoLinkReader(const string & TorsoLinkFilePath);
 void StateTrajAppender(const char *stateTrajFile_Name, const double & Time_t, const std::vector<double> & Configuration);
+void PushInfoFileAppender(const double & SimTime, const double & Fx_t, const double & Fy_t, const double & Fz_t, const string & SpecificPath);
 
 /* 3. Robot Utilities*/
 int FileIndexFinder(bool UpdateFlag);
@@ -33,11 +34,15 @@ void FilePathManager(const string & SpecificPath);
 std::vector<string>  EdgeFileNamesGene(const string & CurrentCasePath);
 Vector3 ImpulseDirectionGene(Robot & SimRobotObj, const std::vector<ContactStatusInfo> & RobotContactInfo, const int & Option);
 Vector3 FlatRandomDirection();
+void getCentroidalState(const Robot & SimRobot, Vector3 & COMPos, Vector3 & COMVel);
+std::vector<Vector3> ActiveContactFinder(const Robot & SimRobot, const std::vector<ContactStatusInfo> & RobotContactInfo);
 
 /* 4. Main Simulation*/
 LinearPath InitialSimulation(WorldSimulation & Sim, const SimPara & SimParaObj);
+void PushImposer(WorldSimulation & Sim, const double & CurTime, const SimPara & SimParaObj, const bool & FailureFlag);
 int SimulationTest(WorldSimulation & Sim, const std::vector<ContactStatusInfo> & _InitContactInfo, ReachabilityMap & RMObject, SelfLinkGeoInfo & SelfLinkGeoObj, const SimPara & _SimParaObj);
 
 /* 5. Convex Polytope Functions*/
-FacetInfo FlatContactHullGeneration(const std::vector<Vector3> & ContactPoints, int & FacetFlag);
+FacetInfo FlatConvexHullGeneration(const std::vector<Vector3> & ContactPoints);
+std::vector<PIPInfo> PIPGenerator(const std::vector<Vector3> & ContactPoints, const Vector3 & COMPos, const Vector3 & COMVel);
 #endif

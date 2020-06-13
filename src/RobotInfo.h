@@ -581,10 +581,10 @@ struct SimPara{
   void CurrentCasePathUpdate(const string _CurrentCasePath){
     CurrentCasePath = _CurrentCasePath;
 
-    string fEdgeAFile = CurrentCasePath + "EdgeATraj.txt";
-    // const char *fEdgeAFile_Name = fEdgeAFile.c_str();
-    string fEdgeBFile = CurrentCasePath + "EdgeBTraj.txt";
-    // const char *fEdgeBFile_Name = fEdgeBFile.c_str();
+    string fedge_aFile = CurrentCasePath + "edge_aTraj.txt";
+    // const char *fedge_aFile_Name = fedge_aFile.c_str();
+    string fedge_bFile = CurrentCasePath + "edge_bTraj.txt";
+    // const char *fedge_bFile_Name = fedge_bFile.c_str();
     string fEdgeCOMFile = CurrentCasePath + "EdgeCOMTraj.txt";
     // const char *fEdgeCOMFile_Name = fEdgeCOMFile.c_str();
     string fEdgexTrajFile = CurrentCasePath + "EdgexTraj.txt";
@@ -595,8 +595,8 @@ struct SimPara{
     // const char *fEdgezTrajFile_Name = fEdgezTrajFile.c_str();
     string fVertexTrajFile = CurrentCasePath + "EdgeVertexTraj.txt";
 
-    EdgeFileNames.push_back(fEdgeAFile);
-    EdgeFileNames.push_back(fEdgeBFile);
+    EdgeFileNames.push_back(fedge_aFile);
+    EdgeFileNames.push_back(fedge_bFile);
     EdgeFileNames.push_back(fEdgeCOMFile);
     EdgeFileNames.push_back(fEdgexTrajFile);
     EdgeFileNames.push_back(fEdgeyTrajFile);
@@ -610,13 +610,15 @@ struct SimPara{
     PlanStateTrajFileStr = CurrentCasePath + "PlanStateTraj.path";
     // const char *PlanStateTrajStr_Name = PlanStateTrajFileStr.c_str();
   }
-  double ForceMax;
-  double PushDuration;
-  double DetectionWait;
-  double TimeStep;
-  double InitDuration;
-  double TotalDuration;
-  double PhaseRatio;            // This ratio determines the boundary between acceleration and deceleration.
+  void setImpulseForceMax(const Vector3 & ImpulseDirection){ ImpulseForceMax = ForceMax * ImpulseDirection;}
+  double  ForceMax;
+  double  PushDuration;
+  double  DetectionWait;
+  double  TimeStep;
+  double  InitDuration;
+  double  TotalDuration;
+  double  PhaseRatio;            // This ratio determines the boundary between acceleration and deceleration.
+  Vector3 ImpulseForceMax;
   std::string CurrentCasePath;
   std::vector<string >EdgeFileNames;
   string FailureStateTrajStr, CtrlStateTrajStr, PlanStateTrajFileStr;
@@ -698,7 +700,11 @@ struct FailureStateInfo{
 };
 
 struct FacetInfo{
-  FacetInfo(){};
+  FacetInfo(){
+    FacetValidFlag = false;
+  };
+  void setFacetValidFlag(const bool & _FacetValidFlag){FacetValidFlag = _FacetValidFlag;}
+  bool getFacetValidFlag(){ return FacetValidFlag;}
   void setFacetEdges(const std::vector<std::pair<Vector3, Vector3>> & _FacetEdges) { FacetEdges = _FacetEdges; }
   void setFacetNorm(const Vector3& _FacetNorm){ FacetNorm = _FacetNorm;}
   double ProjPoint2EdgeDist(const Vector3& _Point){
@@ -743,7 +749,51 @@ struct FacetInfo{
   Vector3 FacetNorm;
   std::vector<Vector3> Edges;
   std::vector<Vector3> EdgesDirection;
+  bool FacetValidFlag;
 };
 
+struct PIPInfo{
+  // This struct saves the information of the projected inverted pendulum from the CoM to the edge of convex polytope
+  PIPInfo(){
+    L = 0.25;         // The reference bound range is [0.25, 0.85]
+    Ldot = 0.0;
+    theta = 0.0;
+    thetadot = 0.0;
+    g = 9.81;
+    g_angle = 0.0;
+    onFlag = false;
+  }
+  PIPInfo(double _L, double _Ldot, double _theta, double _thetadot, double _g, double _g_angle){
+    L = _L;
+    Ldot = _Ldot;
+    theta = _theta;
+    thetadot = _thetadot;
+    g = _g;
+    g_angle = _g_angle;
+  }
+  void setPrimeUnits(const Vector3 & x_prime_unit_,const Vector3 & y_prime_unit_,const Vector3 & z_prime_unit_){
+    x_prime_unit = x_prime_unit_;
+    y_prime_unit = y_prime_unit_;
+    z_prime_unit = z_prime_unit_;
+  }
+  void setUnits(const Vector3 & x_unit_,const Vector3 & y_unit_,const Vector3 & z_unit_){
+    x_unit = x_unit_;
+    y_unit = y_unit_;
+    z_unit = z_unit_;
+  }
+  void setEdgeAnB(const Vector3 & edge_a_, const Vector3 & edge_b_){
+    edge_a = edge_a_;
+    edge_b = edge_b_;
+  }
+  void setIntersection(const Vector3 & intersection_){ intersection = intersection_;}
+
+  double  L, Ldot, theta, thetadot;
+  double  g, g_angle;
+  bool    onFlag;                           // Whether the origin is at intersection or not?!
+  Vector3 x_prime_unit, y_prime_unit, z_prime_unit;
+  Vector3 x_unit, y_unit, z_unit;
+  Vector3 edge_a, edge_b;                     // The Edge points from edge_a to edge_b.
+  Vector3 intersection;                     // The point where the COM intersects the edge.
+};
 
 #endif

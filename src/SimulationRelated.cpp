@@ -21,21 +21,17 @@ LinearPath InitialSimulation(WorldSimulation & Sim, const SimPara & SimParaObj){
   }
   return InitTraj;
 }
-//
-// void PushImposer(WorldSimulation & Sim, const Vector3 & ImpulseForceMax, const double & InitTime, const double & PushDuration, const int & FailureFlag, const string & SpecificPath)
-// {
-//   double CurTime = Sim.time - InitTime;
-//   if((CurTime<PushDuration)&&(FailureFlag == 0))
-//   {
-//     // Push until fall has been detected.
-//     int LinkIndex = 19;
-//     double ImpulseScale = 1.0 * CurTime/PushDuration;
-//     Vector3 ImpulseForce = ImpulseScale * ImpulseForceMax;
-//     dBodyAddForceAtRelPos(Sim.odesim.robot(0)->body(LinkIndex), ImpulseForce.x, ImpulseForce.y, ImpulseForce.z, 0.0, 0.0, 0.0);
-//     PushInfoFileAppender(Sim.time, ImpulseForce.x, ImpulseForce.y, ImpulseForce.z, SpecificPath);
-//   }
-// }
-//
+
+void PushImposer(WorldSimulation & Sim, const double & CurTime, const SimPara & SimParaObj, const bool & FailureFlag){
+  if((CurTime<SimParaObj.PushDuration)&&(!FailureFlag)){
+    int LinkIndex = 19;
+    double ImpulseScale = 1.0 * CurTime/SimParaObj.PushDuration;
+    Vector3 ImpulseForce = ImpulseScale * SimParaObj.ImpulseForceMax;
+    dBodyAddForceAtRelPos(Sim.odesim.robot(0)->body(LinkIndex), ImpulseForce.x, ImpulseForce.y, ImpulseForce.z, 0.0, 0.0, 0.0);
+    PushInfoFileAppender(Sim.time, ImpulseForce.x, ImpulseForce.y, ImpulseForce.z, SimParaObj.CurrentCasePath);
+  }
+}
+
 // std::vector<double> RawOnlineConfigReference(WorldSimulation & Sim, double & InitTime, ControlReferenceInfo & ControlReference, AnyCollisionGeometry3D & TerrColGeom, SelfLinkGeoInfo & SelfLinkGeoObj, double & DetectionWaitMeasure, bool & InMPCFlag, std::vector<ContactStatusInfo> & RobotContactInfo, ReachabilityMap & RMObject)
 // {
 //   double TouchDownTerminalTol  = 0.01;                      //  1.0 cm as a Touch Down Terminal Tolerance.

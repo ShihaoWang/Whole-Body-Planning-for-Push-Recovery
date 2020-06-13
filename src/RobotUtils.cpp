@@ -80,8 +80,7 @@ Vector3 ImpulseDirectionGene(Robot & SimRobotObj, const std::vector<ContactStatu
         }
       }
       Vector3 COM_Pos = SimRobotObj.GetCOM();
-      int FacetFlag = 0;
-      FacetInfo SPObj = FlatContactHullGeneration(SPVertices, FacetFlag);    // This is the support polygon
+      FacetInfo SPObj = FlatConvexHullGeneration(SPVertices);    // This is the support polygon
       COM_Pos.z = 0.0;
       std::vector<double> DistVec = SPObj.ProjPoint2EdgeDistVec(COM_Pos);
       std::vector<int> DistVecIndices(DistVec.size());
@@ -98,8 +97,7 @@ Vector3 ImpulseDirectionGene(Robot & SimRobotObj, const std::vector<ContactStatu
   return ImpulseDirection;
 }
 
-static double RandomBoundedValue(const double &bound)
-{
+static double RandomBoundedValue(const double &bound){
   std::uniform_real_distribution<double> unif(-1.0 * bound, 1.0 * bound);
   std::random_device rand_dev;          // Use random_device to get a random seed.
   std::mt19937 rand_engine(rand_dev()); // mt19937 is a good pseudo-random number generator.
@@ -113,4 +111,34 @@ Vector3 FlatRandomDirection(){
   Vector3 Dir(xDir, yDir, 0.0);
   Dir.setNormalized(Dir);
   return Dir;
+}
+
+void getCentroidalState(const Robot & SimRobot, Vector3 & COMPos, Vector3 & COMVel){
+  // This function is used to get the centroidal position and velocity
+  Vector3 COM = SimRobot.GetCOM();
+  Matrix pCOMpq;
+  SimRobot.GetCOMJacobian(pCOMpq);
+  double COMVel_x =0.0, COMVel_y =0.0, COMVel_z =0.0;
+  for (int i = 0; i < pCOMpq.n; i++){
+    COMVel_x = COMVel_x + pCOMpq(0,i) * SimRobot.dq[i];
+    COMVel_y = COMVel_y + pCOMpq(1,i) * SimRobot.dq[i];
+    COMVel_z = COMVel_z + pCOMpq(2,i) * SimRobot.dq[i];
+  }
+  Vector3 COMVel_i(COMVel_x, COMVel_y, COMVel_z);
+  COMPos = COM;
+  COMVel = COMVel_i;
+}
+
+std::vector<Vector3> ActiveContactFinder(const Robot & SimRobot, const std::vector<ContactStatusInfo> & RobotContactInfo){
+  std::vector<Vector3> ActContacts;
+  for (int i = 0; i < NonlinearOptimizerInfo::RobotLinkInfo.size(); i++){
+    for (int j = 0; j < NonlinearOptimizerInfo::RobotLinkInfo[i].LocalContacts.size(); j++){
+      if(RobotContactInfo[i].LocalContactStatus[j]){
+        Vector3 LinkiPjPos;
+        SimRobot.GetWorldPosition(NonlinearOptimizerInfo::RobotLinkInfo[i].LocalContacts[j], NonlinearOptimizerInfo::RobotLinkInfo[i].LinkIndex, LinkiPjPos);
+        ActContacts.push_back(LinkiPjPos);
+      }
+    }
+  }
+  return ActContacts;
 }

@@ -35,113 +35,102 @@ int SimulationTest(WorldSimulation & Sim, const std::vector<ContactStatusInfo> &
   std::vector<double> qDes = PlanStateTraj.milestones[PlanStateTraj.milestones.size()-1];               // This is commanded robot configuration to the controller.
   Vector3 COMPos(0.0, 0.0, 0.0), COMVel(0.0, 0.0, 0.0);
   double InitTime = Sim.time;
-  double CurTime = Sim.time;
 
-  Vector3 ImpulseDirection = ImpulseDirectionGene(*Sim.world->robots[0], InitContactInfo, 1);
-  Vector3 ImpulseForceMax = SimParaObj.ForceMax * ImpulseDirection;
+  ControlReferenceInfo  ControlReference;                            // Used for control reference generation.
+  FailureStateInfo      FailureStateObj;
+  Robot                 SimRobot;
+  bool                  FailureFlag = false;
+  std::vector<ContactStatusInfo> curContactInfo =  InitContactInfo;
 
+  while(Sim.time <= TotalDuration){
+    SimRobot = *Sim.world->robots[0];
+    PushImposer(Sim,  Sim.time - InitTime, SimParaObj, FailureFlag);
 
-  //
-  // ControlReferenceInfo ControlReference;                            // Used for control reference generation.
-  // FailureStateInfo FailureStateObj;
-  //
+    /* Robot's COMPos and COMVel */
+    getCentroidalState(SimRobot, COMPos, COMVel);
+    std::vector<Vector3> ActContactPos = ActiveContactFinder(SimRobot, curContactInfo);
 
-  // Robot SimRobot;
-  // int ContactStatusOptionRef = -1, PreviousContactStatusIndex = -1;
-  //
-  // bool RHPFlag = false;
-  // std::string PlanningTypeStr("RHP");
-  // if(PlanningTypeStr.compare(PlanningType)==0) RHPFlag = true;
+    std::vector<PIPInfo> PIPTotal = PIPGenerator(ActContactPos, COMPos, COMVel);
+    // ContactPolytopeWriter(ActContactPos, PIPTotal, EdgeFileNames);
 
-  // // This loop is used for push recovery experimentation.
-  // while(Sim.time <= TotalDuration){
-  //   SimRobot = *Sim.world->robots[0];
-  //   PushImposer(Sim, ImpulseForceMax,  InitTime, PushDuration, FailureFlag, SpecificPath);
-  //
-  //   /* Robot's COMPos and COMVel */
-  //   CentroidalState(SimRobot, COMPos, COMVel);
-  //   std::vector<Vector3> ActContactPos = ContactPositionFinder(SimRobot, RobotLinkInfo, RobotContactInfo);    // From ContactInfoActive
-  //   std::vector<PIPInfo> PIPTotal = PIPGenerator(ActContactPos, COMPos, COMVel);
-  //   ContactPolytopeWriter(ActContactPos, PIPTotal, EdgeFileNames);
-  //
-  //   int CPPIPIndex;
-  //   double RefFailureMetric = CapturePointGenerator(PIPTotal, CPPIPIndex);
-  //   std::printf("Simulation Time: %f, and Failure Metric: %f\n", Sim.time, RefFailureMetric);
-  //   if((!RHPFlag)&&(FailureFlag)){
-  //     qDes = RawOnlineConfigReference(Sim, InitTime, ControlReference, TerrColGeom, SelfLinkGeoObj, DetectionWait, MPCFlag, RobotContactInfo, RMObject);
-  //     ControlReference.RunningTime+=TimeStep;
-  //     TouchDownFlag = ControlReference.TouchDownTerminalFlag;
-  //   }
-  //
-  //   if((MPCFlag)&&(MPCCount<MPCDuration)&&(RHPFlag)){
-  //     qDes = OnlineConfigReference(Sim, InitTime, ControlReference, TerrColGeom, SelfLinkGeoObj, DetectionWait, MPCFlag, RobotContactInfo, RMObject, MPCCount);
-  //     ControlReference.RunningTime+=TimeStep;
-  //     TouchDownFlag = ControlReference.TouchDownTerminalFlag;
-  //     MPCCount+=TimeStep;
-  //     printf("MPC count: %f\n", MPCCount);
-  //     if(!MPCFlag) MPCCount = 0.0;
-  //   }
-  //   else{
-  //     switch (CPPIPIndex){
-  //       case -1:
-  //       {
-  //         if((MPCCount>=MPCDuration)&&(RHPFlag)&&(!ControlReference.TouchDownTerminalFlag)){
-  //           MPCCount = 0.0;
-  //         }
-  //       }
-  //       break;
-  //       default:{
-  //         FailureFlag = true;
-  //         if(TouchDownFlag){
-  //           if(DetectionWait>=DetectionWait){
-  //             InitTime = Sim.time;
-  //             ContactStatusOptionRef = -1;
-  //             if(!FailureStateObj.FailureInitFlag)  FailureStateObj.FailureStateUpdate(InitTime, SimRobot.q, SimRobot.dq);
-  //
-  //             double PlanTime;
-  //             SelfLinkGeoObj.LinkBBsUpdate(SimRobot);
-  //             ControlReference = ControlReferenceGeneration(SimRobot, COMPos, COMVel, RefFailureMetric, RobotContactInfo, RMObject, SelfLinkGeoObj, TimeStep, PlanTime, SpecificPath, PlanStageIndex, DisTol, ContactStatusOptionRef, PreviousContactStatusIndex, Sim.time);
-  //             if(ControlReference.ControlReferenceFlag){
-  //               PlanTimeRecorder(PlanTime, SpecificPath);
-  //               ContactStatusOptionRef = ControlReference.ContactStatusOptionIndex;
-  //               DetectionWait = 0.0;
-  //               PlanStageIndex++;
-  //               MPCFlag = true;
-  //               MPCCount = 0.0;
-  //               TouchDownFlag = false;
-  //             }
-  //           }
-  //           else DetectionWait+=TimeStep;
-  //         }else{  // Then this is the MPC planning
-  //           if(RHPFlag&&!ControlReference.TouchDownPhaseFlag){
-  //             double PlanTime;
-  //             SelfLinkGeoObj.LinkBBsUpdate(SimRobot);
-  //             ControlReferenceInfo ControlReferenceMPC = ControlReferenceGeneration(SimRobot, COMPos, COMVel, RefFailureMetric, RobotContactInfo, RMObject, SelfLinkGeoObj, TimeStep, PlanTime, SpecificPath, PlanStageIndex, DisTol, ContactStatusOptionRef, PreviousContactStatusIndex, Sim.time);
-  //             if(ControlReferenceMPC.ControlReferenceFlag){
-  //               double RunningTime = ControlReference.RunningTime;
-  //               ControlReference = ControlReferenceMPC;
-  //               ControlReference.RunningTime+=RunningTime;
-  //               PlanTimeRecorder(PlanTime, SpecificPath);
-  //               ContactStatusOptionRef = ControlReference.ContactStatusOptionIndex;
-  //               DetectionWait = 0.0;
-  //               PlanStageIndex++;
-  //               MPCFlag = true;
-  //               MPCCount = 0.0;
-  //               TouchDownFlag = false;
-  //             }else{
-  //               MPCFlag = true;
-  //               MPCCount = 0.0;
-  //             }
-  //           }
-  //         }
-  //       }
-  //     }
-  //   }
-  //   NewControllerPtr->SetConstant(Config(qDes));
-  //   StateLogger(Sim, FailureStateObj, CtrlStateTraj, PlanStateTraj, FailureStateTraj, qDes, SpecificPath);
-  //   Sim.Advance(TimeStep);
-  //   Sim.UpdateModel();
-  // }
+    // int CPPIPIndex;
+    // double RefFailureMetric = CapturePointGenerator(PIPTotal, CPPIPIndex);
+    // std::printf("Simulation Time: %f, and Failure Metric: %f\n", Sim.time, RefFailureMetric);
+    // if((!RHPFlag)&&(FailureFlag)){
+    //   qDes = RawOnlineConfigReference(Sim, InitTime, ControlReference, TerrColGeom, SelfLinkGeoObj, DetectionWait, MPCFlag, RobotContactInfo, RMObject);
+    //   ControlReference.RunningTime+=TimeStep;
+    //   TouchDownFlag = ControlReference.TouchDownTerminalFlag;
+    // }
+    //
+    // if((MPCFlag)&&(MPCCount<MPCDuration)&&(RHPFlag)){
+    //   qDes = OnlineConfigReference(Sim, InitTime, ControlReference, TerrColGeom, SelfLinkGeoObj, DetectionWait, MPCFlag, RobotContactInfo, RMObject, MPCCount);
+    //   ControlReference.RunningTime+=TimeStep;
+    //   TouchDownFlag = ControlReference.TouchDownTerminalFlag;
+    //   MPCCount+=TimeStep;
+    //   printf("MPC count: %f\n", MPCCount);
+    //   if(!MPCFlag) MPCCount = 0.0;
+    // }
+    // else{
+    //   switch (CPPIPIndex){
+    //     case -1:
+    //     {
+    //       if((MPCCount>=MPCDuration)&&(RHPFlag)&&(!ControlReference.TouchDownTerminalFlag)){
+    //         MPCCount = 0.0;
+    //       }
+    //     }
+    //     break;
+    //     default:{
+    //       FailureFlag = true;
+    //       if(TouchDownFlag){
+    //         if(DetectionWait>=DetectionWait){
+    //           InitTime = Sim.time;
+    //           ContactStatusOptionRef = -1;
+    //           if(!FailureStateObj.FailureInitFlag)  FailureStateObj.FailureStateUpdate(InitTime, SimRobot.q, SimRobot.dq);
+    //
+    //           double PlanTime;
+    //           SelfLinkGeoObj.LinkBBsUpdate(SimRobot);
+    //           ControlReference = ControlReferenceGeneration(SimRobot, COMPos, COMVel, RefFailureMetric, RobotContactInfo, RMObject, SelfLinkGeoObj, TimeStep, PlanTime, SpecificPath, PlanStageIndex, DisTol, ContactStatusOptionRef, PreviousContactStatusIndex, Sim.time);
+    //           if(ControlReference.ControlReferenceFlag){
+    //             PlanTimeRecorder(PlanTime, SpecificPath);
+    //             ContactStatusOptionRef = ControlReference.ContactStatusOptionIndex;
+    //             DetectionWait = 0.0;
+    //             PlanStageIndex++;
+    //             MPCFlag = true;
+    //             MPCCount = 0.0;
+    //             TouchDownFlag = false;
+    //           }
+    //         }
+    //         else DetectionWait+=TimeStep;
+    //       }else{  // Then this is the MPC planning
+    //         if(RHPFlag&&!ControlReference.TouchDownPhaseFlag){
+    //           double PlanTime;
+    //           SelfLinkGeoObj.LinkBBsUpdate(SimRobot);
+    //           ControlReferenceInfo ControlReferenceMPC = ControlReferenceGeneration(SimRobot, COMPos, COMVel, RefFailureMetric, RobotContactInfo, RMObject, SelfLinkGeoObj, TimeStep, PlanTime, SpecificPath, PlanStageIndex, DisTol, ContactStatusOptionRef, PreviousContactStatusIndex, Sim.time);
+    //           if(ControlReferenceMPC.ControlReferenceFlag){
+    //             double RunningTime = ControlReference.RunningTime;
+    //             ControlReference = ControlReferenceMPC;
+    //             ControlReference.RunningTime+=RunningTime;
+    //             PlanTimeRecorder(PlanTime, SpecificPath);
+    //             ContactStatusOptionRef = ControlReference.ContactStatusOptionIndex;
+    //             DetectionWait = 0.0;
+    //             PlanStageIndex++;
+    //             MPCFlag = true;
+    //             MPCCount = 0.0;
+    //             TouchDownFlag = false;
+    //           }else{
+    //             MPCFlag = true;
+    //             MPCCount = 0.0;
+    //           }
+    //         }
+    //       }
+    //     }
+    //   }
+    // }
+    // NewControllerPtr->SetConstant(Config(qDes));
+    // StateLogger(Sim, FailureStateObj, CtrlStateTraj, PlanStateTraj, FailureStateTraj, qDes, SpecificPath);
+    // Sim.Advance(TimeStep);
+    // Sim.UpdateModel();
+  }
   // if(FailureChecker(SimRobot, TerrColGeom, RMObject, DisTol)) PushRecovSuccFlag = 0;
   // else PushRecovSuccFlag = 1;
   //
