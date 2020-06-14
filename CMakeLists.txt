@@ -61,7 +61,8 @@ add_executable(MyApp
 	       src/RobotUtils.cpp
 	       src/SimulationTest.cpp
 	       src/SimulationRelated.cpp
-	       src/ConvexPolytope.cpp)
+	       src/ConvexPolytope.cpp
+	       src/ControlReferenceGeneration.cpp)
 
 target_link_libraries(MyApp  ${KLAMPT_LIBRARIES} ${SNOPT_LIBRARIES} ${CILANTRO_LIBRARIES} ${GLEW_LIBRARY})
 #set_property(TARGET MyApp PROPERTY INTERPROCEDURAL_OPTIMIZATION True)

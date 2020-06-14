@@ -6,14 +6,13 @@
 #include "Control/JointTrackingController.h"
 #include "NonlinearOptimizerInfo.h"
 
-int SimulationTest(WorldSimulation & Sim, const std::vector<ContactStatusInfo> & InitContactInfo, ReachabilityMap & RMObject, SelfLinkGeoInfo & SelfLinkGeoObj, const SimPara & SimParaObj)
-{
+int SimulationTest(WorldSimulation & Sim, const std::vector<ContactStatusInfo> & InitContactInfo, ReachabilityMap & RMObject, SelfLinkGeoInfo & SelfLinkGeoObj, const SimPara & SimParaObj){
   /* Simulation parameters */
   int     DOF             = Sim.world->robots[0]->q.size();
   double  DetectionWait   = SimParaObj.DetectionWait;
   int     PlanStageIndex  = 0;
-  double  MPCCounter      = 0.0;
   double  MPCDuration     = 0.1;                // Duration for MPC executation until next planning
+  double  MPCCounter      = MPCDuration;
   bool    MPCFlag         = false;              // True means MPC planning is working.
   bool    TouchDownFlag   = false;
 
@@ -36,26 +35,31 @@ int SimulationTest(WorldSimulation & Sim, const std::vector<ContactStatusInfo> &
   Vector3 COMPos(0.0, 0.0, 0.0), COMVel(0.0, 0.0, 0.0);
   double InitTime = Sim.time;
 
-  ControlReferenceInfo  ControlReference;                            // Used for control reference generation.
+  ControlReferenceInfo  ControlReferenceObj;                            // Used for control reference generation.
   FailureStateInfo      FailureStateObj;
   Robot                 SimRobot;
   bool                  FailureFlag = false;
+  double                FailureMetric;
+  double                SimTime;
   std::vector<ContactStatusInfo> curContactInfo =  InitContactInfo;
 
   while(Sim.time <= TotalDuration){
     SimRobot = *Sim.world->robots[0];
-    PushImposer(Sim,  Sim.time - InitTime, SimParaObj, FailureFlag);
+    SimTime = Sim.time;
+    PushImposer(Sim,  SimTime - InitTime, SimParaObj, FailureFlag);
 
-    /* Robot's COMPos and COMVel */
     getCentroidalState(SimRobot, COMPos, COMVel);
     std::vector<Vector3> ActContactPos = ActiveContactFinder(SimRobot, curContactInfo);
-
     std::vector<PIPInfo> PIPTotal = PIPGenerator(ActContactPos, COMPos, COMVel);
-    // ContactPolytopeWriter(ActContactPos, PIPTotal, EdgeFileNames);
+    ContactPolytopeWriter(ActContactPos, PIPTotal, SimParaObj);
 
-    // int CPPIPIndex;
-    // double RefFailureMetric = CapturePointGenerator(PIPTotal, CPPIPIndex);
-    // std::printf("Simulation Time: %f, and Failure Metric: %f\n", Sim.time, RefFailureMetric);
+    FailureMetric = FailureMetricEval(PIPTotal);
+    std::printf("Simulation Time: %f, and Failure Metric Value: %f\n", Sim.time, FailureMetric);
+    if(FailureMetric < 0.0) FailureFlag = true;
+    if((FailureFlag)&&(MPCCounter>=MPCDuration)){
+      ControlReferenceObj = ControlReferenceGene(SimRobot, curContactInfo, RMObject, SelfLinkGeoObj, SimParaObj);
+    }
+
     // if((!RHPFlag)&&(FailureFlag)){
     //   qDes = RawOnlineConfigReference(Sim, InitTime, ControlReference, TerrColGeom, SelfLinkGeoObj, DetectionWait, MPCFlag, RobotContactInfo, RMObject);
     //   ControlReference.RunningTime+=TimeStep;
@@ -126,10 +130,10 @@ int SimulationTest(WorldSimulation & Sim, const std::vector<ContactStatusInfo> &
     //     }
     //   }
     // }
-    // NewControllerPtr->SetConstant(Config(qDes));
-    // StateLogger(Sim, FailureStateObj, CtrlStateTraj, PlanStateTraj, FailureStateTraj, qDes, SpecificPath);
-    // Sim.Advance(TimeStep);
-    // Sim.UpdateModel();
+    NewControllerPtr->SetConstant(Config(qDes));
+    StateLogger(Sim, FailureStateObj, CtrlStateTraj, PlanStateTraj, FailureStateTraj, qDes, SimParaObj);
+    Sim.Advance(SimParaObj.TimeStep);
+    Sim.UpdateModel();
   }
   // if(FailureChecker(SimRobot, TerrColGeom, RMObject, DisTol)) PushRecovSuccFlag = 0;
   // else PushRecovSuccFlag = 1;

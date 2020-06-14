@@ -27,6 +27,7 @@ void RobotConfigWriter(const std::vector<double> & Config, const string &user_pa
 std::vector<int> TorsoLinkReader(const string & TorsoLinkFilePath);
 void StateTrajAppender(const char *stateTrajFile_Name, const double & Time_t, const std::vector<double> & Configuration);
 void PushInfoFileAppender(const double & SimTime, const double & Fx_t, const double & Fy_t, const double & Fz_t, const string & SpecificPath);
+void StateLogger(WorldSimulation & Sim, FailureStateInfo & FailureStateObj, LinearPath & CtrlStateTraj, LinearPath & PlanStateTraj, LinearPath & FailureStateTraj, std::vector<double> & qDes, const SimPara & SimParaObj);
 
 /* 3. Robot Utilities*/
 int FileIndexFinder(bool UpdateFlag);
@@ -45,4 +46,11 @@ int SimulationTest(WorldSimulation & Sim, const std::vector<ContactStatusInfo> &
 /* 5. Convex Polytope Functions*/
 FacetInfo FlatConvexHullGeneration(const std::vector<Vector3> & ContactPoints);
 std::vector<PIPInfo> PIPGenerator(const std::vector<Vector3> & ContactPoints, const Vector3 & COMPos, const Vector3 & COMVel);
+void ContactPolytopeWriter(const std::vector<Vector3> & ActiveContact, const std::vector<PIPInfo> & PIPTotal, const SimPara & SimParaObj);
+double FailureMetricEval(const std::vector<PIPInfo> & PIPTotal);
+PIPInfo TipOverPIPGenerator(const std::vector<Vector3> & ActiveContacts, const Vector3 & COMPos, const Vector3 & COMVel);
+
+/* 6. Control Reference Generation*/
+ControlReferenceInfo ControlReferenceGene(Robot & SimRobot, const std::vector<ContactStatusInfo> & RobotContactInfo, ReachabilityMap & RMObject, SelfLinkGeoInfo & SelfLinkGeoObj, const SimPara & SimParaObj);
+
 #endif

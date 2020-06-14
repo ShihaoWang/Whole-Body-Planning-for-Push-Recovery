@@ -581,9 +581,9 @@ struct SimPara{
   void CurrentCasePathUpdate(const string _CurrentCasePath){
     CurrentCasePath = _CurrentCasePath;
 
-    string fedge_aFile = CurrentCasePath + "edge_aTraj.txt";
+    string fedge_aFile = CurrentCasePath + "EdgeATraj.txt";
     // const char *fedge_aFile_Name = fedge_aFile.c_str();
-    string fedge_bFile = CurrentCasePath + "edge_bTraj.txt";
+    string fedge_bFile = CurrentCasePath + "EdgeBTraj.txt";
     // const char *fedge_bFile_Name = fedge_bFile.c_str();
     string fEdgeCOMFile = CurrentCasePath + "EdgeCOMTraj.txt";
     // const char *fEdgeCOMFile_Name = fEdgeCOMFile.c_str();
@@ -610,7 +610,11 @@ struct SimPara{
     PlanStateTrajFileStr = CurrentCasePath + "PlanStateTraj.path";
     // const char *PlanStateTrajStr_Name = PlanStateTrajFileStr.c_str();
   }
-  void setImpulseForceMax(const Vector3 & ImpulseDirection){ ImpulseForceMax = ForceMax * ImpulseDirection;}
+  void setImpulseForceMax(const Vector3 & ImpulseDirection){ ImpulseForceMax = ForceMax * ImpulseDirection; }
+  void setPlanStageIndex(const int & _PlanStageIndex) {PlanStageIndex = _PlanStageIndex; }
+  int  getPlanStageIndex(){ return PlanStageIndex; }
+  void setSimTime(const double & _SimTime) { SimTime = _SimTime; }
+  double getSimTime() { return SimTime; }
   double  ForceMax;
   double  PushDuration;
   double  DetectionWait;
@@ -618,6 +622,8 @@ struct SimPara{
   double  InitDuration;
   double  TotalDuration;
   double  PhaseRatio;            // This ratio determines the boundary between acceleration and deceleration.
+  int     PlanStageIndex;
+  double  SimTime;
   Vector3 ImpulseForceMax;
   std::string CurrentCasePath;
   std::vector<string >EdgeFileNames;
@@ -630,6 +636,7 @@ struct ControlReferenceInfo{
     ControlReferenceType = -1;
     LinkInfoIndex = -1;           // Used for RobotLinkInfo
     ContactStatusInfoIndex = -1;
+    ComputationTime = 0.0;
     GoalContactPos.setZero();
     GoalContactGrad.setZero();
     }
@@ -663,11 +670,17 @@ struct ControlReferenceInfo{
     }
     EndEffectorTraj = LinearPath(timeTraj, endeffectorPath);
   }
+  void setWaitTime(const double & _WaitTime) { WaitTime = _WaitTime; }
+  double getWaitTime() { return WaitTime; }
+  void setComputationTime(const double & _ComputationTime) { ComputationTime = _ComputationTime; }
+  double getComputationTime(){ return ComputationTime; }
 
-  bool  ReadyFlag;
-  int   ControlReferenceType;
-  int   LinkInfoIndex;
-  int   ContactStatusInfoIndex;
+  bool    ReadyFlag;
+  int     ControlReferenceType;
+  int     LinkInfoIndex;
+  int     ContactStatusInfoIndex;
+  double  WaitTime;
+  double  ComputationTime;
 
   Vector3 GoalContactPos;
   Vector3 GoalContactGrad;
@@ -761,6 +774,7 @@ struct PIPInfo{
     thetadot = 0.0;
     g = 9.81;
     g_angle = 0.0;
+    speed = -1.0;
     onFlag = false;
   }
   PIPInfo(double _L, double _Ldot, double _theta, double _thetadot, double _g, double _g_angle){
@@ -786,14 +800,31 @@ struct PIPInfo{
     edge_b = edge_b_;
   }
   void setIntersection(const Vector3 & intersection_){ intersection = intersection_;}
+  void setSpeed(const double & _speed ) {speed = _speed;}
+  double getSpeed(){ return speed;}
 
   double  L, Ldot, theta, thetadot;
   double  g, g_angle;
+  double  speed;                            // This value indicates the horizontal velocity.
   bool    onFlag;                           // Whether the origin is at intersection or not?!
   Vector3 x_prime_unit, y_prime_unit, z_prime_unit;
   Vector3 x_unit, y_unit, z_unit;
   Vector3 edge_a, edge_b;                     // The Edge points from edge_a to edge_b.
   Vector3 intersection;                     // The point where the COM intersects the edge.
+};
+
+struct AllContactStatus{
+  AllContactStatus(){};
+  void ContactStatusAppender( std::vector<ContactStatusInfo> & _ContactStatusInfoVec,
+                              const int & _SwingLinkInfoIndex,
+                              const int & _Type){
+    ContactStatusInfoVec.push_back(_ContactStatusInfoVec);
+    SwingLinkInfoIndexVec.push_back(_SwingLinkInfoIndex);
+    ContactTypeVec.push_back(_Type);
+  };
+  std::vector<std::vector<ContactStatusInfo>> ContactStatusInfoVec;
+  std::vector<int> SwingLinkInfoIndexVec;
+  std::vector<int> ContactTypeVec;
 };
 
 #endif

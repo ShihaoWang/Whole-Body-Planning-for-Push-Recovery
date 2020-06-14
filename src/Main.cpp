@@ -115,12 +115,12 @@ int main(){
 
     Vector3 ImpulseDirection = ImpulseDirectionGene(*Sim.world->robots[0], InitContactInfo, 1);
     SimParaObj.setImpulseForceMax(ImpulseDirection);
-
+    
+    FilePathManager(SimParaObj.CurrentCasePath);
     int SimRes = SimulationTest(Sim, InitContactInfo, RMObject, SelfLinkGeoObj, SimParaObj);
     // int SimulationTest(Sim, InitContactInfo, RMObject, SelfLinkGeoObj)
 
     // CurrentCasePath+= PlanningType + "/";
-    // FilePathManager(CurrentCasePath);
     // SimulationTest(Sim, InitContactInfo, SelfLinkGeoObj, SimParaObj);
     // if(FailureFlag)
     // {
