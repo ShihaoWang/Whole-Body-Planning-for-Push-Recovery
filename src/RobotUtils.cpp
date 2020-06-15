@@ -33,6 +33,16 @@ static bool IsPathExist(const std::string &s){
   return (stat (s.c_str(), &buffer) == 0);
 }
 
+std::vector<double> YPRShifter(std::vector<double> OptConfig){
+  for (int i = 3; i < 6; i++){
+    if(OptConfig[i]>M_PI)
+      OptConfig[i]-=2.0 * M_PI;
+    if(OptConfig[i]<-M_PI)
+      OptConfig[i]+=2.0 * M_PI;
+  }
+  return OptConfig;
+}
+
 void FilePathManager(const string & SpecificPath){
   if(IsPathExist(SpecificPath))
     printf("%s exist!\n", SpecificPath.c_str());

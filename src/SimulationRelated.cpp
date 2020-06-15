@@ -164,27 +164,3 @@ void PushImposer(WorldSimulation & Sim, const double & CurTime, const SimPara & 
 //   return qDes;
 // }
 //
-// void StateLogger(WorldSimulation & Sim, FailureStateInfo & FailureStateObj, LinearPath & CtrlStateTraj, LinearPath & PlanStateTraj, LinearPath & FailureStateTraj, std::vector<double> & qDes, const string & SpecificPath)
-// {
-//   string FailureStateTrajStr =  SpecificPath + "FailureStateTraj.path";
-//   const char *FailureStateTrajStr_Name = FailureStateTrajStr.c_str();
-//   string CtrlStateTrajStr =     SpecificPath + "CtrlStateTraj.path";
-//   const char *CtrlStateTrajStr_Name = CtrlStateTrajStr.c_str();
-//   string PlanStateTrajFileStr = SpecificPath + "PlanStateTraj.path";
-//   const char *PlanStateTrajStr_Name = PlanStateTrajFileStr.c_str();
-//
-//   CtrlStateTraj.Append(Sim.time,    Sim.world->robots[0]->q);
-//   StateTrajAppender(CtrlStateTrajStr_Name, Sim.time, Sim.world->robots[0]->q);
-//
-//   if(qDes.size()==0) qDes = PlanStateTraj.milestones[PlanStateTraj.times.size()-1];
-//
-//   StateTrajAppender(PlanStateTrajStr_Name, Sim.time, qDes);
-//   PlanStateTraj.Append(Sim.time,    Config(qDes));
-//
-//   if(!FailureStateObj.FailureInitFlag)
-//   {
-//     FailureStateTraj.Append(Sim.time,    Sim.world->robots[0]->q);
-//     StateTrajAppender(FailureStateTrajStr_Name, Sim.time, Sim.world->robots[0]->q);
-//   }
-//   return;
-// }

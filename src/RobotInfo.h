@@ -563,6 +563,69 @@ struct SelfLinkGeoInfo{
   std::map<int, std::vector<int>> SelfCollisionLinkMap;       // This map saves intermediate joint from End Effector Joint to Pivotal Joint.
 };
 
+struct DataRecorderInfo{
+  DataRecorderInfo(){
+    PlanStageIndex = -1;
+    LinkNo = -1;
+  };
+  void setPlanStageIndexNLinkNo(const int & _PlanStageIndex, const int & _LinkNo){
+    PlanStageIndex = _PlanStageIndex;
+    LinkNo = _LinkNo;
+  }
+  void setData( const std::vector<Vector3> & _ActiveReachableContact,
+                const std::vector<Vector3> & _ContactFreeContact,
+                const std::vector<Vector3> & _SupportContact,
+                const std::vector<Vector3> & _OptimalContact,
+                const std::vector<Vector3> & _ReducedOptimalContact){
+                ActiveReachableContact = _ActiveReachableContact;
+                ContactFreeContact = _ContactFreeContact;
+                SupportContact = _SupportContact;
+                OptimalContact = _OptimalContact;
+                ReducedOptimalContact = _ReducedOptimalContact;
+  }
+  void setTransitionPoints(const std::vector<Vector3> & _TransitionPoints){ TransitionPoints = _TransitionPoints; }
+  void Vector3Writer(const std::vector<Vector3> & ContactPoints, const std::string &ContactPointFileName){
+    if(ContactPoints.size() ==0) return;
+    int NumberOfContactPoints = ContactPoints.size();
+    std::vector<double> FlatContactPoints(3 * NumberOfContactPoints);
+    int FlatContactPointIndex = 0;
+    for (int i = 0; i < NumberOfContactPoints; i++){
+      FlatContactPoints[FlatContactPointIndex] = ContactPoints[i].x;
+      FlatContactPointIndex++;
+      FlatContactPoints[FlatContactPointIndex] = ContactPoints[i].y;
+      FlatContactPointIndex++;
+      FlatContactPoints[FlatContactPointIndex] = ContactPoints[i].z;
+      FlatContactPointIndex++;
+    }
+    FILE * FlatContactPointsFile = NULL;
+    string ContactPointFile = ContactPointFileName + ".bin";
+    const char *ContactPointFile_Name = ContactPointFile.c_str();
+    FlatContactPointsFile = fopen(ContactPointFile_Name, "wb");
+    fwrite(&FlatContactPoints[0], sizeof(double), FlatContactPoints.size(), FlatContactPointsFile);
+    fclose(FlatContactPointsFile);
+    return;
+  }
+  void DataRecorder(const string & SpecificPath){
+    // This function will only be called if planning is successful!
+    const string InnerPath = SpecificPath + std::to_string(PlanStageIndex) + "_" + std::to_string(LinkNo) + "_";
+    Vector3Writer(ActiveReachableContact, InnerPath +  "ActiveReachableContact");
+    Vector3Writer(ContactFreeContact, InnerPath + "ContactFreeContact");
+    Vector3Writer(SupportContact, InnerPath + "SupportContact");
+    Vector3Writer(OptimalContact, InnerPath + "OptimalContact");
+    Vector3Writer(ReducedOptimalContact, InnerPath + "ReducedOptimalContact");
+    Vector3Writer(TransitionPoints, InnerPath + "TransitionPoints");
+  }
+  std::vector<Vector3> ActiveReachableContact;
+  std::vector<Vector3> ContactFreeContact;
+  std::vector<Vector3> SupportContact;
+  std::vector<Vector3> OptimalContact;
+  std::vector<Vector3> ReducedOptimalContact;
+  std::vector<Vector3> TransitionPoints;
+
+  int PlanStageIndex;
+  int LinkNo;
+};
+
 struct SimPara{
   SimPara();
   SimPara(const double & _ForceMax,
@@ -571,12 +634,14 @@ struct SimPara{
           const double & _TimeStep,
           const double & _InitDuration,
           const double & _TotalDuration,
+          const double & _ForwardDuration,
           const double & _PhaseRatio):    ForceMax(_ForceMax),
                                           PushDuration(_PushDuration),
                                           DetectionWait(_DetectionWait),
                                           TimeStep(_TimeStep),
                                           InitDuration(_InitDuration),
                                           TotalDuration(_TotalDuration),
+                                          ForwardDuration(_ForwardDuration),
                                           PhaseRatio(_PhaseRatio){}
   void CurrentCasePathUpdate(const string _CurrentCasePath){
     CurrentCasePath = _CurrentCasePath;
@@ -621,9 +686,11 @@ struct SimPara{
   double  TimeStep;
   double  InitDuration;
   double  TotalDuration;
+  double  ForwardDuration;
   double  PhaseRatio;            // This ratio determines the boundary between acceleration and deceleration.
   int     PlanStageIndex;
   double  SimTime;
+  DataRecorderInfo DataRecorderObj;
   Vector3 ImpulseForceMax;
   std::string CurrentCasePath;
   std::vector<string >EdgeFileNames;
@@ -813,18 +880,30 @@ struct PIPInfo{
   Vector3 intersection;                     // The point where the COM intersects the edge.
 };
 
-struct AllContactStatus{
-  AllContactStatus(){};
-  void ContactStatusAppender( std::vector<ContactStatusInfo> & _ContactStatusInfoVec,
-                              const int & _SwingLinkInfoIndex,
-                              const int & _Type){
-    ContactStatusInfoVec.push_back(_ContactStatusInfoVec);
-    SwingLinkInfoIndexVec.push_back(_SwingLinkInfoIndex);
-    ContactTypeVec.push_back(_Type);
-  };
-  std::vector<std::vector<ContactStatusInfo>> ContactStatusInfoVec;
-  std::vector<int> SwingLinkInfoIndexVec;
-  std::vector<int> ContactTypeVec;
+struct ContactForm{
+  ContactForm();
+  ContactForm(      const std::vector<ContactStatusInfo> & _ContactStatusInfoObj,
+                    const int & _SwingLinkInfoIndex,
+                    const int & _ContactType):  FixedContactStatusInfo(_ContactStatusInfoObj),
+                                                SwingLinkInfoIndex(_SwingLinkInfoIndex),
+                                                ContactType(_ContactType){};
+  std::vector<ContactStatusInfo> FixedContactStatusInfo;
+  int SwingLinkInfoIndex;
+  int ContactType;
 };
 
+struct InvertedPendulumInfo{
+  InvertedPendulumInfo();
+  InvertedPendulumInfo( const double & _Theta,
+                        const double & _Thetadot,
+                        const Vector3 & _COMPos,
+                        const Vector3 & _COMVel): Theta(_Theta),
+                                                  Thetadot(_Thetadot),
+                                                  COMPos(_COMPos),
+                                                  COMVel(_COMVel){};
+  double Theta;
+  double Thetadot;
+  Vector3 COMPos;
+  Vector3 COMVel;
+};
 #endif

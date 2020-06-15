@@ -37,11 +37,12 @@ Vector3 ImpulseDirectionGene(Robot & SimRobotObj, const std::vector<ContactStatu
 Vector3 FlatRandomDirection();
 void getCentroidalState(const Robot & SimRobot, Vector3 & COMPos, Vector3 & COMVel);
 std::vector<Vector3> ActiveContactFinder(const Robot & SimRobot, const std::vector<ContactStatusInfo> & RobotContactInfo);
+std::vector<double> YPRShifter(std::vector<double> OptConfig);
 
 /* 4. Main Simulation*/
 LinearPath InitialSimulation(WorldSimulation & Sim, const SimPara & SimParaObj);
 void PushImposer(WorldSimulation & Sim, const double & CurTime, const SimPara & SimParaObj, const bool & FailureFlag);
-int SimulationTest(WorldSimulation & Sim, const std::vector<ContactStatusInfo> & _InitContactInfo, ReachabilityMap & RMObject, SelfLinkGeoInfo & SelfLinkGeoObj, const SimPara & _SimParaObj);
+int SimulationTest(WorldSimulation & Sim, const std::vector<ContactStatusInfo> & _InitContactInfo, ReachabilityMap & RMObject, SelfLinkGeoInfo & SelfLinkGeoObj, SimPara & _SimParaObj);
 
 /* 5. Convex Polytope Functions*/
 FacetInfo FlatConvexHullGeneration(const std::vector<Vector3> & ContactPoints);
@@ -51,6 +52,8 @@ double FailureMetricEval(const std::vector<PIPInfo> & PIPTotal);
 PIPInfo TipOverPIPGenerator(const std::vector<Vector3> & ActiveContacts, const Vector3 & COMPos, const Vector3 & COMVel);
 
 /* 6. Control Reference Generation*/
-ControlReferenceInfo ControlReferenceGene(Robot & SimRobot, const std::vector<ContactStatusInfo> & RobotContactInfo, ReachabilityMap & RMObject, SelfLinkGeoInfo & SelfLinkGeoObj, const SimPara & SimParaObj);
+ControlReferenceInfo ControlReferenceGene(Robot & SimRobot, const std::vector<ContactStatusInfo> & RobotContactInfo, ReachabilityMap & RMObject, SelfLinkGeoInfo & SelfLinkGeoObj, SimPara & SimParaObj);
 
+/* 7. Whole-Body Estimation */
+Config WholeBodyDynamicsIntegrator(Robot & SimRobot, const PIPInfo & PIPObj, InvertedPendulumInfo & InvertedPendulumObj, const double & TimeDuration, const int & StepIndex);
 #endif

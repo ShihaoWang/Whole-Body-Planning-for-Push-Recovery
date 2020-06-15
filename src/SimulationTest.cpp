@@ -6,7 +6,7 @@
 #include "Control/JointTrackingController.h"
 #include "NonlinearOptimizerInfo.h"
 
-int SimulationTest(WorldSimulation & Sim, const std::vector<ContactStatusInfo> & InitContactInfo, ReachabilityMap & RMObject, SelfLinkGeoInfo & SelfLinkGeoObj, const SimPara & SimParaObj){
+int SimulationTest(WorldSimulation & Sim, const std::vector<ContactStatusInfo> & InitContactInfo, ReachabilityMap & RMObject, SelfLinkGeoInfo & SelfLinkGeoObj, SimPara & SimParaObj){
   /* Simulation parameters */
   int     DOF             = Sim.world->robots[0]->q.size();
   double  DetectionWait   = SimParaObj.DetectionWait;
