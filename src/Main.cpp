@@ -85,7 +85,7 @@ int main(){
 
   /* 5. Internal Experimentation Loop */
   int TotalNumber = 100;
-  int FileIndex = FileIndexFinder(false);
+  int FileIndex = FileIndexFinder(false);  FileIndex = 15;
   while(FileIndex<=TotalNumber){
     RobotWorld world;
     SimGUIBackend Backend(&world);

@@ -63,7 +63,10 @@ add_executable(MyApp
 	       src/SimulationRelated.cpp
 	       src/ConvexPolytope.cpp
 	       src/ControlReferenceGeneration.cpp
-	       src/WholeBodyEstimation.cpp)
+	       src/WholeBodyEstimation.cpp
+	       src/Splines.cpp
+	       src/TransientPathGeneration.cpp)
+
 
 target_link_libraries(MyApp  ${KLAMPT_LIBRARIES} ${SNOPT_LIBRARIES} ${CILANTRO_LIBRARIES} ${GLEW_LIBRARY})
 #set_property(TARGET MyApp PROPERTY INTERPROCEDURAL_OPTIMIZATION True)

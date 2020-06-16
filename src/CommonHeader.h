@@ -11,6 +11,7 @@
 #include <KrisLibrary/meshing/VolumeGrid.h>
 #include <KrisLibrary/meshing/PointCloud.h>
 #include "RobotInfo.h"
+#include "Splines.h"
 
 /* 0. Robot Info Initiaization */
 std::vector<LinkInfo> ContactInfoLoader(const string & ContactLinkFile, int & ContactPointNo);
@@ -38,6 +39,7 @@ Vector3 FlatRandomDirection();
 void getCentroidalState(const Robot & SimRobot, Vector3 & COMPos, Vector3 & COMVel);
 std::vector<Vector3> ActiveContactFinder(const Robot & SimRobot, const std::vector<ContactStatusInfo> & RobotContactInfo);
 std::vector<double> YPRShifter(std::vector<double> OptConfig);
+void Vector3Writer(const std::vector<Vector3> & ContactPoints, const std::string & ContactPointFileName);
 
 /* 4. Main Simulation*/
 LinearPath InitialSimulation(WorldSimulation & Sim, const SimPara & SimParaObj);
@@ -56,4 +58,7 @@ ControlReferenceInfo ControlReferenceGene(Robot & SimRobot, const std::vector<Co
 
 /* 7. Whole-Body Estimation */
 Config WholeBodyDynamicsIntegrator(Robot & SimRobot, const PIPInfo & PIPObj, InvertedPendulumInfo & InvertedPendulumObj, const double & TimeDuration, const int & StepIndex);
+/* 8. Transient Path Generation*/
+std::vector<SplineLib::cSpline3> TransientPathGene(const Robot & SimRobot, const int & SwingLinkInfoIndex, ReachabilityMap & RMObject, SelfLinkGeoInfo & SelfLinkGeoObj, SimPara & SimParaObj);
+
 #endif

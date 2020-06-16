@@ -234,6 +234,7 @@ static std::vector<Vector3> OptimalContactSearcher( Robot SimRobot,     const PI
                             NonlinearOptimizerInfo::RobotLinkInfo[ContactFormObj.SwingLinkInfoIndex].LinkIndex,
                             SwingLimbAvg);
 
+
   for (int i = 0; i < OptimalContact.size(); i++){
     std::vector<Vector3> NewSPVertices = SPVertices;
     Vector3 ShiftVec = OptimalContact[i] - SwingLimbAvg;
@@ -256,11 +257,19 @@ static std::vector<Vector3> OptimalContactSearcher( Robot SimRobot,     const PI
     for (int i = 0; i < ContactPairVec.size(); i++)
       ReducedOptimalContact.push_back(ContactPairVec[i].first);
   }
+
+  Vector3Writer(ActiveReachableContact,"ActiveReachableContact");
+  Vector3Writer(ContactFreeContact,"ContactFreeContact");
+  Vector3Writer(SupportContact,"SupportContact");
+  Vector3Writer(OptimalContact,"OptimalContact");
+  Vector3Writer(ReducedOptimalContact,"ReducedOptimalContact");
+
   SimParaObj.DataRecorderObj.setData( ActiveReachableContact,
                                       ContactFreeContact,
                                       SupportContact,
                                       OptimalContact,
                                       ReducedOptimalContact);
+
   return ReducedOptimalContact;
 }
 
@@ -269,9 +278,20 @@ static ControlReferenceInfo ControlReferenceGeneInner(const Robot & SimRobot, co
   Vector3 ContactInit;       // This is the position of the reference contact for robot's active end effector.
   SimRobot.GetWorldPosition(NonlinearOptimizerInfo::RobotLinkInfo[ContactFormObj.SwingLinkInfoIndex].AvgLocalContact,
                             NonlinearOptimizerInfo::RobotLinkInfo[ContactFormObj.SwingLinkInfoIndex].LinkIndex, ContactInit);
-  Vector3 COMPos, COMVel;
-  getCentroidalState(SimRobot, COMPos, COMVel);
+  SimParaObj.setContactInit(ContactInit);
+
   std::vector<Vector3> OptimalContact = OptimalContactSearcher(SimRobot, TipOverPIPObj, RMObject, ContactFormObj, SimParaObj);
+  if(!OptimalContact.size()) return ControlReferenceObj;
+
+  for (int i = 0; i < OptimalContact.size(); i++) {
+    Robot SimRobotInner = SimRobot;
+    SimParaObj.setContactGoal(OptimalContact[i]);
+    SimParaObj.setTransPathFeasiFlag(false);
+    std::vector<SplineLib::cSpline3> SplineObj = TransientPathGene(SimRobotInner, ContactFormObj.SwingLinkInfoIndex, RMObject, SelfLinkGeoObj, SimParaObj);
+
+  }
+
+
   // switch (OptimalContact.size())
   // {
   //   case 0:
@@ -283,7 +303,6 @@ static ControlReferenceInfo ControlReferenceGeneInner(const Robot & SimRobot, co
   //   {
   //     // Now too early to assume that FailureFlag is true.
   //     bool FeasiFlag;
-  //     std::vector<SplineLib::cSpline3> SplineObj;
   //     int OptimalContactIndex = 0;
   //     while(OptimalContactIndex<OptimalContact.size())
   //     {

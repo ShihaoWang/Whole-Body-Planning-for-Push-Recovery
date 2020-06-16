@@ -9,6 +9,7 @@
 #include <KrisLibrary/geometry/CollisionMesh.h>
 #include <KrisLibrary/geometry/PQP/src/PQP.h>
 #include "Modeling/Paths.h"
+#include "Splines.h"
 
 struct LinkInfo {
   LinkInfo(){LinkIndex = -1;}
@@ -553,9 +554,8 @@ struct SelfLinkGeoInfo{
     Grad.x = 0.0;
     Grad.y = 0.0;
     Grad.z = 0.0;
-    for (int i = 0; i < ActLinkNo; i++){
+    for (int i = 0; i < ActLinkNo; i++)
       Grad+=DistWeights[i] * GradVec[i];
-    }
     Grad.getNormalized(Grad);
   }
   std::vector<AABB3D> LinkBBs;
@@ -680,6 +680,15 @@ struct SimPara{
   int  getPlanStageIndex(){ return PlanStageIndex; }
   void setSimTime(const double & _SimTime) { SimTime = _SimTime; }
   double getSimTime() { return SimTime; }
+  void setContactInit(const Vector3 _ContactInit){ ContactInit = _ContactInit; }
+  Vector3 getContactInit() { return ContactInit; }
+  void setContactGoal(const Vector3 _ContactGoal){ ContactGoal = _ContactGoal;}
+  Vector3 getContactGoal(){ return ContactGoal;}
+  void setDirectionInit(const Vector3 & _DirectionInit ){ DirectionInit = _DirectionInit; }
+  void setDirectionGoal(const Vector3 & _DirectionGoal ){ DirectionGoal = _DirectionGoal; }
+  void setTransPathFeasiFlag(const bool & _TransPathFeasiFlag){ TransPathFeasiFlag = _TransPathFeasiFlag; }
+  bool getTransPathFeasiFlag(){ return TransPathFeasiFlag;}
+
   double  ForceMax;
   double  PushDuration;
   double  DetectionWait;
@@ -690,11 +699,15 @@ struct SimPara{
   double  PhaseRatio;            // This ratio determines the boundary between acceleration and deceleration.
   int     PlanStageIndex;
   double  SimTime;
+  bool    TransPathFeasiFlag;
+
   DataRecorderInfo DataRecorderObj;
   Vector3 ImpulseForceMax;
   std::string CurrentCasePath;
   std::vector<string >EdgeFileNames;
   string FailureStateTrajStr, CtrlStateTrajStr, PlanStateTrajFileStr;
+  Vector3 ContactInit, ContactGoal;
+  Vector3 DirectionInit, DirectionGoal;
 };
 
 struct ControlReferenceInfo{
@@ -906,4 +919,28 @@ struct InvertedPendulumInfo{
   Vector3 COMPos;
   Vector3 COMVel;
 };
+
+struct SplineInfo{
+  SplineInfo(){
+    sStart = -1.0;
+    sEnd = -1.0;
+  };
+
+  SplineInfo( const double & _sStart, const double & _sEnd,
+              const Vector3 &_a, const Vector3 &_b,
+              const Vector3 &_c, const Vector3 &_d):  sStart(_sStart), sEnd(_sEnd),
+                                                      a(_a), b(_b), c(_c), d(_d){};
+  Vector3 SplinePosVector(const double & s){
+    Vector3 Pos = a * s * s * s + b * s * s + c * s + d;
+    return Pos;
+  }
+
+  Vector3 SplineVelVector(const double & s){
+    Vector3 Vel = 3.0 * a * s *s + 2.0 * b * s + c;
+    return Vel;
+  }
+  double sStart, sEnd;
+  Vector3 a, b, c, d;
+};
+
 #endif
