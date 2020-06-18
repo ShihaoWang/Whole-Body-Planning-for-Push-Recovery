@@ -99,7 +99,7 @@ def Robot_Config_Plot(world, DOF, config_init):
     ReducedOptimalContact_data = ContactDataLoader("ReducedOptimalContact")
 
 
-    ContactChoice = ReducedOptimalContact_data
+    ContactChoice = TransitionPoints_data
     SimRobot = world.robot(0)
     SimRobot.setConfig(config_init)
 

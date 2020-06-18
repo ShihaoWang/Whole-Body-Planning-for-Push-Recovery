@@ -271,11 +271,11 @@ static std::vector<cSpline3> SplineObjGene(SelfLinkGeoInfo & SelfLinkGeoObj, Rea
 
   std::vector<cSpline3> SplineObj;
   std::vector<Vector3> Points = BasePointsGene(PosInit, NormalInit, PosGoal, NormalGoal);
-  // Vector3Writer(Points, "InitialTransitionPoints");
+  Vector3Writer(Points, "InitialTransitionPoints");
   double SelfTol = SelfCollisionDist(SelfLinkGeoObj, SwingLinkInfoIndex, PosInit, PosGoal);
   bool InitShiftFeasFlag;     // For the shift of initial pts.
   Points = SpatialPointShifter(Points, SwingLinkInfoIndex, SelfTol, SelfLinkGeoObj, RMObject, InitShiftFeasFlag);
-  // Vector3Writer(Points, "ShiftedTransitionPoints");
+  Vector3Writer(Points, "ShiftedTransitionPoints");
   bool FeasiFlag = false;
   SimParaObj.setTransPathFeasiFlag(FeasiFlag);
   if(!InitShiftFeasFlag) return SplineObj;

@@ -220,30 +220,42 @@ static std::vector<Vector3> OptimalContactSearcher( Robot SimRobot,     const PI
 
   std::vector<std::pair<Vector3, double>> ContactPairVec;
   ContactPairVec.reserve(OptimalContact.size());
-  std::vector<Vector3> SwingLinkVertices;
-  for (int i = 0; i < NonlinearOptimizerInfo::RobotLinkInfo[ContactFormObj.SwingLinkInfoIndex].LocalContacts.size(); i++)
-  {
-    Vector3 LinkiPjPos;
-    SimRobot.GetWorldPosition(NonlinearOptimizerInfo::RobotLinkInfo[ContactFormObj.SwingLinkInfoIndex].LocalContacts[i],
-                              NonlinearOptimizerInfo::RobotLinkInfo[ContactFormObj.SwingLinkInfoIndex].LinkIndex,
-                              LinkiPjPos);
-    SwingLinkVertices.push_back(LinkiPjPos);
-  }
-  Vector3 SwingLimbAvg;
-  SimRobot.GetWorldPosition(NonlinearOptimizerInfo::RobotLinkInfo[ContactFormObj.SwingLinkInfoIndex].AvgLocalContact,
-                            NonlinearOptimizerInfo::RobotLinkInfo[ContactFormObj.SwingLinkInfoIndex].LinkIndex,
-                            SwingLimbAvg);
 
+  // Method 1
+  // std::vector<Vector3> SwingLinkVertices;
+  // for (int i = 0; i < NonlinearOptimizerInfo::RobotLinkInfo[ContactFormObj.SwingLinkInfoIndex].LocalContacts.size(); i++)
+  // {
+  //   Vector3 LinkiPjPos;
+  //   SimRobot.GetWorldPosition(NonlinearOptimizerInfo::RobotLinkInfo[ContactFormObj.SwingLinkInfoIndex].LocalContacts[i],
+  //                             NonlinearOptimizerInfo::RobotLinkInfo[ContactFormObj.SwingLinkInfoIndex].LinkIndex,
+  //                             LinkiPjPos);
+  //   SwingLinkVertices.push_back(LinkiPjPos);
+  // }
+  // Vector3 SwingLimbAvg;
+  // SimRobot.GetWorldPosition(NonlinearOptimizerInfo::RobotLinkInfo[ContactFormObj.SwingLinkInfoIndex].AvgLocalContact,
+  //                           NonlinearOptimizerInfo::RobotLinkInfo[ContactFormObj.SwingLinkInfoIndex].LinkIndex,
+  //                           SwingLimbAvg);
+  //
+  //
+  // for (int i = 0; i < OptimalContact.size(); i++){
+  //   std::vector<Vector3> NewSPVertices = SPVertices;
+  //   Vector3 ShiftVec = OptimalContact[i] - SwingLimbAvg;
+  //   for (int j = 0; j < SwingLinkVertices.size(); j++)
+  //     NewSPVertices.push_back(SwingLinkVertices[j] + ShiftVec);
+  //   FacetInfo SPObj = FlatConvexHullGeneration(NewSPVertices);
+  //   COMPos.z = 0.0;
+  //   double COMDist = SPObj.ProjPoint2EdgeDist(COMPos);
+  //   std::pair<Vector3, double> ContactPair_i = std::make_pair(OptimalContact[i], COMDist) ;
+  //   ContactPairVec.push_back(ContactPair_i);
+  // }
 
-  for (int i = 0; i < OptimalContact.size(); i++){
+  // Method 2
+  for (int i = 0; i < OptimalContact.size(); i++) {
     std::vector<Vector3> NewSPVertices = SPVertices;
-    Vector3 ShiftVec = OptimalContact[i] - SwingLimbAvg;
-    for (int j = 0; j < SwingLinkVertices.size(); j++)
-      NewSPVertices.push_back(SwingLinkVertices[j] + ShiftVec);
-    FacetInfo SPObj = FlatConvexHullGeneration(NewSPVertices);
-    COMPos.z = 0.0;
-    double COMDist = SPObj.ProjPoint2EdgeDist(COMPos);
-    std::pair<Vector3, double> ContactPair_i = std::make_pair(OptimalContact[i], COMDist) ;
+    SPVertices.push_back(OptimalContact[i]);
+    std::vector<PIPInfo> PIPTotal_i = PIPGenerator(SPVertices, COMPos, COMVel);
+    double FailureMetric_i = FailureMetricEval(PIPTotal_i);
+    std::pair<Vector3, double> ContactPair_i = std::make_pair(OptimalContact[i], FailureMetric_i);
     ContactPairVec.push_back(ContactPair_i);
   }
   sort(ContactPairVec.begin(), ContactPairVec.end(), ContactPairCMP);

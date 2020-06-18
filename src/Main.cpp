@@ -45,7 +45,7 @@ int main(){
   double TimeStep       = 0.025;
   double InitDuration    = 2.0;
   double TotalDuration   = 5.0;                // Simulation lasts for 5s after initial duration
-  double ForwardDuartion = .25;                // Used to optimal contact point planning
+  double ForwardDuartion = 0.325;                // Used to optimal contact point planning
   double PhaseRatio = 0.75;
 
   SimPara SimParaObj(ForceMax, PushDuration, DetectionWait, TimeStep, InitDuration, TotalDuration, ForwardDuartion, PhaseRatio);

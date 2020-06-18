@@ -943,4 +943,149 @@ struct SplineInfo{
   Vector3 a, b, c, d;
 };
 
+struct EndEffectorPathInfo{
+  // This info saves robot's Spline Object.
+  EndEffectorPathInfo(){};
+  EndEffectorPathInfo(const std::vector<SplineLib::cSpline3> & _SplineObj){
+    SplineObj = _SplineObj;
+    SplineNumber = SplineObj.size();
+    SplineIndLength.reserve(SplineNumber);
+    SplineSumLength.reserve(SplineNumber);
+    TotalLength = 0.0f;
+    for (int i = 0; i < SplineNumber; i++){
+        float len = Length(SplineObj[i], 0.01f);
+        SplineIndLength.push_back(len);
+        TotalLength += len;
+        SplineSumLength.push_back(TotalLength);
+    }
+    SplineLib::Vec3f GoalPos = Position(SplineObj[SplineNumber - 1], 1.0);
+    GoalContactPos.x = GoalPos.x;
+    GoalContactPos.y = GoalPos.y;
+    GoalContactPos.z = GoalPos.z;
+  }
+  void s2Pos(const double & s, Vector3 & Pos){
+    // Here this function is used to get the corresponding position given the total s.
+    double sLength = s * TotalLength;
+    // Enumerate SplineSumLength to get the segment index
+    if(sLength>TotalLength) sLength = TotalLength;
+    if(s<0) sLength = 0.0;
+    int SegmentNo = 0;
+    while (SegmentNo<SplineNumber-1){
+      if(SplineSumLength[SegmentNo]>=sLength)
+        break;
+      SegmentNo++;
+    }
+    double ResLength = 0.0;
+    switch (SegmentNo){
+      case 0:
+      {
+        ResLength = sLength;
+      }
+      break;
+      default:
+      {
+        ResLength = sLength - SplineSumLength[SegmentNo-1];
+      }
+      break;
+    }
+    float sLength_i = ResLength/SplineIndLength[SegmentNo];
+    SplineLib::Vec3f ps = Position(SplineObj[SegmentNo], sLength_i);
+    Pos.x = ps.x;
+    Pos.y = ps.y;
+    Pos.z = ps.z;
+  }
+  void PosNTang(const double & s, Vector3 & Pos, Vector3 & Tang)
+  {
+    // Here this function is used to get the corresponding position given the total s.
+    double sLength = s * TotalLength;
+    // Enumerate SplineSumLength to get the segment index
+    if(sLength>TotalLength) sLength = TotalLength;
+    if(s<0) sLength = 0.0;
+    int SegmentNo = 0;
+    while (SegmentNo<SplineNumber-1)
+    {
+      if(SplineSumLength[SegmentNo]>=sLength)
+      {
+        break;
+      }
+      SegmentNo++;
+    }
+
+    double ResLength = 0.0;
+    switch (SegmentNo)
+    {
+      case 0:
+      {
+        ResLength = sLength;
+      }
+      break;
+      default:
+      {
+        ResLength = sLength - SplineSumLength[SegmentNo - 1];
+      }
+      break;
+    }
+
+    float sLength_i = ResLength/SplineIndLength[SegmentNo];
+
+    SplineLib::Vec3f ps = Position(SplineObj[SegmentNo], sLength_i);
+    SplineLib::Vec3f vs = Velocity(SplineObj[SegmentNo], sLength_i);
+
+    // This part is used for debugging.
+    int SplineIndex;
+    SplineLib::cSpline3 splines[SplineNumber];
+    for (int i = 0; i < SplineNumber; i++)  splines[i] = SplineObj[i];
+    float s_i = FindClosestPoint(ps, SplineNumber, splines, &SplineIndex);
+
+    Pos.x = ps.x;
+    Pos.y = ps.y;
+    Pos.z = ps.z;
+
+    Tang.x = vs.x;
+    Tang.y = vs.y;
+    Tang.z = vs.z;
+
+    // double TangMag = sqrt(Tang.x * Tang.x + Tang.y * Tang.y + Tang.z * Tang.z);
+    //
+    // Tang.x = Tang.x/TangMag;
+    // Tang.y = Tang.y/TangMag;
+    // Tang.z = Tang.z/TangMag;
+  }
+
+  double Pos2s(const Vector3 & Pos){
+    // This function is used to compute the corresponding sTotal from Euclidean position.
+    SplineLib::cSpline3 splines[SplineNumber];
+    for (int i = 0; i < SplineNumber; i++)
+    {
+      splines[i] = SplineObj[i];
+    }
+    SplineLib::Vec3f qp(Pos.x, Pos.y, Pos.z);
+    int SplineIndex;
+    float s_i = FindClosestPoint(qp, SplineNumber, splines, &SplineIndex);
+    double s = 0.0;
+    switch (SplineIndex)
+    {
+      case 0:
+      {
+        double sLength = s_i * SplineIndLength[0];
+        s = sLength/TotalLength;
+      }
+      break;
+      default:
+      {
+        double sLength = s_i * SplineIndLength[SplineIndex] + SplineSumLength[SplineIndex-1];
+        s = sLength/TotalLength;
+      }
+      break;
+    }
+    return s;
+  }
+  std::vector<SplineLib::cSpline3> SplineObj;
+  std::vector<double> SplineIndLength;    // This saves the individual length for each piecewise curve.
+  std::vector<double> SplineSumLength;    // This saves the accumulated length from the starting point along the curve.
+  double TotalLength;
+  int SplineNumber;
+  Vector3 GoalContactPos;                 // This saves the goal contact position.
+};
+
 #endif
