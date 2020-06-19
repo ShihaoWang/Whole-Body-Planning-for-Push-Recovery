@@ -45,7 +45,7 @@ int main(){
   double TimeStep       = 0.025;
   double InitDuration    = 2.0;
   double TotalDuration   = 5.0;                // Simulation lasts for 5s after initial duration
-  double ForwardDuartion = 0.325;                // Used to optimal contact point planning
+  double ForwardDuartion = 0.75;                // Used to optimal contact point planning
   double PhaseRatio = 0.75;
 
   SimPara SimParaObj(ForceMax, PushDuration, DetectionWait, TimeStep, InitDuration, TotalDuration, ForwardDuartion, PhaseRatio);
@@ -85,7 +85,7 @@ int main(){
 
   /* 5. Internal Experimentation Loop */
   int TotalNumber = 100;
-  int FileIndex = FileIndexFinder(false);  FileIndex = 15;
+  int FileIndex = FileIndexFinder(false);  FileIndex = 1;
   while(FileIndex<=TotalNumber){
     RobotWorld world;
     SimGUIBackend Backend(&world);

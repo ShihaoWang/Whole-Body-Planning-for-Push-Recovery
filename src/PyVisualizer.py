@@ -72,6 +72,30 @@ def ContactDataPlot(vis, ReachableContacts_data):
         vis.hideLabel("Point:" + str(i), True)
         vis.setColor("Point:" + str(i),65.0/255.0, 199.0/255.0, 244.0/255.0, 1.0)
 
+def WeightedContactDataPlot(vis, OptimalContact_data, OptimalContactWeights_data):
+    scale = 1.0
+    for i in range(OptimalContact_data.size/3):
+        point_start = [0.0, 0.0, 0.0]
+        ReachableContact_i = OptimalContact_data[i]
+        point_start[0] = ReachableContact_i[0]
+        point_start[1] = ReachableContact_i[1]
+        point_start[2] = ReachableContact_i[2]
+
+        point_end = [0.0, 0.0, 0.0]
+        ReachableContactWeight_i = OptimalContactWeights_data[i]
+        point_end[0] = point_start[0] + scale * ReachableContactWeight_i[0]
+        point_end[1] = point_start[1] + scale * ReachableContactWeight_i[1]
+        point_end[2] = point_start[2] + scale * ReachableContactWeight_i[2]
+
+        vis.add("PointWeights:" + str(i), Trajectory([0, 1], [point_start, point_end]))
+        vis.hideLabel("PointWeights:" + str(i), True)
+        vis.setColor("PointWeights:" + str(i), 0.0, 204.0/255.0, 0.0, 1.0)
+        vis.setAttribute("PointWeights:" + str(i), 'width', 5.0)
+
+def WeightedContactDataUnPlot(vis, OptimalContact_data):
+    for i in range(OptimalContact_data.size/3):
+        vis.remove("PointWeights:" + str(i))
+
 def Robot_Config_Plot(world, DOF, config_init):
     robot_viewer = MyGLPlugin(world)
     vis.pushPlugin(robot_viewer)
@@ -89,6 +113,8 @@ def Robot_Config_Plot(world, DOF, config_init):
     SupportContacts_data = ContactDataLoader("SupportContact")
     # 5. Optimal Point
     OptimalContact_data = ContactDataLoader("OptimalContact")
+
+    OptimalContactWeights_data = ContactDataLoader("OptimalContactWeights")
     # 6.
     TransitionPoints_data = ContactDataLoader("TransitionPoints")
     # 7.
@@ -98,18 +124,19 @@ def Robot_Config_Plot(world, DOF, config_init):
 
     ReducedOptimalContact_data = ContactDataLoader("ReducedOptimalContact")
 
-
     ContactChoice = TransitionPoints_data
     SimRobot = world.robot(0)
     SimRobot.setConfig(config_init)
-
+    # import ipdb; ipdb.set_trace()
     while vis.shown():
         # This is the main plot program
         vis.lock()
         SimRobot.setConfig(config_init)
+        WeightedContactDataPlot(vis, OptimalContact_data, OptimalContactWeights_data)
         ContactDataPlot(vis, ContactChoice)
         vis.unlock()
         time.sleep(0.1)
+        WeightedContactDataUnPlot(vis, OptimalContact_data)
         ContactDataUnplot(vis, ContactChoice)
 
 def RobotCOMPlot(SimRobot, vis):
@@ -169,7 +196,7 @@ def main(*arg):
     if not result:
         raise RuntimeError("Unable to load model " + XML_path)
     # In this case, what we have is a config
-    ConfigName = "/home/motion/Desktop/Whole-Body-Planning-for-Push-Recovery-Data/result/flat_1Contact/15/InitConfig.config"
+    ConfigName = "/home/motion/Desktop/Whole-Body-Planning-for-Push-Recovery-Data/result/flat_1Contact/1/InitConfig.config"
     DOF, Config_Init = Configuration_Loader_fn(ConfigName)
     Robot_Config_Plot(world, DOF, Config_Init)
 if __name__ == "__main__":

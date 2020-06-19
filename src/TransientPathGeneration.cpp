@@ -74,13 +74,20 @@ static std::vector<Vector3> BasePointsGene(const Vector3 & PosInit, const Vector
   return BasePoints;
 }
 
-static double SelfCollisionDist(SelfLinkGeoInfo & SelfLinkGeoObj, const int & SwingLinkInfoIndex, const Vector3 & PosInit, const Vector3 & PosGoal){
-  // This function helps calculate robot's clearance for collision-avoidance
-  double  InitDist, GoalDist;
-  Vector3 InitGrad, GoalGrad;
-  SelfLinkGeoObj.SelfCollisionDistNGrad(SwingLinkInfoIndex, PosInit, InitDist, InitGrad);
-  SelfLinkGeoObj.SelfCollisionDistNGrad(SwingLinkInfoIndex, PosGoal, GoalDist, GoalGrad);
-  return min(InitDist, GoalDist);
+static double SelfCollisionDist(SelfLinkGeoInfo & SelfLinkGeoObj, const int & SwingLinkInfoIndex, const std::vector<Vector3> & PointVec){
+  double Distol = 0.25;
+  std::vector<double> DistVec;
+  for (const Vector3 & Point: PointVec) {
+    double  PointDist; Vector3 PointGrad;
+    SelfLinkGeoObj.SelfCollisionDistNGrad(SwingLinkInfoIndex, Point, PointDist, PointGrad);
+    DistVec.push_back(PointDist);
+  }
+  double SplineMin = *std::min_element(DistVec.begin(), DistVec.end());
+  if(SplineMin>0) return min(Distol, SplineMin);
+  else {
+    return min(Distol, min(DistVec[0], DistVec[DistVec.size()-1]));
+  }
+  return Distol;
 }
 
 static std::vector<cSpline3> cSplineGene(const std::vector<Vector3> & Points, const int & SwingLinkInfoIndex, const double & SelfTol, const SelfLinkGeoInfo & SelfLinkGeoObj, ReachabilityMap & RMObject, int & PointIndex, Vector3 & ShiftPoint, bool & FeasibleFlag)
@@ -272,7 +279,7 @@ static std::vector<cSpline3> SplineObjGene(SelfLinkGeoInfo & SelfLinkGeoObj, Rea
   std::vector<cSpline3> SplineObj;
   std::vector<Vector3> Points = BasePointsGene(PosInit, NormalInit, PosGoal, NormalGoal);
   Vector3Writer(Points, "InitialTransitionPoints");
-  double SelfTol = SelfCollisionDist(SelfLinkGeoObj, SwingLinkInfoIndex, PosInit, PosGoal);
+  double SelfTol = SelfCollisionDist(SelfLinkGeoObj, SwingLinkInfoIndex, Points);
   bool InitShiftFeasFlag;     // For the shift of initial pts.
   Points = SpatialPointShifter(Points, SwingLinkInfoIndex, SelfTol, SelfLinkGeoObj, RMObject, InitShiftFeasFlag);
   Vector3Writer(Points, "ShiftedTransitionPoints");

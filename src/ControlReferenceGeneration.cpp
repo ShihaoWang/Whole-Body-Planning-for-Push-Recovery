@@ -1,11 +1,11 @@
 #include "CommonHeader.h"
 #include "NonlinearOptimizerInfo.h"
 #include <ctime>
+#include <queue>
+#include <algorithm>    // std::min
 
-static bool ContactPairCMP(const pair<Vector3, double> & a, const pair<Vector3, double> & b)
-{
-    return (a.second > b.second);
-}
+typedef std::pair<double, Vector3> qEle;
+
 
 static std::vector<ContactForm> ContactStatusExplorer(Robot & SimRobot, const std::vector<ContactStatusInfo> & RobotContactInfo){
   // First part is for contact modification.
@@ -138,28 +138,43 @@ static std::vector<Vector3> SupportContactFinder(const Vector3 & COMPos, const P
   return SupportContact;
 }
 
-static std::vector<Vector3> OptimalContactFinder(const std::vector<Vector3> & SupportContact, const std::vector<Vector3> & FixedContacts, const Vector3 & COMPos, const Vector3 & COMVel){
+static std::vector<Vector3> OptimalContactFinder(const std::vector<Vector3> & SupportContact, const std::vector<Vector3> & FixedContacts, const Vector3 & COMPos, const Vector3 & COMVel, int CutOffNo){
   // This function selects the optimal contact given support contact.
+  std::priority_queue<qEle, std::vector<qEle>, less<qEle> > OptimalContactQueue;
   std::vector<Vector3> OptimalContact;
-  OptimalContact.reserve(SupportContact.size());
+  std::vector<Vector3> Weights;
   std::vector<double> ContactFailureMetric(SupportContact.size());
   const int ActContactNo = FixedContacts.size() + 1;
   for (int i = 0; i < SupportContact.size(); i++){
-    std::vector<Vector3> ActContacts;
-    ActContacts.reserve(ActContactNo);
-    for (int j = 0; j < ActContactNo-1; j++)
-      ActContacts.push_back(FixedContacts[j]);
+    std::vector<Vector3> ActContacts = FixedContacts;
     ActContacts.push_back(SupportContact[i]);
     std::vector<PIPInfo> PIPTotal = PIPGenerator(ActContacts, COMPos, COMVel);
     ContactFailureMetric[i] = FailureMetricEval(PIPTotal);
-    if(ContactFailureMetric[i]>0.0)
-        OptimalContact.push_back(SupportContact[i]);
+    if(ContactFailureMetric[i]>0.0){
+      OptimalContactQueue.push(std::make_pair(ContactFailureMetric[i], SupportContact[i]));
+      OptimalContact.push_back(SupportContact[i]);
+      Weights.push_back(ContactFailureMetric[i] * NonlinearOptimizerInfo::SDFInfo.SignedDistanceNormal(SupportContact[i]));
+    }
   }
+
+  Vector3Writer(OptimalContact, "OptimalContact");
+  Vector3Writer(Weights,        "OptimalContactWeights");
+  std::vector<Vector3> ReducedOptimalContact;
+
   if(!OptimalContact.size()){
     int OptiIndex = std::distance(ContactFailureMetric.begin(), std::max_element(ContactFailureMetric.begin(), ContactFailureMetric.end()));
-    OptimalContact.push_back(SupportContact[OptiIndex]);
+    ReducedOptimalContact.push_back(SupportContact[OptiIndex]);
+    return ReducedOptimalContact;
   }
-  return OptimalContact;
+  int OptimalContactNumber = OptimalContact.size();
+  int OptEleNo = std::min(OptimalContactNumber, CutOffNo);
+  for (int i = 0; i < OptEleNo; i++) {
+    ReducedOptimalContact.push_back(OptimalContactQueue.top().second);
+    OptimalContactQueue.pop();
+  }
+  Vector3Writer(ReducedOptimalContact,"ReducedOptimalContact");
+
+  return ReducedOptimalContact;
 }
 
 static std::vector<Vector3> OptimalContactSearcher( Robot SimRobot,     const PIPInfo & PIPObj,
@@ -199,90 +214,22 @@ static std::vector<Vector3> OptimalContactSearcher( Robot SimRobot,     const PI
   std::vector<Vector3> SupportContact = SupportContactFinder(COMPos, PIPObj, ContactFreeContact);
   if(!SupportContact.size()) return OptimalContact;
   // 3. Optimal Contact
-  OptimalContact = OptimalContactFinder(SupportContact, FixedContactPos, COMPos, COMVel);
+  int CutOffNo = 10;
+  OptimalContact = OptimalContactFinder(SupportContact, FixedContactPos, COMPos, COMVel, CutOffNo);
   if(!OptimalContact.size()) return OptimalContact;
-
-  // 4. Selected Optimal Contact: select contact point such that COM projection has the highest distance to edge.
-  const int CutOffNo = 10;
-  std::vector<Vector3> SPVertices;
-  for (int i = 0; i < NonlinearOptimizerInfo::RobotLinkInfo.size(); i++){
-    for (int j = 0; j < NonlinearOptimizerInfo::RobotLinkInfo[i].LocalContacts.size(); j++){
-      if(ContactFormObj.FixedContactStatusInfo[i].LocalContactStatus[j]){
-        Vector3 LinkiPjPos;
-        SimRobot.GetWorldPosition(NonlinearOptimizerInfo::RobotLinkInfo[i].LocalContacts[j],
-                                  NonlinearOptimizerInfo::RobotLinkInfo[i].LinkIndex,
-                                  LinkiPjPos);
-        LinkiPjPos.z = 0.0;
-        SPVertices.push_back(LinkiPjPos);
-      }
-    }
-  }
-
-  std::vector<std::pair<Vector3, double>> ContactPairVec;
-  ContactPairVec.reserve(OptimalContact.size());
-
-  // Method 1
-  // std::vector<Vector3> SwingLinkVertices;
-  // for (int i = 0; i < NonlinearOptimizerInfo::RobotLinkInfo[ContactFormObj.SwingLinkInfoIndex].LocalContacts.size(); i++)
-  // {
-  //   Vector3 LinkiPjPos;
-  //   SimRobot.GetWorldPosition(NonlinearOptimizerInfo::RobotLinkInfo[ContactFormObj.SwingLinkInfoIndex].LocalContacts[i],
-  //                             NonlinearOptimizerInfo::RobotLinkInfo[ContactFormObj.SwingLinkInfoIndex].LinkIndex,
-  //                             LinkiPjPos);
-  //   SwingLinkVertices.push_back(LinkiPjPos);
-  // }
-  // Vector3 SwingLimbAvg;
-  // SimRobot.GetWorldPosition(NonlinearOptimizerInfo::RobotLinkInfo[ContactFormObj.SwingLinkInfoIndex].AvgLocalContact,
-  //                           NonlinearOptimizerInfo::RobotLinkInfo[ContactFormObj.SwingLinkInfoIndex].LinkIndex,
-  //                           SwingLimbAvg);
-  //
-  //
-  // for (int i = 0; i < OptimalContact.size(); i++){
-  //   std::vector<Vector3> NewSPVertices = SPVertices;
-  //   Vector3 ShiftVec = OptimalContact[i] - SwingLimbAvg;
-  //   for (int j = 0; j < SwingLinkVertices.size(); j++)
-  //     NewSPVertices.push_back(SwingLinkVertices[j] + ShiftVec);
-  //   FacetInfo SPObj = FlatConvexHullGeneration(NewSPVertices);
-  //   COMPos.z = 0.0;
-  //   double COMDist = SPObj.ProjPoint2EdgeDist(COMPos);
-  //   std::pair<Vector3, double> ContactPair_i = std::make_pair(OptimalContact[i], COMDist) ;
-  //   ContactPairVec.push_back(ContactPair_i);
-  // }
-
-  // Method 2
-  for (int i = 0; i < OptimalContact.size(); i++) {
-    std::vector<Vector3> NewSPVertices = SPVertices;
-    SPVertices.push_back(OptimalContact[i]);
-    std::vector<PIPInfo> PIPTotal_i = PIPGenerator(SPVertices, COMPos, COMVel);
-    double FailureMetric_i = FailureMetricEval(PIPTotal_i);
-    std::pair<Vector3, double> ContactPair_i = std::make_pair(OptimalContact[i], FailureMetric_i);
-    ContactPairVec.push_back(ContactPair_i);
-  }
-  sort(ContactPairVec.begin(), ContactPairVec.end(), ContactPairCMP);
-  std::vector<Vector3> ReducedOptimalContact;
-
-  if(ContactPairVec.size()>CutOffNo)
-  {
-    for (int i = 0; i < CutOffNo; i++)
-      ReducedOptimalContact.push_back(ContactPairVec[i].first);
-  } else {
-    for (int i = 0; i < ContactPairVec.size(); i++)
-      ReducedOptimalContact.push_back(ContactPairVec[i].first);
-  }
 
   Vector3Writer(ActiveReachableContact,"ActiveReachableContact");
   Vector3Writer(ContactFreeContact,"ContactFreeContact");
   Vector3Writer(SupportContact,"SupportContact");
-  Vector3Writer(OptimalContact,"OptimalContact");
-  Vector3Writer(ReducedOptimalContact,"ReducedOptimalContact");
+
 
   SimParaObj.DataRecorderObj.setData( ActiveReachableContact,
                                       ContactFreeContact,
                                       SupportContact,
                                       OptimalContact,
-                                      ReducedOptimalContact);
+                                      OptimalContact);
 
-  return ReducedOptimalContact;
+  return OptimalContact;
 }
 
 static ControlReferenceInfo ControlReferenceGeneInner(const Robot & SimRobot, const PIPInfo & TipOverPIPObj, ReachabilityMap & RMObject, SelfLinkGeoInfo & SelfLinkGeoObj, const ContactForm & ContactFormObj, SimPara & SimParaObj){
@@ -300,6 +247,17 @@ static ControlReferenceInfo ControlReferenceGeneInner(const Robot & SimRobot, co
     SimParaObj.setContactGoal(OptimalContact[i]);
     SimParaObj.setTransPathFeasiFlag(false);
     std::vector<SplineLib::cSpline3> SplineObj = TransientPathGene(SimRobotInner, ContactFormObj.SwingLinkInfoIndex, RMObject, SelfLinkGeoObj, SimParaObj);
+    if(SimParaObj.getTransPathFeasiFlag()){
+      EndEffectorPathInfo EndEffectorPathObj(SplineObj);
+
+      /*
+        1. At each sampled waypoints along the end effector trajectory, an end effector position is evaluated from path.
+        2. Based on robot's current configuration, an IK problem is solved to get robot's swing limb configuration.
+        3. A time-optimal executation duration is computed.
+        4. Based on that time, robot's whole-body configuration is updated with inverted pendulum model.
+        5. The whole algorithm terminates when robot's self-collision has been triggered or no feasible IK solution can be found.
+      */
+    }
 
   }
 

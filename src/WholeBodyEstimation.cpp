@@ -115,24 +115,28 @@ static std::vector<double> GlobalFrameConfigUpdate(Robot & SimRobot, const doubl
 Config WholeBodyDynamicsIntegrator(Robot & SimRobot, const PIPInfo & PIPObj, InvertedPendulumInfo & InvertedPendulumObj, const double & TimeDuration, const int & StepIndex){
   Vector3 RotAxis = PIPObj.edge_b - PIPObj.edge_a;
   RotAxis.setNormalized(RotAxis);
-
+  // std::vector<double> ThetaVec, ThetadotVec;
   const int IntergrationStep = 11;
   int IntergrationIndex = 0;
   double TimeStep = TimeDuration/(1.0 * IntergrationStep - 1.0);
   double ThetaInit = InvertedPendulumObj.Theta;
-  for (int IntergrationIndex = 0; IntergrationIndex < IntergrationStep; IntergrationIndex++)
-      StepIntegrator(InvertedPendulumObj, PIPObj, RotAxis, TimeStep);
+  for (int IntergrationIndex = 0; IntergrationIndex < IntergrationStep; IntergrationIndex++){
+    StepIntegrator(InvertedPendulumObj, PIPObj, RotAxis, TimeStep);
+    // ThetaVec.push_back(InvertedPendulumObj.Theta);
+    // ThetadotVec.push_back(InvertedPendulumObj.Thetadot);
+  }
 
   double ThetaOffset = InvertedPendulumObj.Theta - ThetaInit;
   std::vector<double> FrameConfig = GlobalFrameConfigUpdate(SimRobot, ThetaOffset, RotAxis, PIPObj.edge_a);   // This would be 6 global coordinates.
   std::vector<double> UpdatedConfig = SimRobot.q;
-  for (int i = 0; i < 6; i++)
+  for (int i = 0; i < 6; i++){
+    // printf("UpdatedConfig: %f and FrameConfig: %f\n", UpdatedConfig[i], FrameConfig[i]);
     UpdatedConfig[i] = FrameConfig[i];
+  }
   UpdatedConfig = YPRShifter(UpdatedConfig);
 
-  // std::string ConfigPath = "/home/motion/Desktop/Whole-Body-Planning-for-Push-Recovery/build/";
-  // std::string OptConfigFile = "UpdatedConfig" + std::to_string(StepIndex) + ".config";
-  // RobotConfigWriter(UpdatedConfig, ConfigPath, OptConfigFile);
-  // RobotConfigWriter(SimRobot.q, ConfigPath, OptConfigFile);
+  std::string ConfigPath = "/home/motion/Desktop/Whole-Body-Planning-for-Push-Recovery/build/";
+  std::string OptConfigFile = "UpdatedConfig" + std::to_string(StepIndex) + ".config";
+  RobotConfigWriter(UpdatedConfig, ConfigPath, OptConfigFile);
   return Config(UpdatedConfig);
 }
