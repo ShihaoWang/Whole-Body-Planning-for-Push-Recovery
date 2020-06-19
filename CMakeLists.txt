@@ -55,6 +55,7 @@ set(CILANTRO_LIBRARIES cilantro.so pangolin.so)
 add_executable(MyApp
                src/Main.cpp
                src/CommonHeader.h
+	       src/RobotInfo.h
                src/ContactInfoLoader.cpp
                src/EnviGeometry.cpp
 	       src/RobotStateFiler.cpp
@@ -65,7 +66,9 @@ add_executable(MyApp
 	       src/ControlReferenceGeneration.cpp
 	       src/WholeBodyEstimation.cpp
 	       src/Splines.cpp
-	       src/TransientPathGeneration.cpp)
+	       src/TransientPathGeneration.cpp
+	       src/TrajectoryPlanning.cpp
+	       src/TrajectoryConfigOptimization.cpp)
 
 
 target_link_libraries(MyApp  ${KLAMPT_LIBRARIES} ${SNOPT_LIBRARIES} ${CILANTRO_LIBRARIES} ${GLEW_LIBRARY})

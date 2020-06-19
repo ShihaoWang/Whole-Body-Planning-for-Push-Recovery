@@ -40,6 +40,7 @@ void getCentroidalState(const Robot & SimRobot, Vector3 & COMPos, Vector3 & COMV
 std::vector<Vector3> ActiveContactFinder(const Robot & SimRobot, const std::vector<ContactStatusInfo> & RobotContactInfo);
 std::vector<double> YPRShifter(std::vector<double> OptConfig);
 void Vector3Writer(const std::vector<Vector3> & ContactPoints, const std::string & ContactPointFileName);
+std::vector<Vector3> BoxVertices(const Box3D & Box3DObj);
 
 /* 4. Main Simulation*/
 LinearPath InitialSimulation(WorldSimulation & Sim, const SimPara & SimParaObj);
@@ -58,7 +59,11 @@ ControlReferenceInfo ControlReferenceGene(Robot & SimRobot, const std::vector<Co
 
 /* 7. Whole-Body Estimation */
 Config WholeBodyDynamicsIntegrator(Robot & SimRobot, const PIPInfo & PIPObj, InvertedPendulumInfo & InvertedPendulumObj, const double & TimeDuration, const int & StepIndex);
+
 /* 8. Transient Path Generation*/
-std::vector<SplineLib::cSpline3> TransientPathGene(const Robot & SimRobot, const int & SwingLinkInfoIndex, ReachabilityMap & RMObject, SelfLinkGeoInfo & SelfLinkGeoObj, SimPara & SimParaObj);
+std::vector<SplineLib::cSpline3> TransientPathGene(const Robot & SimRobot, ReachabilityMap & RMObject, SelfLinkGeoInfo & SelfLinkGeoObj, SimPara & SimParaObj);
+ControlReferenceInfo TrajectoryPlanning(const Robot & SimRobotObj, ReachabilityMap & RMObject,SelfLinkGeoInfo & SelfLinkGeoObj,
+                                              EndEffectorPathInfo & EndEffectorPathObj, SimPara & SimParaObj);
+std::vector<double> TrajConfigOptimazation(const Robot & SimRobot, ReachabilityMap & RMObject, SelfLinkGeoInfo & _SelfLinkGeoObj, SimPara & SimParaObj, const bool & LastFlag);
 
 #endif

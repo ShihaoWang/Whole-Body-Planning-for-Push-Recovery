@@ -401,7 +401,9 @@ struct ReachabilityMap {
 };
 
 struct SelfLinkGeoInfo{
-  SelfLinkGeoInfo();
+  SelfLinkGeoInfo(){
+    SelfLinkGeoFlag = false;
+  };
   SelfLinkGeoInfo(const Robot & SimRobot, const std::map<int, std::vector<int>> & EndEffectorLink2Pivotal, const std::vector<int> & SelfCollisionFreeLink){
     for (int i = 5; i < SimRobot.q.size(); i++){
       AABB3D AABB3D_i = SimRobot.geometry[i]->GetAABBTight();
@@ -420,6 +422,7 @@ struct SelfLinkGeoInfo{
         }
       }
     }
+    SelfLinkGeoFlag = true;
   };
   void LinkBBsUpdate(const Robot& SimRobot){
     for (int i = 5; i < SimRobot.q.size(); i++){
@@ -559,6 +562,7 @@ struct SelfLinkGeoInfo{
       Grad+=DistWeights[i] * GradVec[i];
     Grad.getNormalized(Grad);
   }
+  bool SelfLinkGeoFlag;
   std::vector<AABB3D> LinkBBs;
   std::vector<RigidTransform> LinkTransforms;
   std::map<int, std::vector<int>> SelfCollisionLinkMap;       // This map saves intermediate joint from End Effector Joint to Pivotal Joint.
@@ -628,7 +632,22 @@ struct DataRecorderInfo{
 };
 
 struct SimPara{
-  SimPara();
+  SimPara(){
+    ForceMax = -1.0;
+    PushDuration = -1.0;
+    DetectionWait = -1.0;
+    TimeStep = -1.0;
+    InitDuration = -1.0;
+    TotalDuration = -1.0;
+    ForwardDuration = -1.0;
+    PhaseRatio = -1.0;
+    PlanStageIndex = -1;
+    SimTime = -1.0;
+    TransPathFeasiFlag = false;
+    SwingLinkInfoIndex =-1;
+    CurrentContactPos.setZero();
+    TrajConfigOptFlag = false;
+  };
   SimPara(const double & _ForceMax,
           const double & _PushDuration,
           const double & _DetectionWait,
@@ -689,6 +708,12 @@ struct SimPara{
   void setDirectionGoal(const Vector3 & _DirectionGoal ){ DirectionGoal = _DirectionGoal; }
   void setTransPathFeasiFlag(const bool & _TransPathFeasiFlag){ TransPathFeasiFlag = _TransPathFeasiFlag; }
   bool getTransPathFeasiFlag(){ return TransPathFeasiFlag;}
+  void setSwingLinkInfoIndex(const int _SwingLinkInfoIndex) {SwingLinkInfoIndex = _SwingLinkInfoIndex; }
+  int  getSwingLinkInfoIndex() { return SwingLinkInfoIndex;}
+  void setCurrentContactPos(const Vector3 & _CurrentContactPos) {CurrentContactPos = _CurrentContactPos; }
+  Vector3 getCurrentContactPos(){ return CurrentContactPos; }
+  void setTrajConfigOptFlag(const bool & _TrajConfigOptFlag){ TrajConfigOptFlag = _TrajConfigOptFlag;}
+  bool getTrajConfigOptFlag() {return TrajConfigOptFlag;}
 
   double  ForceMax;
   double  PushDuration;
@@ -701,6 +726,9 @@ struct SimPara{
   int     PlanStageIndex;
   double  SimTime;
   bool    TransPathFeasiFlag;
+  int     SwingLinkInfoIndex;
+  Vector3 CurrentContactPos;
+  bool    TrajConfigOptFlag;
 
   DataRecorderInfo DataRecorderObj;
   Vector3 ImpulseForceMax;

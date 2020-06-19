@@ -174,3 +174,68 @@ void Vector3Writer(const std::vector<Vector3> & ContactPoints, const std::string
   fclose(FlatContactPointsFile);
   return;
 }
+
+static vector<Vector3> Interpolation(const Vector3 & a, const Vector3 & b, const int & No){
+  vector<Vector3> Pts(No);
+  double ratio = (1.0)/(1.0 * No + 1.0);
+  for (int i = 0; i < No; i++) {
+    Pts[i] = a + (b-a) * ratio * (1.0 * i + 1.0);
+  }return Pts;
+}
+
+std::vector<Vector3> BoxVertices(const Box3D & Box3DObj){
+  // Here 4 more points will be sampled along each edge
+  std::vector<Vector3> Vertices;
+  Vector3 GlobalPoint;
+  Vector3 LocalPoint(0.0, 0.0, 0.0);
+  Box3DObj.fromLocal(LocalPoint, GlobalPoint);
+  Vector3 xBox3DOffset = Box3DObj.dims.x * Box3DObj.xbasis;
+  Vector3 yBox3DOffset = Box3DObj.dims.y * Box3DObj.ybasis;
+  Vector3 zBox3DOffset = Box3DObj.dims.z * Box3DObj.zbasis;
+
+  Vector3 A = GlobalPoint;
+  Vector3 B = GlobalPoint + xBox3DOffset;
+  Vector3 C = GlobalPoint + xBox3DOffset + zBox3DOffset;
+  Vector3 D = GlobalPoint + zBox3DOffset;
+
+  Vector3 E = GlobalPoint + yBox3DOffset;
+  Vector3 F = GlobalPoint + xBox3DOffset + yBox3DOffset;
+  Vector3 G = GlobalPoint + xBox3DOffset + zBox3DOffset + yBox3DOffset;
+  Vector3 H = GlobalPoint + zBox3DOffset + yBox3DOffset;
+
+  const int InterPtNo = 0;
+  vector<Vector3> ABEdge = Interpolation(A, B, InterPtNo);
+  vector<Vector3> BCEdge = Interpolation(B, C, InterPtNo);
+  vector<Vector3> CDEdge = Interpolation(C, D, InterPtNo);
+  vector<Vector3> DAEdge = Interpolation(D, A, InterPtNo);
+
+  vector<Vector3> EFEdge = Interpolation(E, F, InterPtNo);
+  vector<Vector3> FGEdge = Interpolation(F, G, InterPtNo);
+  vector<Vector3> GHEdge = Interpolation(G, H, InterPtNo);
+  vector<Vector3> HEEdge = Interpolation(H, E, InterPtNo);
+
+  Vertices.push_back(A);
+  Vertices.insert(Vertices.end(), ABEdge.begin(), ABEdge.end());
+
+  Vertices.push_back(B);
+  Vertices.insert(Vertices.end(), BCEdge.begin(), BCEdge.end());
+
+  Vertices.push_back(C);
+  Vertices.insert(Vertices.end(), CDEdge.begin(), CDEdge.end());
+
+  Vertices.push_back(D);
+  Vertices.insert(Vertices.end(), DAEdge.begin(), DAEdge.end());
+
+  Vertices.push_back(E);
+  Vertices.insert(Vertices.end(), EFEdge.begin(), EFEdge.end());
+
+  Vertices.push_back(F);
+  Vertices.insert(Vertices.end(), FGEdge.begin(), FGEdge.end());
+
+  Vertices.push_back(G);
+  Vertices.insert(Vertices.end(), GHEdge.begin(), GHEdge.end());
+
+  Vertices.push_back(H);
+  Vertices.insert(Vertices.end(), HEEdge.begin(), HEEdge.end());
+  return Vertices;
+}

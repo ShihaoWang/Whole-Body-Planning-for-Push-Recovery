@@ -321,7 +321,7 @@ static Vector3 InitDirectionGene(const Vector3 & PosInit, const Vector3 & PosGoa
   return DirInit;
 }
 
-std::vector<cSpline3> TransientPathGene(const Robot & SimRobot, const int & SwingLinkInfoIndex, ReachabilityMap & RMObject, SelfLinkGeoInfo & SelfLinkGeoObj, SimPara & SimParaObj){
+std::vector<cSpline3> TransientPathGene(const Robot & SimRobot, ReachabilityMap & RMObject, SelfLinkGeoInfo & SelfLinkGeoObj, SimPara & SimParaObj){
   // This function generates the transition path for robot's end effector.
   // The path direction is chosen such that initial path is a parabola.
   Vector3 DirGoal = NonlinearOptimizerInfo::SDFInfo.SignedDistanceNormal(SimParaObj.ContactGoal);
@@ -329,6 +329,7 @@ std::vector<cSpline3> TransientPathGene(const Robot & SimRobot, const int & Swin
   DirInit.setNormalized(DirInit);
   SimParaObj.setDirectionInit(DirInit);
   SimParaObj.setDirectionGoal(DirGoal);
+  int SwingLinkInfoIndex = SimParaObj.getSwingLinkInfoIndex();
   std::vector<cSpline3> SplineObj = SplineObjGene(SelfLinkGeoObj, RMObject, SwingLinkInfoIndex, SimParaObj);
 
   if(SimParaObj.getTransPathFeasiFlag()){
