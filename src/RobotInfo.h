@@ -706,6 +706,7 @@ struct SimPara{
   Vector3 getContactGoal(){ return ContactGoal;}
   void setDirectionInit(const Vector3 & _DirectionInit ){ DirectionInit = _DirectionInit; }
   void setDirectionGoal(const Vector3 & _DirectionGoal ){ DirectionGoal = _DirectionGoal; }
+  Vector3 getGoalDirection() { return DirectionGoal; }
   void setTransPathFeasiFlag(const bool & _TransPathFeasiFlag){ TransPathFeasiFlag = _TransPathFeasiFlag; }
   bool getTransPathFeasiFlag(){ return TransPathFeasiFlag;}
   void setSwingLinkInfoIndex(const int _SwingLinkInfoIndex) {SwingLinkInfoIndex = _SwingLinkInfoIndex; }

@@ -62,8 +62,8 @@ Config WholeBodyDynamicsIntegrator(Robot & SimRobot, const PIPInfo & PIPObj, Inv
 
 /* 8. Transient Path Generation*/
 std::vector<SplineLib::cSpline3> TransientPathGene(const Robot & SimRobot, ReachabilityMap & RMObject, SelfLinkGeoInfo & SelfLinkGeoObj, SimPara & SimParaObj);
-ControlReferenceInfo TrajectoryPlanning(const Robot & SimRobotObj, ReachabilityMap & RMObject,SelfLinkGeoInfo & SelfLinkGeoObj,
+ControlReferenceInfo TrajectoryPlanning(Robot & SimRobotInner, ReachabilityMap & RMObject,SelfLinkGeoInfo & SelfLinkGeoObj,
                                               EndEffectorPathInfo & EndEffectorPathObj, SimPara & SimParaObj);
-std::vector<double> TrajConfigOptimazation(const Robot & SimRobot, ReachabilityMap & RMObject, SelfLinkGeoInfo & _SelfLinkGeoObj, SimPara & SimParaObj, const bool & LastFlag);
+std::vector<double> TrajConfigOptimazation(const Robot & SimRobot, ReachabilityMap & RMObject, SelfLinkGeoInfo & _SelfLinkGeoObj, SimPara & SimParaObj, const double & _alignmentVal, const int & StageIndex);
 
 #endif
