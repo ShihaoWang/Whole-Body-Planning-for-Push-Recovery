@@ -37,6 +37,12 @@ include_directories(${SNOPT_PATH}/include)
 link_directories(${SNOPT_PATH}/lib)
 set(SNOPT_LIBRARIES snopt7_cpp snopt7)
 
+# Gurobi CMake Properties
+set(GUROBI_PATH "/home/motion/gurobi902/linux64")
+include_directories(${GUROBI_PATH}/include)
+link_directories(${GUROBI_PATH}/lib)
+set(GUROBI_LIBRARIES gurobi_c++ gurobi90)
+
 # EIGEN CMake Properties
 set(EIGEN3_INCLUDE_DIR "/home/motion/eigen-3.3.5")
 include_directories(${EIGEN3_INCLUDE_DIR})
@@ -68,11 +74,10 @@ add_executable(MyApp
 	       src/Splines.cpp
 	       src/TransientPathGeneration.cpp
 	       src/TrajectoryPlanning.cpp
-	       src/TrajectoryConfigOptimization.cpp
-	       src/MilestoneFromPath.cpp)
+	       src/TrajectoryConfigOptimization.cpp)
 
 
-target_link_libraries(MyApp  ${KLAMPT_LIBRARIES} ${SNOPT_LIBRARIES} ${CILANTRO_LIBRARIES} ${GLEW_LIBRARY})
+target_link_libraries(MyApp  ${KLAMPT_LIBRARIES} ${SNOPT_LIBRARIES} ${GUROBI_LIBRARIES} ${CILANTRO_LIBRARIES} ${GLEW_LIBRARY})
 #set_property(TARGET MyApp PROPERTY INTERPROCEDURAL_OPTIMIZATION True)
 get_property(dirs DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY INCLUDE_DIRECTORIES)
 foreach(dir ${dirs})
