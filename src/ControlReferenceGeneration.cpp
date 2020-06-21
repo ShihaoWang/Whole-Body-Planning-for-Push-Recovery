@@ -196,9 +196,10 @@ static std::vector<Vector3> OptimalContactSearcher( Robot SimRobot,     const PI
   std::vector<std::pair<Vector3, double>> ContactFreeInfoVec = ContactFreeInfoFn(SimRobot, ContactFormObj.FixedContactStatusInfo, RMObject);
 
   Vector3 COMPos, COMVel;
-  getCentroidalState(SimRobot, COMPos, COMVel);                                                      // DataRecorderInfo & DataRecorderObj
-  InvertedPendulumInfo InvertedPendulumObj(PIPObj.theta, PIPObj.thetadot, COMPos, COMVel);
-  Config UpdatedConfig  = WholeBodyDynamicsIntegrator(SimRobot, PIPObj, InvertedPendulumObj, SimParaObj.ForwardDuration, -1);
+  getCentroidalState(SimRobot, COMPos, COMVel);
+  InvertedPendulumInfo InvertedPendulumObj(PIPObj.L, PIPObj.g, PIPObj.theta, PIPObj.thetadot, COMPos, COMVel);
+  InvertedPendulumObj.setEdges(PIPObj.edge_a, PIPObj.edge_b);
+  Config UpdatedConfig  = WholeBodyDynamicsIntegrator(SimRobot, InvertedPendulumObj, SimParaObj.ForwardDuration, -1);
   SimRobot.UpdateConfig(UpdatedConfig);
 
   COMPos = InvertedPendulumObj.COMPos;
@@ -242,6 +243,13 @@ static ControlReferenceInfo ControlReferenceGeneInner(const Robot & SimRobot, co
   std::vector<Vector3> OptimalContact = OptimalContactSearcher(SimRobot, TipOverPIPObj, RMObject, ContactFormObj, SimParaObj);
   if(!OptimalContact.size()) return ControlReferenceObj;
 
+  Vector3 COMPos, COMVel;
+  getCentroidalState(SimRobot, COMPos, COMVel);
+  InvertedPendulumInfo InvertedPendulumObj( TipOverPIPObj.L, TipOverPIPObj.g,
+                                            TipOverPIPObj.theta, TipOverPIPObj.thetadot,
+                                            COMPos, COMVel);
+  InvertedPendulumObj.setEdges(TipOverPIPObj.edge_a, TipOverPIPObj.edge_b);
+
   for (int i = 0; i < OptimalContact.size(); i++) {
     Robot SimRobotInner = SimRobot;
     SimParaObj.setContactGoal(OptimalContact[i]);
@@ -257,8 +265,9 @@ static ControlReferenceInfo ControlReferenceGeneInner(const Robot & SimRobot, co
         4. Based on that time, robot's whole-body configuration is updated with inverted pendulum model.
         5. The whole algorithm terminates when robot's self-collision has been triggered or no feasible IK solution can be found.
       */
-      ControlReferenceInfo RobotTraj = TrajectoryPlanning(SimRobotInner, RMObject, SelfLinkGeoObj,
-                                              EndEffectorPathObj, SimParaObj);
+
+      ControlReferenceInfo RobotTraj = TrajectoryPlanning(SimRobotInner, InvertedPendulumObj, RMObject, SelfLinkGeoObj,
+                                                          EndEffectorPathObj, SimParaObj);
     }
 
   }

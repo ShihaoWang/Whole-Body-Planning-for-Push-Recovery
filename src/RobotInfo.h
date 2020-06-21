@@ -655,14 +655,16 @@ struct SimPara{
           const double & _InitDuration,
           const double & _TotalDuration,
           const double & _ForwardDuration,
-          const double & _PhaseRatio):    ForceMax(_ForceMax),
-                                          PushDuration(_PushDuration),
-                                          DetectionWait(_DetectionWait),
-                                          TimeStep(_TimeStep),
-                                          InitDuration(_InitDuration),
-                                          TotalDuration(_TotalDuration),
-                                          ForwardDuration(_ForwardDuration),
-                                          PhaseRatio(_PhaseRatio){}
+          const double & _PhaseRatio,
+          const double & _ReductionRatio):    ForceMax(_ForceMax),
+                                              PushDuration(_PushDuration),
+                                              DetectionWait(_DetectionWait),
+                                              TimeStep(_TimeStep),
+                                              InitDuration(_InitDuration),
+                                              TotalDuration(_TotalDuration),
+                                              ForwardDuration(_ForwardDuration),
+                                              PhaseRatio(_PhaseRatio),
+                                              ReductionRatio(_ReductionRatio){}
   void CurrentCasePathUpdate(const string _CurrentCasePath){
     CurrentCasePath = _CurrentCasePath;
 
@@ -724,6 +726,7 @@ struct SimPara{
   double  TotalDuration;
   double  ForwardDuration;
   double  PhaseRatio;            // This ratio determines the boundary between acceleration and deceleration.
+  double  ReductionRatio;
   int     PlanStageIndex;
   double  SimTime;
   bool    TransPathFeasiFlag;
@@ -936,14 +939,29 @@ struct ContactForm{
 };
 
 struct InvertedPendulumInfo{
-  InvertedPendulumInfo();
-  InvertedPendulumInfo( const double & _Theta,
+  InvertedPendulumInfo(){
+    L = -1.0;
+    g = -1.0;
+    Theta = -1.0;
+    Thetadot = -1.0;
+  };
+  InvertedPendulumInfo( const double & _L,
+                        const double & _g,
+                        const double & _Theta,
                         const double & _Thetadot,
                         const Vector3 & _COMPos,
-                        const Vector3 & _COMVel): Theta(_Theta),
+                        const Vector3 & _COMVel): L(_L),
+                                                  g(_g),
+                                                  Theta(_Theta),
                                                   Thetadot(_Thetadot),
                                                   COMPos(_COMPos),
                                                   COMVel(_COMVel){};
+  void setEdges(const Vector3 & _edge_a, const Vector3 & _edge_b){
+    edge_a = _edge_a;
+    edge_b = _edge_b;
+  }
+  Vector3 edge_a, edge_b;
+  double L, g;
   double Theta;
   double Thetadot;
   Vector3 COMPos;

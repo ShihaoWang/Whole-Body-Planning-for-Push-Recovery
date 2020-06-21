@@ -58,12 +58,22 @@ PIPInfo TipOverPIPGenerator(const std::vector<Vector3> & ActiveContacts, const V
 ControlReferenceInfo ControlReferenceGene(Robot & SimRobot, const std::vector<ContactStatusInfo> & RobotContactInfo, ReachabilityMap & RMObject, SelfLinkGeoInfo & SelfLinkGeoObj, SimPara & SimParaObj);
 
 /* 7. Whole-Body Estimation */
-Config WholeBodyDynamicsIntegrator(Robot & SimRobot, const PIPInfo & PIPObj, InvertedPendulumInfo & InvertedPendulumObj, const double & TimeDuration, const int & StepIndex);
+Config WholeBodyDynamicsIntegrator(Robot & SimRobot, InvertedPendulumInfo & InvertedPendulumObj, const double & TimeDuration, const int & StepIndex);
 
 /* 8. Transient Path Generation*/
 std::vector<SplineLib::cSpline3> TransientPathGene(const Robot & SimRobot, ReachabilityMap & RMObject, SelfLinkGeoInfo & SelfLinkGeoObj, SimPara & SimParaObj);
-ControlReferenceInfo TrajectoryPlanning(Robot & SimRobotInner, ReachabilityMap & RMObject,SelfLinkGeoInfo & SelfLinkGeoObj,
-                                              EndEffectorPathInfo & EndEffectorPathObj, SimPara & SimParaObj);
+ControlReferenceInfo TrajectoryPlanning(Robot & SimRobotInner, const InvertedPendulumInfo & InvertedPendulumObj, ReachabilityMap & RMObject,SelfLinkGeoInfo & SelfLinkGeoObj,
+                                        EndEffectorPathInfo & EndEffectorPathObj, SimPara & SimParaObj);
 std::vector<double> TrajConfigOptimazation(const Robot & SimRobot, ReachabilityMap & RMObject, SelfLinkGeoInfo & _SelfLinkGeoObj, SimPara & SimParaObj, const double & _alignmentVal, const int & StageIndex);
 
+/* 9. Milestone Generation with Path Discretization */
+double AccPhaseTimePathMethod(  const std::vector<double> & CurConfig,      const std::vector<double> & NextConfig,
+                                const std::vector<double> & CurVelocity,    std::vector<double> & NextVelocity,
+                                const std::vector<double> & VelocityBound,  const std::vector<double> & AccelerationBound,
+                                const std::vector<int> SwingLinkChain);
+
+double DecPhaseTimePathMethod(  const std::vector<double> & CurConfig,      const std::vector<double> & NextConfig,
+                                const std::vector<double> & CurVelocity,    std::vector<double> & NextVelocity,
+                                const std::vector<double> & VelocityBound,  const std::vector<double> & AccelerationBound,
+                                const std::vector<int> SwingLinkChain);
 #endif

@@ -44,11 +44,11 @@ int main(){
   double DetectionWait  = std::stod(DetectionWaitStr);
   double TimeStep       = 0.025;
   double InitDuration    = 2.0;
-  double TotalDuration   = 5.0;                // Simulation lasts for 5s after initial duration
+  double TotalDuration   = 5.0;                 // Simulation lasts for 5s after initial duration
   double ForwardDuartion = 0.75;                // Used to optimal contact point planning
-  double PhaseRatio = 0.75;
-
-  SimPara SimParaObj(ForceMax, PushDuration, DetectionWait, TimeStep, InitDuration, TotalDuration, ForwardDuartion, PhaseRatio);
+  double PhaseRatio     = 0.75;
+  double ReductionRatio = 0.2;
+  SimPara SimParaObj(ForceMax, PushDuration, DetectionWait, TimeStep, InitDuration, TotalDuration, ForwardDuartion, PhaseRatio, ReductionRatio);
 
   RobotWorld worldObj;
   SimGUIBackend BackendObj(&worldObj);

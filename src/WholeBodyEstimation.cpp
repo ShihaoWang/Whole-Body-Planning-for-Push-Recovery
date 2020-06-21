@@ -41,10 +41,10 @@ static Vector3 RigidBodyRotation(const Vector3 & RigidBodyPoint, const double & 
   return RigidBodyPointNew;
 }
 
-static void StepIntegrator(InvertedPendulumInfo & InvertedPendulumObj, const PIPInfo & PIPObj, const Vector3 & RotAxis, const double & TimeStep){
+static void StepIntegrator(InvertedPendulumInfo & InvertedPendulumObj, const Vector3 & RotAxis, const double & TimeStep){
   // This function is used to integrate robot's PIP dynamics.
-  double L = PIPObj.L;
-  double g = PIPObj.g;
+  double L = InvertedPendulumObj.L;
+  double g = InvertedPendulumObj.g;
 
   // Integration with the assumption that robot's acceleration remains to be constant during TimeStep.
   double Thetaddot = g/L * sin(InvertedPendulumObj.Theta);
@@ -54,8 +54,8 @@ static void StepIntegrator(InvertedPendulumInfo & InvertedPendulumObj, const PIP
   double ThetaNew = InvertedPendulumObj.Theta + ThetaOffset;
   double ThetadotNew = InvertedPendulumObj.Thetadot + ThetadotOffset;
 
-  Vector3 COMPosNew = RigidBodyRotation(InvertedPendulumObj.COMPos, -ThetaOffset, RotAxis, PIPObj.edge_a);
-  Vector3 COMPosOnEdge = PIPObj.edge_a + RotAxis.dot(COMPosNew - PIPObj.edge_a) * RotAxis;
+  Vector3 COMPosNew = RigidBodyRotation(InvertedPendulumObj.COMPos, -ThetaOffset, RotAxis, InvertedPendulumObj.edge_a);
+  Vector3 COMPosOnEdge = InvertedPendulumObj.edge_a + RotAxis.dot(COMPosNew - InvertedPendulumObj.edge_a) * RotAxis;
   Vector3 COMVelDir;
   COMVelDir.setNormalized(cross(COMPosNew - COMPosOnEdge, RotAxis));
   Vector3 COMVelNew = L * ThetadotNew * COMVelDir;
@@ -112,25 +112,21 @@ static std::vector<double> GlobalFrameConfigUpdate(Robot & SimRobot, const doubl
   return FrameConfigVec;
 }
 
-Config WholeBodyDynamicsIntegrator(Robot & SimRobot, const PIPInfo & PIPObj, InvertedPendulumInfo & InvertedPendulumObj, const double & TimeDuration, const int & StepIndex){
-  Vector3 RotAxis = PIPObj.edge_b - PIPObj.edge_a;
+Config WholeBodyDynamicsIntegrator(Robot & SimRobot, InvertedPendulumInfo & InvertedPendulumObj, const double & TimeDuration, const int & StepIndex){
+  Vector3 RotAxis = InvertedPendulumObj.edge_b - InvertedPendulumObj.edge_a;
   RotAxis.setNormalized(RotAxis);
-  // std::vector<double> ThetaVec, ThetadotVec;
   const int IntergrationStep = 11;
   int IntergrationIndex = 0;
   double TimeStep = TimeDuration/(1.0 * IntergrationStep - 1.0);
   double ThetaInit = InvertedPendulumObj.Theta;
   for (int IntergrationIndex = 0; IntergrationIndex < IntergrationStep; IntergrationIndex++){
-    StepIntegrator(InvertedPendulumObj, PIPObj, RotAxis, TimeStep);
-    // ThetaVec.push_back(InvertedPendulumObj.Theta);
-    // ThetadotVec.push_back(InvertedPendulumObj.Thetadot);
+    StepIntegrator(InvertedPendulumObj, RotAxis, TimeStep);
   }
 
   double ThetaOffset = InvertedPendulumObj.Theta - ThetaInit;
-  std::vector<double> FrameConfig = GlobalFrameConfigUpdate(SimRobot, ThetaOffset, RotAxis, PIPObj.edge_a);   // This would be 6 global coordinates.
+  std::vector<double> FrameConfig = GlobalFrameConfigUpdate(SimRobot, ThetaOffset, RotAxis, InvertedPendulumObj.edge_a);   // This would be 6 global coordinates.
   std::vector<double> UpdatedConfig = SimRobot.q;
   for (int i = 0; i < 6; i++){
-    // printf("UpdatedConfig: %f and FrameConfig: %f\n", UpdatedConfig[i], FrameConfig[i]);
     UpdatedConfig[i] = FrameConfig[i];
   }
   UpdatedConfig = YPRShifter(UpdatedConfig);

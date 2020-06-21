@@ -68,7 +68,8 @@ add_executable(MyApp
 	       src/Splines.cpp
 	       src/TransientPathGeneration.cpp
 	       src/TrajectoryPlanning.cpp
-	       src/TrajectoryConfigOptimization.cpp)
+	       src/TrajectoryConfigOptimization.cpp
+	       src/MilestoneFromPath.cpp)
 
 
 target_link_libraries(MyApp  ${KLAMPT_LIBRARIES} ${SNOPT_LIBRARIES} ${CILANTRO_LIBRARIES} ${GLEW_LIBRARY})
