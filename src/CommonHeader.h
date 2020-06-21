@@ -66,14 +66,13 @@ ControlReferenceInfo TrajectoryPlanning(Robot & SimRobotInner, const InvertedPen
                                         EndEffectorPathInfo & EndEffectorPathObj, SimPara & SimParaObj);
 std::vector<double> TrajConfigOptimazation(const Robot & SimRobot, ReachabilityMap & RMObject, SelfLinkGeoInfo & _SelfLinkGeoObj, SimPara & SimParaObj, const double & _alignmentVal, const int & StageIndex);
 
-/* 9. Milestone Generation with Path Discretization */
 double AccPhaseTimePathMethod(  const std::vector<double> & CurConfig,      const std::vector<double> & NextConfig,
                                 const std::vector<double> & CurVelocity,    std::vector<double> & NextVelocity,
                                 const std::vector<double> & VelocityBound,  const std::vector<double> & AccelerationBound,
                                 const std::vector<int> SwingLinkChain);
 
-double DecPhaseTimePathMethod(  const std::vector<double> & CurConfig,      const std::vector<double> & NextConfig,
-                                const std::vector<double> & CurVelocity,    std::vector<double> & NextVelocity,
-                                const std::vector<double> & VelocityBound,  const std::vector<double> & AccelerationBound,
-                                const std::vector<int> SwingLinkChain);
+/* 9. Milestone Generation with Time Discretization */
+Config AccPhaseTaskSpaceMethod( Robot & SimRobotInner, const std::vector<double> & CurrentConfig, const std::vector<double> & CurrentVelocity,
+                                const InvertedPendulumInfo & InvertedPendulumInner, SelfLinkGeoInfo & SelfLinkGeoObj,
+                                EndEffectorPathInfo & EndEffectorPathObj, const std::vector<int> & SwingLinkChain, SimPara & SimParaObj);
 #endif

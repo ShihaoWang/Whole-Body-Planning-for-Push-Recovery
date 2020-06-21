@@ -641,6 +641,7 @@ struct SimPara{
     TotalDuration = -1.0;
     ForwardDuration = -1.0;
     PhaseRatio = -1.0;
+    PhaseTimeStep = 0.05;
     PlanStageIndex = -1;
     SimTime = -1.0;
     TransPathFeasiFlag = false;
@@ -656,6 +657,7 @@ struct SimPara{
           const double & _TotalDuration,
           const double & _ForwardDuration,
           const double & _PhaseRatio,
+          const double & _PhaseTimeStep,
           const double & _ReductionRatio):    ForceMax(_ForceMax),
                                               PushDuration(_PushDuration),
                                               DetectionWait(_DetectionWait),
@@ -664,6 +666,7 @@ struct SimPara{
                                               TotalDuration(_TotalDuration),
                                               ForwardDuration(_ForwardDuration),
                                               PhaseRatio(_PhaseRatio),
+                                              PhaseTimeStep(_PhaseTimeStep),
                                               ReductionRatio(_ReductionRatio){}
   void CurrentCasePathUpdate(const string _CurrentCasePath){
     CurrentCasePath = _CurrentCasePath;
@@ -726,6 +729,7 @@ struct SimPara{
   double  TotalDuration;
   double  ForwardDuration;
   double  PhaseRatio;            // This ratio determines the boundary between acceleration and deceleration.
+  double  PhaseTimeStep;
   double  ReductionRatio;
   int     PlanStageIndex;
   double  SimTime;
