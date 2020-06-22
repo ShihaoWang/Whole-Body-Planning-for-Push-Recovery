@@ -45,10 +45,10 @@ int main(){
   double TimeStep       = 0.025;
   double InitDuration    = 2.0;
   double TotalDuration   = 5.0;                 // Simulation lasts for 5s after initial duration
-  double ForwardDuartion = 0.75;                // Used to optimal contact point planning
+  double ForwardDuartion = 0.5;                 // Used to optimal contact point planning
   double PhaseRatio     = 0.75;
-  double PhaseTimeStep  = 0.05;
-  double ReductionRatio = 0.2;
+  double PhaseTimeStep  = 0.05;                 // Reserved to be used for time discretization method.
+  double ReductionRatio = 0.5;
   SimPara SimParaObj(ForceMax, PushDuration, DetectionWait, TimeStep, InitDuration, TotalDuration, ForwardDuartion, PhaseRatio, PhaseTimeStep, ReductionRatio);
 
   RobotWorld worldObj;

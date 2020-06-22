@@ -148,7 +148,7 @@ std::vector<double> LastStageConfigOptimazation(const Robot & SimRobot, Reachabi
   // Here we would like allow much more time to be spent on IK
   LastStageConfigOptProblem.NonlinearProb.setIntParameter("Iterations limit", 250);
   LastStageConfigOptProblem.NonlinearProb.setIntParameter("Major iterations limit", 25);
-  LastStageConfigOptProblem.NonlinearProb.setIntParameter("Major print level", 1);
+  LastStageConfigOptProblem.NonlinearProb.setIntParameter("Major print level", 0);
   LastStageConfigOptProblem.NonlinearProb.setIntParameter("Minor print level", 0);
   /*
     ProblemOptions seting

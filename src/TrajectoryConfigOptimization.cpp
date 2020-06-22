@@ -144,7 +144,7 @@ std::vector<double> TrajConfigOptimazation(const Robot & SimRobot, ReachabilityM
   // Here we would like allow much more time to be spent on IK
   TrajConfigOptProblem.NonlinearProb.setIntParameter("Iterations limit", 250);
   TrajConfigOptProblem.NonlinearProb.setIntParameter("Major iterations limit", 25);
-  TrajConfigOptProblem.NonlinearProb.setIntParameter("Major print level", 1);
+  TrajConfigOptProblem.NonlinearProb.setIntParameter("Major print level", 0);
   TrajConfigOptProblem.NonlinearProb.setIntParameter("Minor print level", 0);
   /*
     ProblemOptions seting

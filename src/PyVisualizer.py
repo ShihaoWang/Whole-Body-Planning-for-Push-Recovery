@@ -73,7 +73,7 @@ def ContactDataPlot(vis, ReachableContacts_data):
         vis.setColor("Point:" + str(i),65.0/255.0, 199.0/255.0, 244.0/255.0, 1.0)
 
 def WeightedContactDataPlot(vis, OptimalContact_data, OptimalContactWeights_data):
-    scale = 2.5
+    scale = 1.0
     for i in range(OptimalContact_data.size/3):
         point_start = [0.0, 0.0, 0.0]
         ReachableContact_i = OptimalContact_data[i]
@@ -196,7 +196,7 @@ def main(*arg):
     if not result:
         raise RuntimeError("Unable to load model " + XML_path)
     # In this case, what we have is a config
-    ConfigName = "/home/motion/Desktop/Whole-Body-Planning-for-Push-Recovery-Data/result/flat_1Contact/1/InitConfig.config"
+    ConfigName = "/home/motion/Desktop/Whole-Body-Planning-for-Push-Recovery-Data/result/flat_1Contact/15/InitConfig.config"
     DOF, Config_Init = Configuration_Loader_fn(ConfigName)
     Robot_Config_Plot(world, DOF, Config_Init)
 if __name__ == "__main__":

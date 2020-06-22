@@ -14,40 +14,72 @@ static std::vector<double> ProjectionLength(const Vector3 & InitDir, const Vecto
   return projVec;
 }
 
-static double PositivePosNVel(  const double & PosDiff,
-                                const double & InitVelocity,  double & GoalVelocity,
+static std::vector<double> ReductionRatioVecGene(const double & ReductionRatio, const int & sRes){
+  // A linear reduction is assumed at velocity bound.
+  double ReductionUnit = (1.0 - ReductionRatio)/(1.0 * sRes);
+  std::vector<double> ReductionRatioVec(sRes);
+  double ReductionRatio_i = 1.0;
+  for (int i = 0; i < sRes; i++){
+    ReductionRatio_i-=ReductionUnit;
+    ReductionRatioVec[i] = ReductionRatio_i;
+  }
+  return ReductionRatioVec;
+}
+
+static double PositivePosNVel(  double PosDiff,
+                                const double & RawInitVelocity,  double & GoalVelocity,
                                 const double & VelocityBound, const double & AccBound){
    // Two procedure => accelerate to velocity limit and remains there
+   double InitVelocity = RawInitVelocity;
    double AccDist = (VelocityBound * VelocityBound - InitVelocity * InitVelocity)/(2.0 * AccBound);
+   double AccTimeOffset = 0.0;
+   if(AccDist<0.0){
+     // This happens in velocity reduction stage where the initial velocity is larger than velocity bound.
+     // As a result, the velocity needs to be dampened to be within boundary
+     double AccDistOffset = -AccDist;
+     PosDiff-=AccDistOffset;
+     AccTimeOffset = (InitVelocity - VelocityBound)/AccBound;
+     InitVelocity = VelocityBound;
+     AccDist = 0.0;
+   }
    if(AccDist>PosDiff){ // Does not need to accelerate to limit to reach GoalPos
      double AccTime = (-InitVelocity + sqrt(InitVelocity * InitVelocity + 2.0 * AccBound * PosDiff))/(1.0 * AccBound);
      GoalVelocity = InitVelocity + AccTime * AccBound;
-     return AccTime;
+     return AccTime + AccTimeOffset;
    }
    else { // This means that DOF accelerates to limit and then remain on maximum speed
      double AccTime1 = (VelocityBound - InitVelocity)/AccBound;
      double AccTime2 = (PosDiff - AccDist)/VelocityBound;
      double AccTime = AccTime1 + AccTime2;
      GoalVelocity = VelocityBound;
-     return AccTime;
+     return AccTime + AccTimeOffset;
    }
  }
 
- static double NegativePosNVel(  const double & PosDiff,
-                                 const double & InitVelocity,  double & GoalVelocity,
+ static double NegativePosNVel(  double PosDiff,
+                                 const double & RawInitVelocity,  double & GoalVelocity,
                                  const double & VelocityBound, const double & AccBound){
+  double InitVelocity = RawInitVelocity;
   double AccDist = (VelocityBound * VelocityBound - InitVelocity * InitVelocity)/(2.0 * AccBound);
+  double AccTimeOffset = 0.0;
+  if(AccDist<0.0){
+    double AccDistOffset = -AccDist;
+    PosDiff+=AccDistOffset;
+    AccTimeOffset = -(InitVelocity - VelocityBound)/AccBound;
+    InitVelocity = -VelocityBound;
+    AccDist = 0.0;
+  }
   if(AccDist>-PosDiff){
     double AccTime = (InitVelocity + sqrt(InitVelocity * InitVelocity - 2.0 * AccBound * PosDiff))/(1.0 * AccBound);
     GoalVelocity = InitVelocity - AccTime * AccBound;
-    return AccTime;
+    return AccTime + AccTimeOffset;
   }
   else { // This means that DOF accelerates to limit and then remain on maximum speed
     double AccTime1 = (VelocityBound + InitVelocity)/AccBound;
     double AccTime2 = -(PosDiff + AccDist)/VelocityBound;
     double AccTime = AccTime1 + AccTime2;
     GoalVelocity = -VelocityBound;
-    return AccTime;
+    return AccTime + AccTimeOffset;
   }
 }
 
@@ -118,8 +150,8 @@ double AccPhaseTimePathMethod(  const std::vector<double> & CurConfig,      cons
     double VelBound = VelocityBound[SwingLinkChain[i]];
     double AccBound = AccelerationBound[SwingLinkChain[i]];
     double AccPhaseTime = AccPhaseTimeInner(PosDiff, InitVelocity, GoalVelocity, VelBound, AccBound);
-    printf("Link: %d PosDiff: %f,   InitVelocity: %f,   GoalVelocity: %f,   AccTime: %f and Valid: %d\n",
-                                  SwingLinkChain[i], PosDiff, InitVelocity, GoalVelocity, AccPhaseTime, GoalVelocity * PosDiff>0.0);
+    // printf("Link: %d PosDiff: %f,   InitVelocity: %f,   GoalVelocity: %f,   AccTime: %f and Valid: %d\n",
+    //                               SwingLinkChain[i], PosDiff, InitVelocity, GoalVelocity, AccPhaseTime, GoalVelocity * PosDiff>0.0);
     AccPhaseTimeTotal[i] = AccPhaseTime;
     SwingLinkChainVelocity[i] = GoalVelocity;
   }
@@ -134,20 +166,22 @@ double AccPhaseTimePathMethod(  const std::vector<double> & CurConfig,      cons
     double VelBound = VelocityBound[SwingLinkChain[i]];
     double AccBound = AccelerationBound[SwingLinkChain[i]];
     Velocity2Pos(PosDiff, InitVelocity, GoalVelocity, VelBound, AccBound, AccTime);
-    printf("Updated Link: %d,   PosDiff: %f,  InitVelocity: %f,   GoalVelocity: %f and Valid: %d\n",
-            SwingLinkChain[i], PosDiff, InitVelocity, GoalVelocity,  GoalVelocity * PosDiff>0.0);
+    // printf("Updated Link: %d,   PosDiff: %f,  InitVelocity: %f,   GoalVelocity: %f and Valid: %d\n",
+    //         SwingLinkChain[i], PosDiff, InitVelocity, GoalVelocity,  GoalVelocity * PosDiff>0.0);
     NextVelocity[SwingLinkChain[i]] = GoalVelocity;
   }
   return AccTime;
 }
 
-double DecPhaseTimePathMethod(  const std::vector<double> & CurConfig,      const std::vector<double> & NextConfig,
+static double DecPhaseTimePathMethod(  const std::vector<double> & CurConfig,      const std::vector<double> & NextConfig,
                                 const std::vector<double> & CurVelocity,    std::vector<double> & NextVelocity,
                                 const std::vector<double> & VelocityBound,  const std::vector<double> & AccelerationBound,
-                                const std::vector<int> SwingLinkChain){
+                                const std::vector<int> SwingLinkChain, const double & ReductionRatio){
    // This function solves for the time in deceleration phase.
-
-
+   std::vector<double> DampingVelocityBound(VelocityBound.size());
+   for (int i = 0; i < DampingVelocityBound.size(); i++)
+     DampingVelocityBound[i] = VelocityBound[i] * ReductionRatio;
+   return AccPhaseTimePathMethod(CurConfig, NextConfig, CurVelocity, NextVelocity, DampingVelocityBound, AccelerationBound, SwingLinkChain);
 }
 
 ControlReferenceInfo TrajectoryPlanning(Robot & SimRobotInner, const InvertedPendulumInfo & InvertedPendulumInner, ReachabilityMap & RMObject,SelfLinkGeoInfo & SelfLinkGeoObj,
@@ -193,12 +227,14 @@ ControlReferenceInfo TrajectoryPlanning(Robot & SimRobotInner, const InvertedPen
   Vector3 EndEffectorPosOffset; EndEffectorPosOffset.setZero();
   double sBoundary = round((sNumber - 1) * SimParaObj.PhaseRatio);
   double resS = sNumber - sBoundary;
+  std::vector<double> ReducRatioVec = ReductionRatioVecGene(SimParaObj.PhaseRatio, resS);
+
   bool LastStageFlag = false;
 
   for (int sIndex = 1; sIndex < sNumber; sIndex++) {
     sVal = 1.0 * sIndex * sDiff;
     EndEffectorPathObj.s2Pos(sVal, CurrentContactPos);
-    Vector3 PlannedCurrentContactPos = CurrentContactPos + EndEffectorPosOffset;
+    Vector3 PlannedCurrentContactPos = CurrentContactPos;
     SimParaObj.setCurrentContactPos(PlannedCurrentContactPos);
     switch (sIndex) {
       case 5: LastStageFlag = true;
@@ -213,17 +249,19 @@ ControlReferenceInfo TrajectoryPlanning(Robot & SimRobotInner, const InvertedPen
     double StageTime;
     if(!SimParaObj.getTrajConfigOptFlag()) break;
     else {
-      // if(sIndex<sBoundary){
+      if(sIndex<sBoundary){
         StageTime = AccPhaseTimePathMethod( CurrentConfig, NextConfig,
                                             WholeBodyVelocityTraj[sIndex-1], NextVelocity,
                                             SimRobotInner.velMax, SimRobotInner.accMax,
                                             SwingLinkChain);
-      // }
-      // else {
-      //
-      //
-      // }
-      printf("%d th's StageTime %f\n", sIndex, StageTime);
+      }
+      else {
+        int ReducRatioVecIndex = sIndex - sBoundary;
+        StageTime = DecPhaseTimePathMethod( CurrentConfig, NextConfig,
+                                            WholeBodyVelocityTraj[sIndex-1], NextVelocity,
+                                            SimRobotInner.velMax, SimRobotInner.accMax,
+                                            SwingLinkChain, ReducRatioVec[ReducRatioVecIndex]);
+      }
       SimRobotInner.UpdateConfig(Config(NextConfig));
       UpdatedConfig  = WholeBodyDynamicsIntegrator(SimRobotInner, InvertedPendulumObj, StageTime, sIndex);
       SimRobotInner.UpdateConfig(UpdatedConfig);
@@ -240,6 +278,7 @@ ControlReferenceInfo TrajectoryPlanning(Robot & SimRobotInner, const InvertedPen
       CurrentTime+=StageTime;
       CurrentConfig = UpdatedConfig;
       CurrentVelocity = Config(NextVelocity);
+      // printf("CurrentTime: %f, %d th's StageTime %f\n", CurrentTime, sIndex, StageTime);
 
       TimeTraj.push_back(CurrentTime);
       WholeBodyConfigTraj.push_back(CurrentConfig);

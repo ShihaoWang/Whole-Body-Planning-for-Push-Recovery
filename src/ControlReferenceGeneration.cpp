@@ -199,6 +199,7 @@ static std::vector<Vector3> OptimalContactSearcher( Robot SimRobot,     const PI
   getCentroidalState(SimRobot, COMPos, COMVel);
   InvertedPendulumInfo InvertedPendulumObj(PIPObj.L, PIPObj.g, PIPObj.theta, PIPObj.thetadot, COMPos, COMVel);
   InvertedPendulumObj.setEdges(PIPObj.edge_a, PIPObj.edge_b);
+  
   Config UpdatedConfig  = WholeBodyDynamicsIntegrator(SimRobot, InvertedPendulumObj, SimParaObj.ForwardDuration, -1);
   SimRobot.UpdateConfig(UpdatedConfig);
 
@@ -222,7 +223,6 @@ static std::vector<Vector3> OptimalContactSearcher( Robot SimRobot,     const PI
   Vector3Writer(ActiveReachableContact,"ActiveReachableContact");
   Vector3Writer(ContactFreeContact,"ContactFreeContact");
   Vector3Writer(SupportContact,"SupportContact");
-
 
   SimParaObj.DataRecorderObj.setData( ActiveReachableContact,
                                       ContactFreeContact,
