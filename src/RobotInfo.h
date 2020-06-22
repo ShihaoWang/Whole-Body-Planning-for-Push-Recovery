@@ -720,6 +720,8 @@ struct SimPara{
   Vector3 getCurrentContactPos(){ return CurrentContactPos; }
   void setTrajConfigOptFlag(const bool & _TrajConfigOptFlag){ TrajConfigOptFlag = _TrajConfigOptFlag;}
   bool getTrajConfigOptFlag() {return TrajConfigOptFlag;}
+  void setFixedContactStatusInfo(const std::vector<ContactStatusInfo> & _FixedContactStatusInfo){ FixedContactStatusInfo =_FixedContactStatusInfo;}
+
 
   double  ForceMax;
   double  PushDuration;
@@ -745,6 +747,7 @@ struct SimPara{
   string FailureStateTrajStr, CtrlStateTrajStr, PlanStateTrajFileStr;
   Vector3 ContactInit, ContactGoal;
   Vector3 DirectionInit, DirectionGoal;
+  std::vector<ContactStatusInfo> FixedContactStatusInfo;
 };
 
 struct ControlReferenceInfo{
@@ -775,6 +778,7 @@ struct ControlReferenceInfo{
   std::vector<ContactStatusInfo> getGoalContactStatus() {return GoalContactStatus;}
 
   void TrajectoryUpdate(const std::vector<double> & timeTraj, const std::vector<Config> & configTraj, const std::vector<Vector3> & endeffectorTraj){
+    TimeTraj = timeTraj;
     PlannedConfigTraj = LinearPath(timeTraj, configTraj);
     std::vector<Vector> endeffectorPath;
     for (Vector3 EndEffectorPos: endeffectorTraj){
@@ -805,6 +809,7 @@ struct ControlReferenceInfo{
   LinearPath PlannedConfigTraj;
   LinearPath EndEffectorTraj;
 
+  std::vector<double> TimeTraj;
   std::vector<ContactStatusInfo> InitContactStatus;
   std::vector<ContactStatusInfo> GoalContactStatus;
 };

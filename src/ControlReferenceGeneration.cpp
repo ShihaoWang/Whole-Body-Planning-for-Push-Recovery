@@ -199,7 +199,7 @@ static std::vector<Vector3> OptimalContactSearcher( Robot SimRobot,     const PI
   getCentroidalState(SimRobot, COMPos, COMVel);
   InvertedPendulumInfo InvertedPendulumObj(PIPObj.L, PIPObj.g, PIPObj.theta, PIPObj.thetadot, COMPos, COMVel);
   InvertedPendulumObj.setEdges(PIPObj.edge_a, PIPObj.edge_b);
-  
+
   Config UpdatedConfig  = WholeBodyDynamicsIntegrator(SimRobot, InvertedPendulumObj, SimParaObj.ForwardDuration, -1);
   SimRobot.UpdateConfig(UpdatedConfig);
 
@@ -239,9 +239,9 @@ static ControlReferenceInfo ControlReferenceGeneInner(const Robot & SimRobot, co
   SimRobot.GetWorldPosition(NonlinearOptimizerInfo::RobotLinkInfo[SimParaObj.SwingLinkInfoIndex].AvgLocalContact,
                             NonlinearOptimizerInfo::RobotLinkInfo[SimParaObj.SwingLinkInfoIndex].LinkIndex, ContactInit);
   SimParaObj.setContactInit(ContactInit);
-
   std::vector<Vector3> OptimalContact = OptimalContactSearcher(SimRobot, TipOverPIPObj, RMObject, ContactFormObj, SimParaObj);
   if(!OptimalContact.size()) return ControlReferenceObj;
+  SimParaObj.setFixedContactStatusInfo(ContactFormObj.FixedContactStatusInfo);
 
   Vector3 COMPos, COMVel;
   getCentroidalState(SimRobot, COMPos, COMVel);
@@ -266,10 +266,10 @@ static ControlReferenceInfo ControlReferenceGeneInner(const Robot & SimRobot, co
         5. The whole algorithm terminates when robot's self-collision has been triggered or no feasible IK solution can be found.
       */
 
-      ControlReferenceInfo RobotTraj = TrajectoryPlanning(SimRobotInner, InvertedPendulumObj, RMObject, SelfLinkGeoObj,
-                                                          EndEffectorPathObj, SimParaObj);
+      ControlReferenceObj = TrajectoryPlanning(SimRobotInner, InvertedPendulumObj, RMObject, SelfLinkGeoObj,
+                                                                    EndEffectorPathObj, SimParaObj);
+      if(ControlReferenceObj.getReadyFlag()) break;
     }
-
   }
   return ControlReferenceObj;
 }
@@ -282,81 +282,29 @@ ControlReferenceInfo ControlReferenceGene(Robot & SimRobot,
   std::vector<ContactForm> ContactFormVec = ContactStatusExplorer(SimRobot, RobotContactInfo);
   Vector3 COMPos, COMVel;
   getCentroidalState(SimRobot, COMPos, COMVel);
-  std::clock_t start_time = std::clock();
+  ControlReferenceInfo ControlReferenceInfoObj;
+  ControlReferenceInfoObj.setReadyFlag(false);
+  std::vector<ControlReferenceInfo> ControlReferenceObjVec;
+  std::vector<double> ExecutationTimeVec;
   for (auto & ContactFormObj : ContactFormVec) {
+    std::clock_t start_time = std::clock();
     std::vector<ContactStatusInfo> curContactInfo = ContactFormObj.FixedContactStatusInfo;
     std::vector<Vector3> ActContactPos = ActiveContactFinder(SimRobot, curContactInfo);
     PIPInfo TipOverPIP = TipOverPIPGenerator(ActContactPos, COMPos, COMVel);
     SimParaObj.setSwingLinkInfoIndex(ContactFormObj.SwingLinkInfoIndex);
-    ControlReferenceInfo RobotTraj =  ControlReferenceGeneInner(SimRobot, TipOverPIP, RMObject, SelfLinkGeoObj, ContactFormObj, SimParaObj);
+    ControlReferenceInfo ControlReferenceObj =  ControlReferenceGeneInner(SimRobot, TipOverPIP, RMObject, SelfLinkGeoObj, ContactFormObj, SimParaObj);
+    double duration_time = (std::clock() - start_time)/(double)CLOCKS_PER_SEC;
+    std::printf("Planning takes: %f ms\n", 1000.0 * duration_time);
+    start_time = std::clock();
+    ControlReferenceObj.setComputationTime(duration_time);
+    if(ControlReferenceObj.getReadyFlag()){
+      ControlReferenceObjVec.push_back(ControlReferenceObj);
+      ExecutationTimeVec.push_back(ControlReferenceObj.TimeTraj.back());
+    }
   }
-  // int ContactStatusOption = 0;
-  // int LimbSuccessNo = 0;
-  // std::vector<ControlReferenceInfo> RobotTrajVec;
-  // ControlReferenceInfo RobotTraj;
-  // std::vector<double> ExeTimeVec;
-  // std::vector<int> ContactStatusOptionVec;
-  // std::vector<double> EndPathLengthVec;
-  //
-  // for(ContactStatusOption = 0; ContactStatusOption< AllContactStatusObj.ContactStatusInfoVec.size(); ContactStatusOption++){
-  //   if(ContactStatusOptionRef!=-1){
-  //     if(ContactStatusOption!=ContactStatusOptionRef){
-  //       continue;
-  //     }
-  //   }
-  //   std::vector<ContactStatusInfo> RobotContactInfo = AllContactStatusObj.ContactStatusInfoVec[ContactStatusOption];
-  //   int SwingLimbIndex = AllContactStatusObj.ContactStatusExplorer[ContactStatusOption];
-  //   std::vector<Vector3> ActContactPos = ContactPositionFinder(SimRobot, NonlinearOptimizerInfo::RobotLinkInfo, RobotContactInfo);    // From ContactInfoActive
-  //
-  //   DataRecorderInfo DataRecorderObj;
-  //
-
-  //
-  //   RobotTraj = ControlReferenceGenerationInner(SimRobot, TipOverPIP, PredictedCOMPos, RMObject, SelfLinkGeoObj, NonlinearOptimizerInfo::RobotLinkInfo, RobotContactInfo, SwingLimbIndex, AllContactStatusObj.ContactTypeVec[ContactStatusOption], RefFailureMetric, DataRecorderObj);
-  //   RobotTraj.SwingLimbIndex = SwingLimbIndex;
-  //   RobotTraj.ContactStatusOptionIndex = ContactStatusOption;
-  //   double duration_time = (std::clock() - start_time)/(double)CLOCKS_PER_SEC;
-  //   std::printf("Planning takes: %f ms\n", 1000.0 * duration_time);
-  //   start_time = std::clock();          // get current time
-  //   RobotTraj.PlanningTime = 1000.0 * duration_time;      // The unit is ms.
-  //   PlanTime+= 1000.0 * duration_time;
-  //   if(RobotTraj.ControlReferenceFlag)
-  //   {
-  //     DataRecorderObj.PlanningNo = PlanningSteps;
-  //     DataRecorderObj.LimbNo = LimbSuccessNo;
-  //     DataRecorderObj.DataRecorder(SpecificPath);
-  //     for (int i = 0; i < DataRecorderObj.OptConfigs.size(); i++)
-  //     {
-  //       const string OptConfigFile = std::to_string(PlanningSteps) + "_" + std::to_string(LimbSuccessNo) + "_" + "OptConfig" + std::to_string(i) + ".config";
-  //       RobotConfigWriter(DataRecorderObj.OptConfigs[i], SpecificPath, OptConfigFile);
-  //     }
-  //     LimbSuccessNo++;
-  //
-  //     RobotTrajVec.push_back(RobotTraj);
-  //     ExeTimeVec.push_back(RobotTraj.PlanStateTraj.EndTime());
-  //     ContactStatusOptionVec.push_back(ContactStatusOption);
-  //     EndPathLengthVec.push_back(RobotTraj.PathLength);
-  //   }
-  // }
-  // // Based on the value of the impulse, let's select the one with the lowest impulse.
-  // switch (RobotTrajVec.size())
-  // {
-  //   case 0:
-  //   {
-  //     std::printf("Planning fails to find a feasible solution! \n");
-  //     // Planning fails to find a feasible solution!
-  //     return RobotTraj;
-  //   }
-  //   break;
-  //   default:
-  //   {
-  //     PlanningInfoFileAppender(PlanningSteps, RobotTrajVec.size()-1, SpecificPath, CurTime);
-  //     int RobotTrajIndex = EndEffectorSelector(ExeTimeVec, EndPathLengthVec, ContactStatusOptionVec, PreviousContactStatusIndex);
-  //     std::printf("Planning successfully finds a feasible solution! \nRobot Limb Index: %d\n", NonlinearOptimizerInfo::RobotLinkInfo[RobotTrajVec[RobotTrajIndex].SwingLimbIndex].LinkIndex);
-  //     RobotTraj = RobotTrajVec[RobotTrajIndex];
-  //     if(PreviousContactStatusIndex!=RobotTraj.ContactStatusOptionIndex) PreviousContactStatusIndex = RobotTraj.ContactStatusOptionIndex;
-  //   }
-  //   break;
-  // }
-  // return RobotTraj;
+  if(!ExecutationTimeVec.size()){
+    int ObjIndex = std::distance(ExecutationTimeVec.begin(), std::min_element(ExecutationTimeVec.begin(), ExecutationTimeVec.end()));
+    ControlReferenceInfoObj = ControlReferenceObjVec[ObjIndex];
+  }
+  return ControlReferenceInfoObj;
 }

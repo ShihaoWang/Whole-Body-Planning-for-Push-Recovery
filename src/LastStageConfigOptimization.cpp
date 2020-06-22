@@ -166,39 +166,11 @@ std::vector<double> LastStageConfigOptimazation(const Robot & SimRobot, Reachabi
   SimRobotObj.UpdateConfig(Config(OptConfig));
   SimRobotObj.UpdateGeometry();
 
-  std::string ConfigPath = "/home/motion/Desktop/Whole-Body-Planning-for-Push-Recovery/build/";
-  std::string OptConfigFile = "SwingUpdatedConfig" + std::to_string(StageIndex) + ".config";
-  RobotConfigWriter(OptConfig, ConfigPath, OptConfigFile);
+  // std::string ConfigPath = "/home/motion/Desktop/Whole-Body-Planning-for-Push-Recovery/build/";
+  // std::string OptConfigFile = "SwingUpdatedConfig" + std::to_string(StageIndex) + ".config";
+  // RobotConfigWriter(OptConfig, ConfigPath, OptConfigFile);
 
-  // Self-collision constraint numerical checker
-  std::vector<double> SelfCollisionDistVec(SwingLinkChain.size()-3);
-  for (int i = 0; i < SwingLinkChain.size()-3; i++)     // Due to the bounding box size of torso link
-  {
-    Box3D Box3DObj = SimRobotObj.geometry[SwingLinkChain[i]]->GetBB();
-    std::vector<Vector3> BoxVerticesVec = BoxVertices(Box3DObj);
-    std::vector<double> DistVec(BoxVerticesVec.size());
-    for (int j = 0; j < BoxVerticesVec.size(); j++)
-      DistVec[j] = _SelfLinkGeoObj.SelfCollisionDist(SwingLinkInfoIndex, BoxVerticesVec[j]);
-    SelfCollisionDistVec[i] = *std::min_element(DistVec.begin(), DistVec.end());
-  }
-  double SelfCollisionDistTol = *std::min_element(SelfCollisionDistVec.begin(), SelfCollisionDistVec.end());
-
-  bool OptFlag = true;
-  if(SelfCollisionDistTol<-0.0025){
-      std::printf("Transient Optimization Failure due to Self-collision for Link %d! \n", NonlinearOptimizerInfo::RobotLinkInfo[SwingLinkInfoIndex].LinkIndex);
-      OptFlag = false;
-  }
-
-  Vector3 EndEffectorAvgPos;
-  SimRobotObj.GetWorldPosition(NonlinearOptimizerInfo::RobotLinkInfo[SwingLinkInfoIndex].AvgLocalContact, NonlinearOptimizerInfo::RobotLinkInfo[SwingLinkInfoIndex].LinkIndex, EndEffectorAvgPos);
-  Vector3 AvgDiff = EndEffectorAvgPos - GoalPos;
-  double DistTestTol = 0.0225;
-  double DistTest = AvgDiff.normSquared();
-  if(DistTest>DistTestTol){
-    std::printf("Transient Optimization Failure due to Goal Contact Non-reachability for Link %d! \n", NonlinearOptimizerInfo::RobotLinkInfo[SwingLinkInfoIndex].LinkIndex);
-    OptFlag = false;
-  }
-  SimParaObj.setTrajConfigOptFlag(OptFlag);
+  // SimParaObj.setTrajConfigOptFlag(OptFlag);
   OptConfig = YPRShifter(OptConfig);
   return OptConfig;
 }

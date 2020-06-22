@@ -154,7 +154,7 @@ std::vector<double> OrientationOptimazation(const Robot & SimRobot, const std::v
 
   std::string ConfigPath = "/home/motion/Desktop/Whole-Body-Planning-for-Push-Recovery/build/";
   std::string OptConfigFile = "OptWholeBodyUpdatedConfig" + std::to_string(StageIndex) + ".config";
-  RobotConfigWriter(OptConfig, ConfigPath, OptConfigFile);
+  // RobotConfigWriter(OptConfig, ConfigPath, OptConfigFile);
 
   return OptConfig;
 }

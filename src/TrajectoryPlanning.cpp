@@ -229,8 +229,9 @@ ControlReferenceInfo TrajectoryPlanning(Robot & SimRobotInner, const InvertedPen
   double resS = sNumber - sBoundary;
   std::vector<double> ReducRatioVec = ReductionRatioVecGene(SimParaObj.PhaseRatio, resS);
 
+  ControlReferenceInfo ControlReferenceObj;
+  ControlReferenceObj.setReadyFlag(false);
   bool LastStageFlag = false;
-
   for (int sIndex = 1; sIndex < sNumber; sIndex++) {
     sVal = 1.0 * sIndex * sDiff;
     EndEffectorPathObj.s2Pos(sVal, CurrentContactPos);
@@ -286,127 +287,14 @@ ControlReferenceInfo TrajectoryPlanning(Robot & SimRobotInner, const InvertedPen
       PlannedEndEffectorTraj.push_back(PlannedCurrentContactPos);
     }
   }
+  if(SimParaObj.getTrajConfigOptFlag()){
+    std::vector<ContactStatusInfo> GoalContactInfo = SimParaObj.FixedContactStatusInfo;
+    for(int i = 0; i<GoalContactInfo[SwingLinkInfoIndex].LocalContactStatus.size(); i++)
+      GoalContactInfo[SwingLinkInfoIndex].LocalContactStatus[i] = 1;
+    ControlReferenceObj.SetInitContactStatus(SimParaObj.FixedContactStatusInfo);
+    ControlReferenceObj.SetGoalContactStatus(GoalContactInfo);
+    ControlReferenceObj.TrajectoryUpdate(TimeTraj, WholeBodyConfigTraj, PlannedEndEffectorTraj);
+    ControlReferenceObj.setReadyFlag(true);
+  }
+  return ControlReferenceObj;
 }
-
-//
-//       // Then we should update the robot's CurrentConfig based on CurrentTime_i.
-//       Config UpdatedConfig  = WholeBodyDynamicsIntegrator(SimRobotInner, OptConfig, PIPObj, InvertedPendulumObj, CurrentTime_i, sIndex);
-//       SimRobotInner.UpdateConfig(UpdatedConfig);
-//       CurrentConfig = UpdatedConfig;
-//     }
-//     else
-//     {
-//       break;
-//     }
-//     sIndex++;
-//   }
-// }
-//
-// switch (OptimalContact.size())
-// {
-//   case 0:
-//   {
-//     return ControlReferenceObj;
-//   }
-//   break;
-//   default:
-//   {
-//     // Now too early to assume that FailureFlag is true.
-//     bool FeasiFlag;
-//     int OptimalContactIndex = 0;
-//     while(OptimalContactIndex<OptimalContact.size())
-//     {
-//       Robot SimRobotInner = SimRobot;
-//       Vector3 ContactGoal = OptimalContact[OptimalContactIndex];
-//       Vector3 ContactGoalGrad = NonlinearOptimizerInfo::SDFInfo.SignedDistanceNormal(ContactGoal);
-//       SplineObj = TransientTrajGene(SimRobotInner, SwingLinkInfoIndex, SelfLinkGeoObj, RobotLinkInfo, ContactInit, ContactGoal, RMObject, DataRecorderObj, FeasiFlag);
-//       if(FeasiFlag)
-//       {
-//         EndPathInfo EndEffectorPathObj(SplineObj, SwingLinkInfoIndex);
-//         InvertedPendulumInfo InvertedPendulumObj(PIPObj.theta, PIPObj.thetadot, COMPos, COMVel);
-//
-//         /*
-//           1. At each sampled waypoints along the end effector trajectory, an end effector position is evaluated from path.
-//           2. Based on robot's current configuration, an IK problem is solved to get robot's swing limb configuration.
-//           3. A time-optimal executation duration is computed.
-//           4. Based on that time, robot's whole-body configuration is updated with inverted pendulum model.
-//           5. The whole algorithm terminates when robot's self-collision has been triggered or no feasible IK solution can be found.
-//         */
-//         const int sNumber = 5;                 // 6 sampled points will be extracted from EndEffectorPathObj.
-//         int sIndex = 1;
-//         double sDiff = 1.0/(1.0 * sNumber - 1.0);
-//         double sVal = 0.0;
-//         Config CurrentConfig = SimRobotInner.q;
-//         CurrentConfig = YPRShifter(CurrentConfig);
-//         double CurrentTime = 0.0;
-//         Vector3 CurrentContactPos = ContactInit;
-//
-//         std::vector<double> TimeTraj;
-//         std::vector<Config> WholeBodyConfigTraj;
-//         std::vector<Vector3> PlannedEndEffectorTraj;
-//
-//         TimeTraj.reserve(sNumber);
-//         WholeBodyConfigTraj.reserve(sNumber);
-//         PlannedEndEffectorTraj.reserve(sNumber);
-//
-//         TimeTraj.push_back(CurrentTime);
-//         WholeBodyConfigTraj.push_back(CurrentConfig);
-//         PlannedEndEffectorTraj.push_back(CurrentContactPos);
-//
-//         bool OptFlag = true;
-//         while((sIndex<sNumber)&&(OptFlag == true))
-//         {
-//           sVal = 1.0 * sIndex * sDiff;
-//           EndEffectorPathObj.s2Pos(sVal, CurrentContactPos);
-//           bool LastFlag;
-//           switch (sIndex)
-//           {
-//             case 4:   LastFlag = true;
-//             break;
-//             default:  LastFlag = false;
-//             break;
-//           }
-//           std::vector<double> OptConfig = TransientOptFn(SimRobotInner, SwingLinkInfoIndex, SelfLinkGeoObj, CurrentContactPos, RMObject, OptFlag, LastFlag);;
-//           if(OptFlag)
-//           {
-//             // Minimum Time Estimation.
-//             double CurrentTime_i = MinimumTimeEstimation(SimRobotInner, RMObject.EndEffectorLink2Pivotal[SwingLinkInfoIndex], CurrentConfig, Config(OptConfig));
-//
-//             CurrentTime+=CurrentTime_i;
-//             TimeTraj.push_back(CurrentTime);
-//             WholeBodyConfigTraj.push_back(Config(OptConfig));
-//             PlannedEndEffectorTraj.push_back(CurrentContactPos);
-//
-//             // Then we should update the robot's CurrentConfig based on CurrentTime_i.
-//             Config UpdatedConfig  = WholeBodyDynamicsIntegrator(SimRobotInner, OptConfig, PIPObj, InvertedPendulumObj, CurrentTime_i, sIndex);
-//             SimRobotInner.UpdateConfig(UpdatedConfig);
-//             CurrentConfig = UpdatedConfig;
-//           }
-//           else
-//           {
-//             break;
-//           }
-//           sIndex++;
-//         }
-//         // Here the inner optimiztion loop has been finished!
-//         if(OptFlag)
-//         {
-//           ControlReferenceObj.TrajectoryUpdate(TimeTraj, WholeBodyConfigTraj, PlannedEndEffectorTraj, ContactGoal, ContactGoalGrad, EndEffectorPathObj.TotalLength, Type);
-//           std::vector<ContactStatusInfo> GoalContactInfo = FixedRobotContactInfo;
-//           for(int i = 0; i<FixedRobotContactInfo[SwingLinkInfoIndex].LocalContactStatus.size(); i++)
-//           {
-//             GoalContactInfo[SwingLinkInfoIndex].LocalContactStatus[i] = 1;
-//           }
-//           ControlReferenceObj.InitContactInfo = FixedRobotContactInfo;
-//           ControlReferenceObj.GoalContactInfo = GoalContactInfo;
-//
-//           DataRecorderObj.OptConfigs = WholeBodyConfigTraj;
-//
-//           return ControlReferenceObj;
-//         }
-//       }
-//       OptimalContactIndex++;
-//     }
-//   }
-//   break;
-// }
