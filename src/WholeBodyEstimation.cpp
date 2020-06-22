@@ -130,9 +130,10 @@ Config WholeBodyDynamicsIntegrator(Robot & SimRobot, InvertedPendulumInfo & Inve
     UpdatedConfig[i] = FrameConfig[i];
   }
   UpdatedConfig = YPRShifter(UpdatedConfig);
-
-  std::string ConfigPath = "/home/motion/Desktop/Whole-Body-Planning-for-Push-Recovery/build/";
-  std::string OptConfigFile = "UpdatedConfig" + std::to_string(StepIndex) + ".config";
-  RobotConfigWriter(UpdatedConfig, ConfigPath, OptConfigFile);
+  if(StepIndex>=0){
+    std::string ConfigPath = "/home/motion/Desktop/Whole-Body-Planning-for-Push-Recovery/build/";
+    std::string OptConfigFile = "WholeBodyUpdatedConfig" + std::to_string(StepIndex) + ".config";
+    RobotConfigWriter(UpdatedConfig, ConfigPath, OptConfigFile);
+  }
   return Config(UpdatedConfig);
 }

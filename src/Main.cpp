@@ -109,7 +109,6 @@ int main(){
     std::vector<double> InitVelocity(SimRobot.q.size(), 0.0);
     std::vector<double> RobotConfigRef = InitVelocity;
 
-    //  Given the optimized result to be the initial state
     Sim.world->robots[0]->UpdateConfig(Config(InitConfig));
     Sim.world->robots[0]->dq = InitVelocity;
     Sim.controlSimulators[0].oderobot->SetConfig(Config(InitConfig));

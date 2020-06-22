@@ -73,7 +73,7 @@ def ContactDataPlot(vis, ReachableContacts_data):
         vis.setColor("Point:" + str(i),65.0/255.0, 199.0/255.0, 244.0/255.0, 1.0)
 
 def WeightedContactDataPlot(vis, OptimalContact_data, OptimalContactWeights_data):
-    scale = 1.0
+    scale = 2.5
     for i in range(OptimalContact_data.size/3):
         point_start = [0.0, 0.0, 0.0]
         ReachableContact_i = OptimalContact_data[i]

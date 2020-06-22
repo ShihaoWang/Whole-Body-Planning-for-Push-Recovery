@@ -8,10 +8,11 @@ static Vector3 GoalPos;
 static Vector3 GoalDir;
 static std::vector<double> ReferenceConfig;
 static SelfLinkGeoInfo SelfLinkGeoObj;
+static double TouchDownTol = 0.001;   // 1mm
 
-struct TrajConfigOpt: public NonlinearOptimizerInfo
+struct LastStageConfigOpt: public NonlinearOptimizerInfo
 {
-  TrajConfigOpt():NonlinearOptimizerInfo(){};
+  LastStageConfigOpt():NonlinearOptimizerInfo(){};
 
   // This struct inherits the NonlinearOptimizerInfo struct and we just need to defined the Constraint function
   static void ObjNConstraint(int    *Status, int *n,    double x[],
@@ -25,7 +26,7 @@ struct TrajConfigOpt: public NonlinearOptimizerInfo
       for (int i = 0; i < *n; i++)
         x_vec[i] = x[i];
 
-      std::vector<double> F_val = TrajConfigOptNCons(*n, *neF, x_vec);
+      std::vector<double> F_val = LastStageConfigOptNCons(*n, *neF, x_vec);
       for (int i = 0; i < *neF; i++)
         F[i] = F_val[i];
     }
@@ -45,7 +46,7 @@ struct TrajConfigOpt: public NonlinearOptimizerInfo
       delete []F;      delete []Flow;   delete []Fupp;
       delete []Fmul;   delete []Fstate;
   }
-  static std::vector<double> TrajConfigOptNCons(const int & nVar, const int & nObjNCons, const std::vector<double> & SwingLinkConfig)
+  static std::vector<double> LastStageConfigOptNCons(const int & nVar, const int & nObjNCons, const std::vector<double> & SwingLinkConfig)
   {
     // This funciton provides the constraint for the configuration variable
     std::vector<double> F(nObjNCons);
@@ -60,14 +61,6 @@ struct TrajConfigOpt: public NonlinearOptimizerInfo
     Vector3 AvgDiff = EndEffectorAvgPos - GoalPos;
     F[0] = AvgDiff.normSquared();
     int ConstraintIndex = 1;
-    for (int i = 0; i < NonlinearOptimizerInfo::RobotLinkInfo[SwingLinkInfoIndex].LocalContacts.size(); i++)
-    {
-      Vector3 LinkiPjPos;
-      SimRobotObj.GetWorldPosition(NonlinearOptimizerInfo::RobotLinkInfo[SwingLinkInfoIndex].LocalContacts[i], NonlinearOptimizerInfo::RobotLinkInfo[SwingLinkInfoIndex].LinkIndex, LinkiPjPos);
-      F[ConstraintIndex] = SDFInfo.SignedDistance(LinkiPjPos);
-      ConstraintIndex+=1;
-    }
-
     // Self-collision constraint
     std::vector<double> SelfCollisionDistVec(SwingLinkChain.size()-3);
     for (int i = 0; i < SwingLinkChain.size() - 3; i++){
@@ -81,11 +74,18 @@ struct TrajConfigOpt: public NonlinearOptimizerInfo
     F[ConstraintIndex] = *std::min_element(SelfCollisionDistVec.begin(), SelfCollisionDistVec.end());
     ConstraintIndex+=1;
 
+    for (int i = 0; i < NonlinearOptimizerInfo::RobotLinkInfo[SwingLinkInfoIndex].LocalContacts.size(); i++)
+    {
+      Vector3 LinkiPjPos;
+      SimRobotObj.GetWorldPosition(NonlinearOptimizerInfo::RobotLinkInfo[SwingLinkInfoIndex].LocalContacts[i], NonlinearOptimizerInfo::RobotLinkInfo[SwingLinkInfoIndex].LinkIndex, LinkiPjPos);
+      F[ConstraintIndex] = SDFInfo.SignedDistance(LinkiPjPos);
+      ConstraintIndex+=1;
+    }
     return F;
   }
 };
 
-std::vector<double> TrajConfigOptimazation(const Robot & SimRobot, ReachabilityMap & RMObject, SelfLinkGeoInfo & _SelfLinkGeoObj, SimPara & SimParaObj, const int & StageIndex){
+std::vector<double> LastStageConfigOptimazation(const Robot & SimRobot, ReachabilityMap & RMObject, SelfLinkGeoInfo & _SelfLinkGeoObj, SimPara & SimParaObj, const int & StageIndex){
   // This function is used to optimize robot's configuration such that a certain contact can be reached for that end effector.
   SimRobotObj = SimRobot;
   SwingLinkInfoIndex = SimParaObj.getSwingLinkInfoIndex();
@@ -95,7 +95,7 @@ std::vector<double> TrajConfigOptimazation(const Robot & SimRobot, ReachabilityM
   ReferenceConfig = SimRobot.q;
   SelfLinkGeoObj = _SelfLinkGeoObj;
 
-  TrajConfigOpt TrajConfigOptProblem;
+  LastStageConfigOpt LastStageConfigOptProblem;
 
   // Static Variable Substitution
   std::vector<double> SwingLinkChainGuess(SwingLinkChain.size());
@@ -105,7 +105,7 @@ std::vector<double> TrajConfigOptimazation(const Robot & SimRobot, ReachabilityM
   int neF = 1;
   neF += NonlinearOptimizerInfo::RobotLinkInfo[SwingLinkInfoIndex].LocalContacts.size();
   neF += 1;                                                                                           // Self-Collision Avoidance
-  TrajConfigOptProblem.InnerVariableInitialize(n, neF);
+  LastStageConfigOptProblem.InnerVariableInitialize(n, neF);
 
   /*
     Initialize the bounds of variables
@@ -118,7 +118,7 @@ std::vector<double> TrajConfigOptimazation(const Robot & SimRobot, ReachabilityM
     xupp_vec[i] = SimRobot.qMax(SwingLinkChain[i]);
     SwingLinkChainGuess[i] = ReferenceConfig[SwingLinkChain[i]];
   }
-  TrajConfigOptProblem.VariableBoundsUpdate(xlow_vec, xupp_vec);
+  LastStageConfigOptProblem.VariableBoundsUpdate(xlow_vec, xupp_vec);
 
   /*
     Initialize the bounds of variables
@@ -129,29 +129,33 @@ std::vector<double> TrajConfigOptimazation(const Robot & SimRobot, ReachabilityM
     Flow_vec[i] = 0;
     Fupp_vec[i] = 1e10;
   }
-  TrajConfigOptProblem.ConstraintBoundsUpdate(Flow_vec, Fupp_vec);
+  for (int i = neF-NonlinearOptimizerInfo::RobotLinkInfo[SwingLinkInfoIndex].LocalContacts.size(); i < neF; i++) {
+    Flow_vec[i] = -TouchDownTol;
+    Fupp_vec[i] = TouchDownTol;
+  }
+  LastStageConfigOptProblem.ConstraintBoundsUpdate(Flow_vec, Fupp_vec);
 
   /*
     Initialize the seed guess
   */
-  TrajConfigOptProblem.SeedGuessUpdate(SwingLinkChainGuess);
+  LastStageConfigOptProblem.SeedGuessUpdate(SwingLinkChainGuess);
 
   /*
     Given a name of this problem for the output
   */
-  TrajConfigOptProblem.ProblemNameUpdate("TrajConfigOptProblem", 0);
+  LastStageConfigOptProblem.ProblemNameUpdate("LastStageConfigOptProblem", 0);
 
   // Here we would like allow much more time to be spent on IK
-  TrajConfigOptProblem.NonlinearProb.setIntParameter("Iterations limit", 250);
-  TrajConfigOptProblem.NonlinearProb.setIntParameter("Major iterations limit", 25);
-  TrajConfigOptProblem.NonlinearProb.setIntParameter("Major print level", 1);
-  TrajConfigOptProblem.NonlinearProb.setIntParameter("Minor print level", 0);
+  LastStageConfigOptProblem.NonlinearProb.setIntParameter("Iterations limit", 250);
+  LastStageConfigOptProblem.NonlinearProb.setIntParameter("Major iterations limit", 25);
+  LastStageConfigOptProblem.NonlinearProb.setIntParameter("Major print level", 1);
+  LastStageConfigOptProblem.NonlinearProb.setIntParameter("Minor print level", 0);
   /*
     ProblemOptions seting
   */
   // Solve with Finite-Difference
-  TrajConfigOptProblem.ProblemOptionsUpdate(0, 3);
-  TrajConfigOptProblem.Solve(SwingLinkChainGuess);
+  LastStageConfigOptProblem.ProblemOptionsUpdate(0, 3);
+  LastStageConfigOptProblem.Solve(SwingLinkChainGuess);
 
   std::vector<double> OptConfig = ReferenceConfig;
 

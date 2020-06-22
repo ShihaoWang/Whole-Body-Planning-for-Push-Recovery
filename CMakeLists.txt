@@ -75,8 +75,9 @@ add_executable(MyApp
 	       src/TransientPathGeneration.cpp
 	       src/TrajectoryPlanning.cpp
 	       src/TrajectoryConfigOptimization.cpp
-	       src/TrajectoryPlanningPathApproach.cpp
-	       src/TrajectoryPlanningTimeApproach.cpp)
+	       src/TrajectoryPhaseTime.cpp
+	       src/OrientationOptimization.cpp
+	       src/LastStageConfigOptimization.cpp)
 
 
 target_link_libraries(MyApp  ${KLAMPT_LIBRARIES} ${SNOPT_LIBRARIES} ${GUROBI_LIBRARIES} ${CILANTRO_LIBRARIES} ${GLEW_LIBRARY})
