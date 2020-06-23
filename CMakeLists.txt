@@ -77,7 +77,8 @@ add_executable(MyApp
 	       src/TrajectoryConfigOptimization.cpp
 	       src/TrajectoryPhaseTime.cpp
 	       src/OrientationOptimization.cpp
-	       src/LastStageConfigOptimization.cpp)
+	       src/LastStageConfigOptimization.cpp
+	       src/TouchDownOptimization.cpp)
 
 
 target_link_libraries(MyApp  ${KLAMPT_LIBRARIES} ${SNOPT_LIBRARIES} ${GUROBI_LIBRARIES} ${CILANTRO_LIBRARIES} ${GLEW_LIBRARY})

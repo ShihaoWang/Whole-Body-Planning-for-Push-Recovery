@@ -697,8 +697,8 @@ struct SimPara{
     // const char *FailureStateTrajStr_Name = FailureStateTrajStr.c_str();
     CtrlStateTrajStr    =  CurrentCasePath + "CtrlStateTraj.path";
     // const char *CtrlStateTrajStr_Name = CtrlStateTrajStr.c_str();
-    PlanStateTrajFileStr = CurrentCasePath + "PlanStateTraj.path";
-    // const char *PlanStateTrajStr_Name = PlanStateTrajFileStr.c_str();
+    PlanStateTrajStr = CurrentCasePath + "PlanStateTraj.path";
+    // const char *PlanStateTrajStr_Name = PlanStateTrajStr.c_str();
   }
   void setImpulseForceMax(const Vector3 & ImpulseDirection){ ImpulseForceMax = ForceMax * ImpulseDirection; }
   void setPlanStageIndex(const int & _PlanStageIndex) {PlanStageIndex = _PlanStageIndex; }
@@ -744,7 +744,7 @@ struct SimPara{
   Vector3 ImpulseForceMax;
   std::string CurrentCasePath;
   std::vector<string >EdgeFileNames;
-  string FailureStateTrajStr, CtrlStateTrajStr, PlanStateTrajFileStr;
+  string FailureStateTrajStr, CtrlStateTrajStr, PlanStateTrajStr;
   Vector3 ContactInit, ContactGoal;
   Vector3 DirectionInit, DirectionGoal;
   std::vector<ContactStatusInfo> FixedContactStatusInfo;
@@ -753,15 +753,20 @@ struct SimPara{
 struct ControlReferenceInfo{
   ControlReferenceInfo(){
     ReadyFlag = false;
+    TouchDownFlag = false;
     ControlReferenceType = -1;
-    LinkInfoIndex = -1;           // Used for RobotLinkInfo
+    SwingLinkInfoIndex = -1;           // Used for RobotLinkInfo
     ContactStatusInfoIndex = -1;
     ComputationTime = 0.0;
     GoalContactPos.setZero();
     GoalContactGrad.setZero();
     }
+  void setSwingLinkInfoIndex(const int & _SwingLinkInfoIndex) {SwingLinkInfoIndex = _SwingLinkInfoIndex;}
+  int  getSwingLinkInfoIndex() { return SwingLinkInfoIndex; }
   bool getReadyFlag(){ return ReadyFlag;}
   void setReadyFlag(const bool & _ReadyFlag ){ ReadyFlag = _ReadyFlag; }
+  void setTouchDownFlag(const bool & _TouchDownFlag){ TouchDownFlag=_TouchDownFlag; }
+  bool getTouchDownFlag(){ return TouchDownFlag; }
   int  getControlReferenceType(){ return ControlReferenceType; }
   void setControlReferenceType(const int &_ControlReferenceType) { ControlReferenceType = _ControlReferenceType; }
   void setGoalContactPosNGrad(const Vector3 & _GoalContactPos, const Vector3 & _GoalContactGrad){
@@ -795,16 +800,21 @@ struct ControlReferenceInfo{
   double getWaitTime() { return WaitTime; }
   void setComputationTime(const double & _ComputationTime) { ComputationTime = _ComputationTime; }
   double getComputationTime(){ return ComputationTime; }
+  void setTouchDownConfig(const std::vector<double> _TouchDownConfig){ TouchDownConfig = _TouchDownConfig; }
+  std::vector<double> getTouchDownConfig(){ return TouchDownConfig;}
 
   bool    ReadyFlag;
+  bool    TouchDownFlag;
   int     ControlReferenceType;
-  int     LinkInfoIndex;
+  int     SwingLinkInfoIndex;
   int     ContactStatusInfoIndex;
   double  WaitTime;
   double  ComputationTime;
 
   Vector3 GoalContactPos;
   Vector3 GoalContactGrad;
+
+  std::vector<double> TouchDownConfig;
 
   LinearPath PlannedConfigTraj;
   LinearPath EndEffectorTraj;
@@ -819,6 +829,7 @@ struct FailureStateInfo{
     FailureTime = 0.0;
     FailureStateFlag = false;
   };
+
   Config getFailureStateConfig() { return FailureConfig; }
   Config getFailureStateVelocity(){ return FailureVelocity; }
   bool   getFailureStateFlag() { return FailureStateFlag; }

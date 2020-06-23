@@ -41,6 +41,10 @@ std::vector<Vector3> ActiveContactFinder(const Robot & SimRobot, const std::vect
 std::vector<double> YPRShifter(std::vector<double> OptConfig);
 void Vector3Writer(const std::vector<Vector3> & ContactPoints, const std::string & ContactPointFileName);
 std::vector<Vector3> BoxVertices(const Box3D & Box3DObj);
+std::vector<double> ConfigReferenceGene(const Robot & SimRobotObj,  double & InnerTime,
+                                        ReachabilityMap & RMObject, SelfLinkGeoInfo & SelfLinkGeoObj,
+                                        ControlReferenceInfo & ControlReference, SimPara & SimParaObj);
+bool FailureChecker(Robot & SimRobot, ReachabilityMap & RMObject);
 
 /* 4. Main Simulation*/
 LinearPath InitialSimulation(WorldSimulation & Sim, const SimPara & SimParaObj);
@@ -67,5 +71,8 @@ ControlReferenceInfo TrajectoryPlanning(Robot & SimRobotInner, const InvertedPen
 std::vector<double> TrajConfigOptimazation(const Robot & SimRobot, ReachabilityMap & RMObject, SelfLinkGeoInfo & _SelfLinkGeoObj, SimPara & SimParaObj, const int & StageIndex);
 std::vector<double> OrientationOptimazation(const Robot & SimRobot, const std::vector<int> & _SwingLinkChain, const SimPara & SimParaObj, const double & _alignmentVal, const int & StageIndex);
 std::vector<double> LastStageConfigOptimazation(const Robot & SimRobot, ReachabilityMap & RMObject, SelfLinkGeoInfo & _SelfLinkGeoObj, SimPara & SimParaObj, const int & StageIndex);
+
+/* 9. Touch Down Config Optimization */
+std::vector<double> TouchDownConfigOptimization(const Robot & SimRobot, ReachabilityMap & RMObject, SelfLinkGeoInfo & _SelfLinkGeoObj, const std::vector<double> & RawqDes, const int & _SwingLinkInfoIndex);
 
 #endif

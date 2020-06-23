@@ -285,7 +285,7 @@ ControlReferenceInfo ControlReferenceGene(Robot & SimRobot,
   ControlReferenceInfo ControlReferenceInfoObj;
   ControlReferenceInfoObj.setReadyFlag(false);
   std::vector<ControlReferenceInfo> ControlReferenceObjVec;
-  std::vector<double> ExecutationTimeVec;
+  std::vector<double> ExecutionTimeVec;
   for (auto & ContactFormObj : ContactFormVec) {
     std::clock_t start_time = std::clock();
     std::vector<ContactStatusInfo> curContactInfo = ContactFormObj.FixedContactStatusInfo;
@@ -297,13 +297,14 @@ ControlReferenceInfo ControlReferenceGene(Robot & SimRobot,
     std::printf("Planning takes: %f ms\n", 1000.0 * duration_time);
     start_time = std::clock();
     ControlReferenceObj.setComputationTime(duration_time);
+    ControlReferenceObj.setSwingLinkInfoIndex(ContactFormObj.SwingLinkInfoIndex);
     if(ControlReferenceObj.getReadyFlag()){
       ControlReferenceObjVec.push_back(ControlReferenceObj);
-      ExecutationTimeVec.push_back(ControlReferenceObj.TimeTraj.back());
+      ExecutionTimeVec.push_back(ControlReferenceObj.TimeTraj.back());
     }
   }
-  if(!ExecutationTimeVec.size()){
-    int ObjIndex = std::distance(ExecutationTimeVec.begin(), std::min_element(ExecutationTimeVec.begin(), ExecutationTimeVec.end()));
+  if(ExecutionTimeVec.size()){
+    int ObjIndex = std::distance(ExecutionTimeVec.begin(), std::min_element(ExecutionTimeVec.begin(), ExecutionTimeVec.end()));
     ControlReferenceInfoObj = ControlReferenceObjVec[ObjIndex];
   }
   return ControlReferenceInfoObj;

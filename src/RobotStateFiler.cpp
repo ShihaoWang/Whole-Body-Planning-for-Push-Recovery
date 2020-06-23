@@ -116,7 +116,7 @@ void PushInfoFileAppender(const double & SimTime, const double & Fx_t, const dou
 void StateLogger(WorldSimulation & Sim, FailureStateInfo & FailureStateObj, LinearPath & CtrlStateTraj, LinearPath & PlanStateTraj, LinearPath & FailureStateTraj, std::vector<double> & qDes, const SimPara & SimParaObj){
   const char *FailureStateTrajStr_Name  = SimParaObj.FailureStateTrajStr.c_str();
   const char *CtrlStateTrajStr_Name     = SimParaObj.CtrlStateTrajStr.c_str();
-  const char *PlanStateTrajStr_Name     = SimParaObj.PlanStateTrajFileStr.c_str();
+  const char *PlanStateTrajStr_Name     = SimParaObj.PlanStateTrajStr.c_str();
 
   CtrlStateTraj.Append(Sim.time,    Sim.world->robots[0]->q);
   StateTrajAppender(CtrlStateTrajStr_Name, Sim.time, Sim.world->robots[0]->q);

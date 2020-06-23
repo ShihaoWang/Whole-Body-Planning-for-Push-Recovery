@@ -196,7 +196,7 @@ def main(*arg):
     if not result:
         raise RuntimeError("Unable to load model " + XML_path)
     # In this case, what we have is a config
-    ConfigName = "/home/motion/Desktop/Whole-Body-Planning-for-Push-Recovery-Data/result/flat_1Contact/15/InitConfig.config"
+    ConfigName = "/home/motion/Desktop/Whole-Body-Planning-for-Push-Recovery-Data/result/flat_1Contact/1/InitConfig.config"
     DOF, Config_Init = Configuration_Loader_fn(ConfigName)
     Robot_Config_Plot(world, DOF, Config_Init)
 if __name__ == "__main__":

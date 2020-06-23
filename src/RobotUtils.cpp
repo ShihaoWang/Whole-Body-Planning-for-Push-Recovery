@@ -239,3 +239,15 @@ std::vector<Vector3> BoxVertices(const Box3D & Box3DObj){
   Vertices.insert(Vertices.end(), HEEdge.begin(), HEEdge.end());
   return Vertices;
 }
+
+bool FailureChecker(Robot & SimRobot, ReachabilityMap & RMObject){
+  double DistTol = 0.01;
+  std::vector<double> LinkTerrDistVec;
+  for (int i = 5; i < SimRobot.q.size(); i++){
+    if(!RMObject.EndEffectorIndices.count(i)){
+      if(SimRobot.geometry[i]->Distance(NonlinearOptimizerInfo::TerrColGeom)<DistTol)
+        return true;
+    }
+  }
+  return false;
+}
