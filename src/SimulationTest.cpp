@@ -55,26 +55,32 @@ int SimulationTest(WorldSimulation & Sim, const std::vector<ContactStatusInfo> &
     std::vector<PIPInfo> PIPTotal = PIPGenerator(ActContactPos, COMPos, COMVel);
     ContactPolytopeWriter(ActContactPos, PIPTotal, SimParaObj);
 
-    if((!CtrlFlag)&&(DetectionCount<=DetectionWait)){
-      FailureMetric = FailureMetricEval(PIPTotal);
-      std::printf("Simulation Time: %f, and Failure Metric Value: %f\n", Sim.time, FailureMetric);
-      if(FailureMetric < 0.0){
-        if(!FailureStateObj.FailureStateFlag)  FailureStateObj.FailureStateUpdate(SimTime, SimRobot.q, SimRobot.dq);
-        FailureFlag = true;
-      }
-      if(FailureFlag){
-        ControlReferenceObj = ControlReferenceGene(SimRobot, curContactInfo, RMObject, SelfLinkGeoObj, SimParaObj);
-        if(ControlReferenceObj.getReadyFlag()){
-          CtrlFlag = true;
-          CtrlStartTime = SimTime;
-          PlanStageIndex++;
+    SelfLinkGeoObj.LinkBBsUpdate(SimRobot);
+    if(!CtrlFlag){
+      if(DetectionWait>=DetectionWait){
+        FailureMetric = FailureMetricEval(PIPTotal);
+        std::printf("Simulation Time: %f, and Failure Metric Value: %f\n", Sim.time, FailureMetric);
+        if(FailureMetric < 0.0){
+          if(!FailureStateObj.FailureStateFlag)  FailureStateObj.FailureStateUpdate(SimTime, SimRobot.q, SimRobot.dq);
+          FailureFlag = true;
         }
+        if(FailureFlag){
+          ControlReferenceObj = ControlReferenceGene(SimRobot, curContactInfo, RMObject, SelfLinkGeoObj, SimParaObj);
+          if(ControlReferenceObj.getReadyFlag()){
+            CtrlFlag = true;
+            CtrlStartTime = SimTime;
+            PlanStageIndex++;
+          }
+        }
+      }else{
+        DetectionWait+=SimParaObj.TimeStep;
       }
     } else {
       double InnerTime = SimTime - CtrlStartTime;
       qDes =  ConfigReferenceGene(SimRobot, InnerTime, RMObject, SelfLinkGeoObj, ControlReferenceObj, SimParaObj);
     }
     if (ControlReferenceObj.getTouchDownFlag()){
+      CtrlFlag = false;
       DetectionCount = 0.0;
       curContactInfo = ControlReferenceObj.GoalContactStatus;
       FailureFlag = false;
@@ -114,11 +120,15 @@ int SimulationTest(WorldSimulation & Sim, const std::vector<ContactStatusInfo> &
       Sim.UpdateModel();
     }
   }
+  int FailureSuccFlag = 0;
+  if(FailureChecker(*Sim.world->robots[0], RMObject)) FailureSuccFlag = 1;
+
   // Write these three trajectories into files.
   ofstream FailureStateTrajFile;
   FailureStateTrajFile.open (SimParaObj.FailureStateTrajStr.c_str());
   FailureStateTraj.Save(FailureStateTrajFile);
   FailureStateTrajFile.close();
 
-  return PushRecovSuccFlag;
+  if((FailureSuccFlag) && (PushRecovSuccFlag)) return 1;
+  else return 0;
 }

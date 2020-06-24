@@ -152,8 +152,8 @@ std::vector<double> OrientationOptimazation(const Robot & SimRobot, const std::v
   SimRobotObj.UpdateGeometry();
   OptConfig = YPRShifter(OptConfig);
 
-  std::string ConfigPath = "/home/motion/Desktop/Whole-Body-Planning-for-Push-Recovery/build/";
-  std::string OptConfigFile = "OptWholeBodyUpdatedConfig" + std::to_string(StageIndex) + ".config";
+  // std::string ConfigPath = "/home/motion/Desktop/Whole-Body-Planning-for-Push-Recovery/build/";
+  // std::string OptConfigFile = "OptWholeBodyUpdatedConfig" + std::to_string(StageIndex) + ".config";
   // RobotConfigWriter(OptConfig, ConfigPath, OptConfigFile);
 
   return OptConfig;

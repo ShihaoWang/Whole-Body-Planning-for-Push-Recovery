@@ -290,7 +290,9 @@ ControlReferenceInfo ControlReferenceGene(Robot & SimRobot,
     std::clock_t start_time = std::clock();
     std::vector<ContactStatusInfo> curContactInfo = ContactFormObj.FixedContactStatusInfo;
     std::vector<Vector3> ActContactPos = ActiveContactFinder(SimRobot, curContactInfo);
-    PIPInfo TipOverPIP = TipOverPIPGenerator(ActContactPos, COMPos, COMVel);
+    bool ValidFlag;
+    PIPInfo TipOverPIP = TipOverPIPGenerator(ActContactPos, COMPos, COMVel, ValidFlag);
+    if(!ValidFlag) continue;
     SimParaObj.setSwingLinkInfoIndex(ContactFormObj.SwingLinkInfoIndex);
     ControlReferenceInfo ControlReferenceObj =  ControlReferenceGeneInner(SimRobot, TipOverPIP, RMObject, SelfLinkGeoObj, ContactFormObj, SimParaObj);
     double duration_time = (std::clock() - start_time)/(double)CLOCKS_PER_SEC;

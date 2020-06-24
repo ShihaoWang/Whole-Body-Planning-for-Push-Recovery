@@ -75,7 +75,7 @@ static std::vector<Vector3> BasePointsGene(const Vector3 & PosInit, const Vector
 }
 
 static double SelfCollisionDist(SelfLinkGeoInfo & SelfLinkGeoObj, const int & SwingLinkInfoIndex, const std::vector<Vector3> & PointVec){
-  double Distol = 0.25;
+  double Distol = 0.1;      // 10cm
   std::vector<double> DistVec;
   for (const Vector3 & Point: PointVec) {
     double  PointDist; Vector3 PointGrad;
@@ -83,11 +83,8 @@ static double SelfCollisionDist(SelfLinkGeoInfo & SelfLinkGeoObj, const int & Sw
     DistVec.push_back(PointDist);
   }
   double SplineMin = *std::min_element(DistVec.begin(), DistVec.end());
-  if(SplineMin>0) return min(Distol, SplineMin);
-  else {
-    return min(Distol, min(DistVec[0], DistVec[DistVec.size()-1]));
-  }
-  return Distol;
+  if(SplineMin>Distol) return SplineMin;
+  else return min(Distol, min(DistVec.front(), DistVec.back()));
 }
 
 static std::vector<cSpline3> cSplineGene(const std::vector<Vector3> & Points, const int & SwingLinkInfoIndex, const double & SelfTol, const SelfLinkGeoInfo & SelfLinkGeoObj, ReachabilityMap & RMObject, int & PointIndex, Vector3 & ShiftPoint, bool & FeasibleFlag)

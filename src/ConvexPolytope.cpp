@@ -218,7 +218,7 @@ double FailureMetricEval(const std::vector<PIPInfo> & PIPTotal){
   return *min_element(pcp_pos.begin(), pcp_pos.end());;
 }
 
-PIPInfo TipOverPIPGenerator(const std::vector<Vector3> & ActiveContacts, const Vector3 & COMPos, const Vector3 & COMVel){
+PIPInfo TipOverPIPGenerator(const std::vector<Vector3> & ActiveContacts, const Vector3 & COMPos, const Vector3 & COMVel, bool & ValidFlag){
   // This function can only be called when tip over failure has been detected so PIPIndices will never be empty.
   std::vector<PIPInfo> PIPTotal = PIPGenerator(ActiveContacts, COMPos, COMVel);
   std::vector<int> PIPIndices;
@@ -235,6 +235,10 @@ PIPInfo TipOverPIPGenerator(const std::vector<Vector3> & ActiveContacts, const V
       pcp_pos_i = pcp_x + pcp_xdot * sqrt(pcp_L/pcp_g);
     if(pcp_pos_i<0.0) PIPIndices.push_back(i);
   }
+  if(!PIPIndices.size()){
+    ValidFlag = false;
+    return PIPTotal[0];
+  } else ValidFlag = true;
 
   if(PIPIndices.size()==1) return PIPTotal[PIPIndices[0]];
   else{

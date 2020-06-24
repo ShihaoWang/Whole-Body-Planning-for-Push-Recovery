@@ -45,6 +45,7 @@ std::vector<double> ConfigReferenceGene(const Robot & SimRobotObj,  double & Inn
                                         ReachabilityMap & RMObject, SelfLinkGeoInfo & SelfLinkGeoObj,
                                         ControlReferenceInfo & ControlReference, SimPara & SimParaObj);
 bool FailureChecker(Robot & SimRobot, ReachabilityMap & RMObject);
+void PlanResWriter(const string & SpecificPath, const int & PushRecovFlag);
 
 /* 4. Main Simulation*/
 LinearPath InitialSimulation(WorldSimulation & Sim, const SimPara & SimParaObj);
@@ -56,7 +57,7 @@ FacetInfo FlatConvexHullGeneration(const std::vector<Vector3> & ContactPoints);
 std::vector<PIPInfo> PIPGenerator(const std::vector<Vector3> & ContactPoints, const Vector3 & COMPos, const Vector3 & COMVel);
 void ContactPolytopeWriter(const std::vector<Vector3> & ActiveContact, const std::vector<PIPInfo> & PIPTotal, const SimPara & SimParaObj);
 double FailureMetricEval(const std::vector<PIPInfo> & PIPTotal);
-PIPInfo TipOverPIPGenerator(const std::vector<Vector3> & ActiveContacts, const Vector3 & COMPos, const Vector3 & COMVel);
+PIPInfo TipOverPIPGenerator(const std::vector<Vector3> & ActiveContacts, const Vector3 & COMPos, const Vector3 & COMVel, bool & ValidFlag);
 
 /* 6. Control Reference Generation*/
 ControlReferenceInfo ControlReferenceGene(Robot & SimRobot, const std::vector<ContactStatusInfo> & RobotContactInfo, ReachabilityMap & RMObject, SelfLinkGeoInfo & SelfLinkGeoObj, SimPara & SimParaObj);
@@ -71,8 +72,5 @@ ControlReferenceInfo TrajectoryPlanning(Robot & SimRobotInner, const InvertedPen
 std::vector<double> TrajConfigOptimazation(const Robot & SimRobot, ReachabilityMap & RMObject, SelfLinkGeoInfo & _SelfLinkGeoObj, SimPara & SimParaObj, const int & StageIndex);
 std::vector<double> OrientationOptimazation(const Robot & SimRobot, const std::vector<int> & _SwingLinkChain, const SimPara & SimParaObj, const double & _alignmentVal, const int & StageIndex);
 std::vector<double> LastStageConfigOptimazation(const Robot & SimRobot, ReachabilityMap & RMObject, SelfLinkGeoInfo & _SelfLinkGeoObj, SimPara & SimParaObj, const int & StageIndex);
-
-/* 9. Touch Down Config Optimization */
-std::vector<double> TouchDownConfigOptimization(const Robot & SimRobot, ReachabilityMap & RMObject, SelfLinkGeoInfo & _SelfLinkGeoObj, const std::vector<double> & RawqDes, const int & _SwingLinkInfoIndex);
 
 #endif

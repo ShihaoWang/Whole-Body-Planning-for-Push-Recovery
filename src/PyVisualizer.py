@@ -124,7 +124,7 @@ def Robot_Config_Plot(world, DOF, config_init):
 
     ReducedOptimalContact_data = ContactDataLoader("ReducedOptimalContact")
 
-    ContactChoice = TransitionPoints_data
+    ContactChoice = ShiftedTransitionPoints_data
     SimRobot = world.robot(0)
     SimRobot.setConfig(config_init)
     # import ipdb; ipdb.set_trace()
@@ -196,7 +196,7 @@ def main(*arg):
     if not result:
         raise RuntimeError("Unable to load model " + XML_path)
     # In this case, what we have is a config
-    ConfigName = "/home/motion/Desktop/Whole-Body-Planning-for-Push-Recovery-Data/result/flat_1Contact/1/InitConfig.config"
+    ConfigName = "/home/motion/Desktop/Whole-Body-Planning-for-Push-Recovery-Data/result/flat_1Contact/26/InitConfig.config"
     DOF, Config_Init = Configuration_Loader_fn(ConfigName)
     Robot_Config_Plot(world, DOF, Config_Init)
 if __name__ == "__main__":

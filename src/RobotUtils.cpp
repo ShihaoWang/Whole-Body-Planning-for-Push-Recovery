@@ -251,3 +251,12 @@ bool FailureChecker(Robot & SimRobot, ReachabilityMap & RMObject){
   }
   return false;
 }
+
+void PlanResWriter(const string & SpecificPath, const int & PushRecovFlag){
+  const string PlanResStr = SpecificPath + "PlanRes.txt";
+  const char *PlanResStr_Name = PlanResStr.c_str();
+  std::ofstream PlanResWriter;
+  PlanResWriter.open(PlanResStr_Name);
+  PlanResWriter<<std::to_string(PushRecovFlag)<<"\n";
+  PlanResWriter.close();
+}
