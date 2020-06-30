@@ -1,9 +1,12 @@
 #ifndef COMMON_HEADER_H
 #define COMMON_HEADER_H
 #include <iostream>
-#include <fstream>
 #include <limits.h>
 #include <string>
+#include <sys/stat.h>
+#include <unistd.h>
+#include <string>
+#include <ctime>
 #include <KrisLibrary/geometry/Conversions.h>
 #include <KrisLibrary/geometry/MultiVolumeGrid.h>
 #include <KrisLibrary/geometry/CollisionMesh.h>
@@ -66,7 +69,7 @@ ControlReferenceInfo ControlReferenceGene(Robot & SimRobot, const std::vector<Co
 Config WholeBodyDynamicsIntegrator(Robot & SimRobot, InvertedPendulumInfo & InvertedPendulumObj, const double & TimeDuration, const int & StepIndex);
 
 /* 8. Transient Path Generation*/
-std::vector<SplineLib::cSpline3> TransientPathGene(const Robot & SimRobot, ReachabilityMap & RMObject, SelfLinkGeoInfo & SelfLinkGeoObj, SimPara & SimParaObj);
+std::vector<SplineLib::cSpline3> TransientPathGene(const Robot & SimRobot, SelfLinkGeoInfo & SelfLinkGeoObj, SimPara & SimParaObj);
 ControlReferenceInfo TrajectoryPlanning(Robot & SimRobotInner, const InvertedPendulumInfo & InvertedPendulumObj, ReachabilityMap & RMObject,SelfLinkGeoInfo & SelfLinkGeoObj,
                                         EndEffectorPathInfo & EndEffectorPathObj, SimPara & SimParaObj);
 std::vector<double> TrajConfigOptimazation(const Robot & SimRobot, ReachabilityMap & RMObject, SelfLinkGeoInfo & _SelfLinkGeoObj, SimPara & SimParaObj, const int & StageIndex);

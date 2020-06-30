@@ -202,7 +202,7 @@ ControlReferenceInfo TrajectoryPlanning(Robot & SimRobotInner, const InvertedPen
   std::vector<int> SwingLinkChain = RMObject.EndEffectorLink2Pivotal[SwingLinkInfoIndex];
 
   // The main idea is that end effector will gradually move to be aligned with goal direction.
-  const int sNumber = 6;                 // (sNumber-1) segments
+  const int sNumber = 5;                 // (sNumber-1) segments
   double sDiff = 1.0/(1.0 * sNumber - 1.0);
   double sVal = 0.0;
   std::vector<double> projVec = ProjectionLength(EndEffectorInitDir, EndEffectorGoalDir, sNumber - 1);
@@ -238,7 +238,7 @@ ControlReferenceInfo TrajectoryPlanning(Robot & SimRobotInner, const InvertedPen
     Vector3 PlannedCurrentContactPos = CurrentContactPos;
     SimParaObj.setCurrentContactPos(PlannedCurrentContactPos);
     switch (sIndex) {
-      case 5: LastStageFlag = true;
+      case 4: LastStageFlag = true;
       break;
       default:
       break;
@@ -266,16 +266,21 @@ ControlReferenceInfo TrajectoryPlanning(Robot & SimRobotInner, const InvertedPen
       SimRobotInner.UpdateConfig(Config(NextConfig));
       UpdatedConfig  = WholeBodyDynamicsIntegrator(SimRobotInner, InvertedPendulumObj, StageTime, sIndex);
       SimRobotInner.UpdateConfig(UpdatedConfig);
-      if(!LastStageFlag) UpdatedConfig = OrientationOptimazation(SimRobotInner, SwingLinkChain, SimParaObj, projVec[sIndex], sIndex);
-      else UpdatedConfig = LastStageConfigOptimazation(SimRobotInner, RMObject, SelfLinkGeoObj, SimParaObj, sIndex);
+      if(!LastStageFlag)
+        UpdatedConfig = OrientationOptimazation(SimRobotInner, SwingLinkChain, SimParaObj, projVec[sIndex], sIndex);
+      else
+        UpdatedConfig = LastStageConfigOptimazation(SimRobotInner, RMObject, SelfLinkGeoObj, SimParaObj, sIndex);
       SimRobotInner.UpdateConfig(UpdatedConfig);
+
+      std::string ConfigPath = "/home/motion/Desktop/Whole-Body-Planning-for-Push-Recovery/build/";
+      std::string OptConfigFile = "InnerOpt" + std::to_string(sIndex) + ".config";
+      RobotConfigWriter(UpdatedConfig, ConfigPath, OptConfigFile);
 
       Vector3 EndEffectorContactPos;
       SimRobotInner.GetWorldPosition( NonlinearOptimizerInfo::RobotLinkInfo[SwingLinkInfoIndex].AvgLocalContact,
                                       NonlinearOptimizerInfo::RobotLinkInfo[SwingLinkInfoIndex].LinkIndex,
                                       EndEffectorContactPos);
       EndEffectorPosOffset = CurrentContactPos - EndEffectorContactPos;
-
       CurrentTime+=StageTime;
       CurrentConfig = UpdatedConfig;
       CurrentVelocity = Config(NextVelocity);
@@ -286,6 +291,11 @@ ControlReferenceInfo TrajectoryPlanning(Robot & SimRobotInner, const InvertedPen
       WholeBodyVelocityTraj.push_back(Config(NextVelocity));
       PlannedEndEffectorTraj.push_back(PlannedCurrentContactPos);
     }
+  }
+  for (int i = 0; i < WholeBodyConfigTraj.size(); i++) {
+    std::string ConfigPath = "/home/motion/Desktop/Whole-Body-Planning-for-Push-Recovery/build/";
+    std::string OptConfigFile = "InnerOpt" + std::to_string(i) + ".config";
+    RobotConfigWriter(WholeBodyConfigTraj[i], ConfigPath, OptConfigFile);
   }
   if(SimParaObj.getTrajConfigOptFlag()){
     std::vector<ContactStatusInfo> GoalContactInfo = SimParaObj.FixedContactStatusInfo;

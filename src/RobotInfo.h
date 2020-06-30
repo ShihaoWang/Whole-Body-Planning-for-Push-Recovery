@@ -10,6 +10,7 @@
 #include <KrisLibrary/geometry/PQP/src/PQP.h>
 #include "Modeling/Paths.h"
 #include "Splines.h"
+#include <fstream>
 
 struct LinkInfo {
   LinkInfo(){LinkIndex = -1;}
@@ -572,24 +573,33 @@ struct DataRecorderInfo{
   DataRecorderInfo(){
     PlanStageIndex = -1;
     LinkNo = -1;
+    LinkIndex = -1;
   };
-  void setPlanStageIndexNLinkNo(const int & _PlanStageIndex, const int & _LinkNo){
+  void setPlanStageIndexNLinkNo(const int & _PlanStageIndex, const int & _LinkNo, const int & _LinkIndex){
     PlanStageIndex = _PlanStageIndex;
     LinkNo = _LinkNo;
+    LinkIndex = _LinkIndex;
   }
-  void setData( const std::vector<Vector3> & _ActiveReachableContact,
-                const std::vector<Vector3> & _ContactFreeContact,
-                const std::vector<Vector3> & _SupportContact,
-                const std::vector<Vector3> & _OptimalContact,
-                const std::vector<Vector3> & _ReducedOptimalContact){
-                ActiveReachableContact = _ActiveReachableContact;
-                ContactFreeContact = _ContactFreeContact;
-                SupportContact = _SupportContact;
-                OptimalContact = _OptimalContact;
-                ReducedOptimalContact = _ReducedOptimalContact;
+  void setRCSData( const std::vector<Vector3> & _ReachableContacts,
+                    const std::vector<Vector3> & _CollisionFreeContacts,
+                    const std::vector<Vector3> & _SupportiveContacts){
+                      ReachableContacts = _ReachableContacts;
+                      CollisionFreeContacts = _CollisionFreeContacts;
+                      SupportiveContacts = _SupportiveContacts;
   }
-  void setTransitionPoints(const std::vector<Vector3> & _TransitionPoints){ TransitionPoints = _TransitionPoints; }
-  void Vector3Writer(const std::vector<Vector3> & ContactPoints, const std::string &ContactPointFileName){
+  void setCCSData(  const std::vector<Vector3> & _CandidateContacts,
+                    const std::vector<Vector3> & _CandidateContactWeights,
+                    const std::vector<Vector3> & _SelectedContacts){
+                      CandidateContacts = _CandidateContacts;
+                      CandidateContactWeights = _CandidateContactWeights;
+                      SelectedContacts = _SelectedContacts;
+  }
+  void setPathWaypoints(const std::vector<Vector3> & _PathWaypoints){ PathWaypoints = _PathWaypoints; }
+  void setTrajs(const LinearPath & _PlannedConfigTraj, const LinearPath & _EndEffectorTraj){
+    PlannedConfigTraj = _PlannedConfigTraj;
+    EndEffectorTraj = _EndEffectorTraj;
+  }
+  void Vector3Writer(const std::vector<Vector3> & ContactPoints, const std::string & ContactPointFileName){
     if(ContactPoints.size() ==0) return;
     int NumberOfContactPoints = ContactPoints.size();
     std::vector<double> FlatContactPoints(3 * NumberOfContactPoints);
@@ -610,25 +620,44 @@ struct DataRecorderInfo{
     fclose(FlatContactPointsFile);
     return;
   }
-  void DataRecorder(const string & SpecificPath){
+  void Write2File(const string & CurrentCasePath){
     // This function will only be called if planning is successful!
-    const string InnerPath = SpecificPath + std::to_string(PlanStageIndex) + "_" + std::to_string(LinkNo) + "_";
-    Vector3Writer(ActiveReachableContact, InnerPath +  "ActiveReachableContact");
-    Vector3Writer(ContactFreeContact, InnerPath + "ContactFreeContact");
-    Vector3Writer(SupportContact, InnerPath + "SupportContact");
-    Vector3Writer(OptimalContact, InnerPath + "OptimalContact");
-    Vector3Writer(ReducedOptimalContact, InnerPath + "ReducedOptimalContact");
-    Vector3Writer(TransitionPoints, InnerPath + "TransitionPoints");
+    const string InnerPath = CurrentCasePath + std::to_string(PlanStageIndex) + "_" + std::to_string(LinkNo) + "_";
+    Vector3Writer(ReachableContacts,      InnerPath + "ReachableContacts");
+    Vector3Writer(CollisionFreeContacts,  InnerPath + "CollisionFreeContacts");
+    Vector3Writer(SupportiveContacts,     InnerPath + "SupportiveContacts");
+    Vector3Writer(CandidateContacts,      InnerPath + "CandidateContacts");
+    Vector3Writer(CandidateContactWeights,InnerPath + "CandidateContactWeights");
+    Vector3Writer(SelectedContacts,       InnerPath + "SelectedContacts");
+    Vector3Writer(PathWaypoints,          InnerPath + "PathWaypoints");
+
+    // Write these two trajectories into files.
+    std::ofstream PlannedConfigTrajFile;
+    const string PlannedConfigTrajName = InnerPath + "PlannedConfigTraj.path";
+    PlannedConfigTrajFile.open (PlannedConfigTrajName.c_str());
+    PlannedConfigTraj.Save(PlannedConfigTrajFile);
+    PlannedConfigTrajFile.close();
+
+    std::ofstream EndEffectorTrajFile;
+    const string EndEffectorTrajName = InnerPath + "EndEffectorTraj.path";
+    EndEffectorTrajFile.open(EndEffectorTrajName.c_str());
+    EndEffectorTraj.Save(EndEffectorTrajFile);
+    EndEffectorTrajFile.close();
   }
-  std::vector<Vector3> ActiveReachableContact;
-  std::vector<Vector3> ContactFreeContact;
-  std::vector<Vector3> SupportContact;
-  std::vector<Vector3> OptimalContact;
-  std::vector<Vector3> ReducedOptimalContact;
-  std::vector<Vector3> TransitionPoints;
+  std::vector<Vector3> ReachableContacts;
+  std::vector<Vector3> CollisionFreeContacts;
+  std::vector<Vector3> SupportiveContacts;
+  std::vector<Vector3> CandidateContacts;
+  std::vector<Vector3> CandidateContactWeights;
+  std::vector<Vector3> SelectedContacts;
+  std::vector<Vector3> PathWaypoints;
+
+  LinearPath PlannedConfigTraj;
+  LinearPath EndEffectorTraj;
 
   int PlanStageIndex;
   int LinkNo;
+  int LinkIndex;
 };
 
 struct SimPara{

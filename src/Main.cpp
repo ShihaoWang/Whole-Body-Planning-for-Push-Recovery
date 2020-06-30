@@ -1,13 +1,8 @@
-#include <ctime>
 #include "CommonHeader.h"
 #include "NonlinearOptimizerInfo.h"
-#include <omp.h>
 #include "Control/PathController.h"
 #include "Simulation/WorldSimulation.h"
 #include <ode/ode.h>
-#include <sys/stat.h>
-#include <unistd.h>
-#include <string>
 #include "RobotInfo.h"
 
 std::vector<LinkInfo>   NonlinearOptimizerInfo::RobotLinkInfo;
@@ -49,6 +44,7 @@ int main(){
   double PhaseRatio     = 0.75;
   double PhaseTimeStep  = 0.05;                   // Reserved to be used for time discretization method.
   double ReductionRatio = 0.5;
+
   SimPara SimParaObj(ForceMax, PushDuration, DetectionWait, TimeStep, InitDuration, TotalDuration, ForwardDuartion, PhaseRatio, PhaseTimeStep, ReductionRatio);
 
   RobotWorld worldObj;
@@ -66,15 +62,16 @@ int main(){
   struct stat buffer;   // This is used to check whether "SDFSpecs.bin" exists or not.
   const string SDFPath = ExperimentFolderPath + "SDFs/";
   const string SDFSpecsName = SDFPath + "SDFSpecs.bin";
-  if(stat (SDFSpecsName.c_str(), &buffer) == 0){
+  if(stat (SDFSpecsName.c_str(), &buffer) == 0)
     NonlinearOptimizerInfo::SDFInfo = SignedDistanceFieldLoader(SDFPath, GridsNo);
-  } else {
-      NonlinearOptimizerInfo::SDFInfo = SignedDistanceFieldGene(SDFPath, worldObj, GridsNo);
-  }
+  else
+    NonlinearOptimizerInfo::SDFInfo = SignedDistanceFieldGene(SDFPath, worldObj, GridsNo);
+
   ReachabilityMap RMObject = ReachabilityMapGenerator(*worldObj.robots[0], NonlinearOptimizerInfo::RobotLinkInfo, TorsoLink);
   const int NumberOfTerrains = worldObj.terrains.size();
   std::shared_ptr<Terrain> Terrain_ptr = std::make_shared<Terrain>(*worldObj.terrains[0]);
   Meshing::TriMesh EnviTriMesh  = Terrain_ptr->geometry->AsTriangleMesh();
+
   for (int i = 0; i < NumberOfTerrains-1; i++){
     std::shared_ptr<Terrain> Terrain_ptr = std::make_shared<Terrain>(*worldObj.terrains[i+1]);
     Meshing::TriMesh EnviTriMesh_i  = Terrain_ptr->geometry->AsTriangleMesh();
@@ -88,6 +85,7 @@ int main(){
   int TotalNumber = 100;
   int FileIndex = FileIndexFinder(false);
   while(FileIndex<=TotalNumber){
+
     RobotWorld world;
     SimGUIBackend Backend(&world);
     WorldSimulation& Sim = Backend.sim;
@@ -98,6 +96,7 @@ int main(){
       std::cerr<<XMLFileStr<< "file does not exist in that path!" << endl;
       return -1;
     }
+
     Robot SimRobot = *world.robots[0];
     string CurrentCasePath = ExperimentFolderPath + std::to_string(FileIndex) + "/";
     RobotConfigLoader(SimRobot, CurrentCasePath, "InitConfig.config");
@@ -117,6 +116,7 @@ int main(){
     Vector3 ImpulseDirection = ImpulseDirectionGene(*Sim.world->robots[0], InitContactInfo, 1);
     SimParaObj.setImpulseForceMax(ImpulseDirection);
     FilePathManager(SimParaObj.CurrentCasePath);
+
     int SimRes = SimulationTest(Sim, InitContactInfo, RMObject, SelfLinkGeoObj, SimParaObj);
 
     PlanResWriter(CurrentCasePath, SimRes);

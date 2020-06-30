@@ -162,9 +162,9 @@ std::vector<double> TrajConfigOptimazation(const Robot & SimRobot, ReachabilityM
   SimRobotObj.UpdateConfig(Config(OptConfig));
   SimRobotObj.UpdateGeometry();
 
-  std::string ConfigPath = "/home/motion/Desktop/Whole-Body-Planning-for-Push-Recovery/build/";
-  std::string OptConfigFile = "SwingUpdatedConfig" + std::to_string(StageIndex) + ".config";
-  RobotConfigWriter(OptConfig, ConfigPath, OptConfigFile);
+  // std::string ConfigPath = "/home/motion/Desktop/Whole-Body-Planning-for-Push-Recovery/build/";
+  // std::string OptConfigFile = "SwingUpdatedConfig" + std::to_string(StageIndex) + ".config";
+  // RobotConfigWriter(OptConfig, ConfigPath, OptConfigFile);
 
   // Self-collision constraint numerical checker
   std::vector<double> SelfCollisionDistVec(SwingLinkChain.size()-3);
@@ -181,7 +181,7 @@ std::vector<double> TrajConfigOptimazation(const Robot & SimRobot, ReachabilityM
 
   bool OptFlag = true;
   if(SelfCollisionDistTol<-0.0025){
-      std::printf("Transient Optimization Failure due to Self-collision for Link %d! \n", NonlinearOptimizerInfo::RobotLinkInfo[SwingLinkInfoIndex].LinkIndex);
+      std::printf("TrajConfigOptimazation Failure due to Self-collision for Link %d! \n", NonlinearOptimizerInfo::RobotLinkInfo[SwingLinkInfoIndex].LinkIndex);
       OptFlag = false;
   }
 
@@ -191,7 +191,7 @@ std::vector<double> TrajConfigOptimazation(const Robot & SimRobot, ReachabilityM
   double DistTestTol = 0.0225;
   double DistTest = AvgDiff.normSquared();
   if(DistTest>DistTestTol){
-    std::printf("Transient Optimization Failure due to Goal Contact Non-reachability for Link %d! \n", NonlinearOptimizerInfo::RobotLinkInfo[SwingLinkInfoIndex].LinkIndex);
+    std::printf("TrajConfigOptimazation Failure due to Goal Contact Non-reachability for Link %d! \n", NonlinearOptimizerInfo::RobotLinkInfo[SwingLinkInfoIndex].LinkIndex);
     OptFlag = false;
   }
   SimParaObj.setTrajConfigOptFlag(OptFlag);

@@ -8,7 +8,7 @@ static Vector3 GoalPos;
 static Vector3 GoalDir;
 static std::vector<double> ReferenceConfig;
 static SelfLinkGeoInfo SelfLinkGeoObj;
-static double TouchDownTol = 0.001;   // 1mm
+static double LastStageTol = 0.0025;   // 2.5mm
 
 struct LastStageConfigOpt: public NonlinearOptimizerInfo
 {
@@ -100,10 +100,11 @@ std::vector<double> LastStageConfigOptimazation(const Robot & SimRobot, Reachabi
   // Static Variable Substitution
   std::vector<double> SwingLinkChainGuess(SwingLinkChain.size());
   int n = SwingLinkChain.size();
+  int SwingLinkContactSize = NonlinearOptimizerInfo::RobotLinkInfo[SwingLinkInfoIndex].LocalContacts.size();
 
   // Cost function on the norm difference between the reference avg position and the modified contact position.
   int neF = 1;
-  neF += NonlinearOptimizerInfo::RobotLinkInfo[SwingLinkInfoIndex].LocalContacts.size();
+  neF += SwingLinkContactSize;
   neF += 1;                                                                                           // Self-Collision Avoidance
   LastStageConfigOptProblem.InnerVariableInitialize(n, neF);
 
@@ -129,9 +130,9 @@ std::vector<double> LastStageConfigOptimazation(const Robot & SimRobot, Reachabi
     Flow_vec[i] = 0;
     Fupp_vec[i] = 1e10;
   }
-  for (int i = neF-NonlinearOptimizerInfo::RobotLinkInfo[SwingLinkInfoIndex].LocalContacts.size(); i < neF; i++) {
-    Flow_vec[i] = -TouchDownTol;
-    Fupp_vec[i] = TouchDownTol;
+  for (int i = neF - SwingLinkContactSize; i < neF; i++) {
+    Flow_vec[i] = 0.0;
+    Fupp_vec[i] = LastStageTol;
   }
   LastStageConfigOptProblem.ConstraintBoundsUpdate(Flow_vec, Fupp_vec);
 

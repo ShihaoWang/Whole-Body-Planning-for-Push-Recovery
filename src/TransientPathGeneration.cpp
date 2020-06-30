@@ -75,7 +75,7 @@ static std::vector<Vector3> BasePointsGene(const Vector3 & PosInit, const Vector
 }
 
 static double SelfCollisionDist(SelfLinkGeoInfo & SelfLinkGeoObj, const int & SwingLinkInfoIndex, const std::vector<Vector3> & PointVec){
-  double Distol = 0.1;      // 10cm
+  double Distol = 0.05;      // 10cm
   std::vector<double> DistVec;
   for (const Vector3 & Point: PointVec) {
     double  PointDist; Vector3 PointGrad;
@@ -87,12 +87,10 @@ static double SelfCollisionDist(SelfLinkGeoInfo & SelfLinkGeoObj, const int & Sw
   else return min(Distol, min(DistVec.front(), DistVec.back()));
 }
 
-static std::vector<cSpline3> cSplineGene(const std::vector<Vector3> & Points, const int & SwingLinkInfoIndex, const double & SelfTol, const SelfLinkGeoInfo & SelfLinkGeoObj, ReachabilityMap & RMObject, int & PointIndex, Vector3 & ShiftPoint, bool & FeasibleFlag)
-{
+static std::vector<cSpline3> cSplineGene(const std::vector<Vector3> & Points, const int & SwingLinkInfoIndex, const double & SelfTol, SelfLinkGeoInfo & SelfLinkGeoObj, int & PointIndex, Vector3 & ShiftPoint, bool & FeasibleFlag){
   // Algorithm stops when tolerance cannot be satisfied!
   Vec3f SplinePoints[Points.size()];
-  for (int i = 0; i < Points.size(); i++)
-  {
+  for (int i = 0; i < Points.size(); i++){
     Vec3f PointVec(Points[i].x, Points[i].y, Points[i].z);
     SplinePoints[i] = PointVec;
   }
@@ -107,48 +105,51 @@ static std::vector<cSpline3> cSplineGene(const std::vector<Vector3> & Points, co
   std::vector<int> SplineIndexVec;
   const int GridNo = 10;
   float sUnit = 1.0/(1.0 * GridNo);
-  for (int i = 0; i < numSplines; i++)
-  {
-    for (int j = 0; j < GridNo-1; j++)
-    {
+  for (int i = 0; i < numSplines; i++){
+    for (int j = 0; j < GridNo-1; j++){
+      if((!i)&&(!j)) continue;
       float s = 1.0 * j * sUnit;
       Vec3f ps = Position (splines[i], s);
       Vector3 SplinePoint(ps.x, ps.y, ps.z);
-      double SplinePointDis = NonlinearOptimizerInfo::SDFInfo.SignedDistance(SplinePoint);
-      if(SplinePointDis<0)
-      {
+      double CurEnvPtDist = NonlinearOptimizerInfo::SDFInfo.SignedDistance(SplinePoint);
+      double CurSelfPtDist; Vector3 CurSelfPtGrad;
+      SelfLinkGeoObj.SelfCollisionDistNGrad(SwingLinkInfoIndex, SplinePoint, CurSelfPtDist, CurSelfPtGrad);
+      if((CurEnvPtDist<0)||(CurSelfPtDist<SelfTol)){
         SplineIndexVec.push_back(i);
         ShiftPointVec.push_back(SplinePoint);
-        ShiftPointDisVec.push_back(SplinePointDis);
+        double DistMetric = 0.0;
+        if(CurEnvPtDist<0)  DistMetric+=CurEnvPtDist;
+        if(CurSelfPtDist<SelfTol) DistMetric+=CurSelfPtDist-SelfTol;
+        ShiftPointDisVec.push_back(DistMetric);
       }
     }
   }
-
-  switch (ShiftPointVec.size())
-  {
-    case 0:
-    {
+  Vec3f ps = Position (splines[0], 0.0);
+  Vector3 SplinePoint(ps.x, ps.y, ps.z);
+  double CurEnvPtDist = NonlinearOptimizerInfo::SDFInfo.SignedDistance(SplinePoint);
+  double CurSelfPtDist; Vector3 CurSelfPtGrad;
+  SelfLinkGeoObj.SelfCollisionDistNGrad(SwingLinkInfoIndex, SplinePoint, CurSelfPtDist, CurSelfPtGrad);
+  printf("Edge Point: (%f, %f, %f), Distance to Environment: %f, and Distance to Self-Collision: %f\n",
+                      ps.x, ps.y, ps.z, CurEnvPtDist, CurSelfPtDist);
+  switch (ShiftPointVec.size()){
+    case 0:{
       FeasibleFlag = true;
       for (int i = 0; i < numSplines; i++)
-      {
         SplineObj.push_back(splines[i]);
-      }
     }
     break;
-    default:
-    {
-      // Choose the point with the largest penetration.
+    default:{
       FeasibleFlag = false;
       int ShiftPointIndex = std::distance(ShiftPointDisVec.begin(), std::min_element(ShiftPointDisVec.begin(), ShiftPointDisVec.end()));
-      PointIndex = SplineIndexVec[ShiftPointIndex];
-      ShiftPoint = ShiftPointVec[ShiftPointIndex];
+      PointIndex = SplineIndexVec[ShiftPointIndex] + 1;
+      ShiftPoint = ShiftPointVec[ShiftPointIndex] ;
     }
     break;
   }
   return SplineObj;
 }
 
-static std::vector<Vector3> SpatialPointShifter(const std::vector<Vector3> & Points, const int & SwingLinkInfoIndex, const double & SelfTol, SelfLinkGeoInfo & SelfLinkGeoObj, ReachabilityMap & RMObject, bool & ShiftFeasFlag){
+static std::vector<Vector3> SpatialPointShifter(const std::vector<Vector3> & Points, const int & SwingLinkInfoIndex, const double & SelfTol, SelfLinkGeoInfo & SelfLinkGeoObj, bool & ShiftFeasFlag){
   // This function is used to shift Points according to SelfTol
   // Here we only allow this shift to be conducted N times.
   const int TotalShiftTime = 10;
@@ -219,8 +220,7 @@ static std::vector<Vector3> SpatialPointShifter(const std::vector<Vector3> & Poi
   return NewPoints;
 }
 
-static Vector3 SinglePointShifter(const Vector3 & Point, const int & SwingLinkInfoIndex, const double & SelfTol, SelfLinkGeoInfo & SelfLinkGeoObj, ReachabilityMap & RMObject, bool & ShiftFeasFlag)
-{
+static Vector3 SinglePointShifter(const Vector3 & Point, const int & SwingLinkInfoIndex, const double & SelfTol, SelfLinkGeoInfo & SelfLinkGeoObj, bool & ShiftFeasFlag){
   double ShiftDistUnit = 0.025;     // 2.5cm for example
   Vector3 NewPoint = Point;
   const int TotalShiftTime = 10;
@@ -266,7 +266,7 @@ static Vector3 SinglePointShifter(const Vector3 & Point, const int & SwingLinkIn
   return NewPoint;
 }
 
-static std::vector<cSpline3> SplineObjGene(SelfLinkGeoInfo & SelfLinkGeoObj, ReachabilityMap & RMObject, const int & SwingLinkInfoIndex, SimPara & SimParaObj){
+static std::vector<cSpline3> SplineObjGene(SelfLinkGeoInfo & SelfLinkGeoObj, const int & SwingLinkInfoIndex, SimPara & SimParaObj){
   // This function is used to generate a collision-free path!
   Vector3 PosInit     = SimParaObj.ContactInit;
   Vector3 NormalInit  = SimParaObj.DirectionInit;
@@ -275,11 +275,11 @@ static std::vector<cSpline3> SplineObjGene(SelfLinkGeoInfo & SelfLinkGeoObj, Rea
 
   std::vector<cSpline3> SplineObj;
   std::vector<Vector3> Points = BasePointsGene(PosInit, NormalInit, PosGoal, NormalGoal);
-  Vector3Writer(Points, "InitialTransitionPoints");
+  // Vector3Writer(Points, "InitialPathWayPoints");
   double SelfTol = SelfCollisionDist(SelfLinkGeoObj, SwingLinkInfoIndex, Points);
   bool InitShiftFeasFlag;     // For the shift of initial pts.
-  Points = SpatialPointShifter(Points, SwingLinkInfoIndex, SelfTol, SelfLinkGeoObj, RMObject, InitShiftFeasFlag);
-  Vector3Writer(Points, "ShiftedTransitionPoints");
+  Points = SpatialPointShifter(Points, SwingLinkInfoIndex, SelfTol, SelfLinkGeoObj, InitShiftFeasFlag);
+  // Vector3Writer(Points, "ShiftedPathWayPoints");
   bool FeasiFlag = false;
   SimParaObj.setTransPathFeasiFlag(FeasiFlag);
   if(!InitShiftFeasFlag) return SplineObj;
@@ -289,16 +289,19 @@ static std::vector<cSpline3> SplineObjGene(SelfLinkGeoInfo & SelfLinkGeoObj, Rea
   while((FeasiFlag == false)&&(CurrentIter<=TotalIter)){
     Vector3 ShiftPoint;
     int ShiftPointIndex;
-    SplineObj = cSplineGene(Points, SwingLinkInfoIndex, SelfTol, SelfLinkGeoObj, RMObject, ShiftPointIndex, ShiftPoint, FeasiFlag);
+    SplineObj = cSplineGene(Points, SwingLinkInfoIndex, SelfTol, SelfLinkGeoObj, ShiftPointIndex, ShiftPoint, FeasiFlag);
     if(!FeasiFlag){
       bool ShiftFlag;
-      Vector3 NewShiftPoint = SinglePointShifter(ShiftPoint, SwingLinkInfoIndex, SelfTol, SelfLinkGeoObj, RMObject, ShiftFlag);
+      Vector3 NewShiftPoint = SinglePointShifter(ShiftPoint, SwingLinkInfoIndex, SelfTol, SelfLinkGeoObj, ShiftFlag);
       if(!ShiftFlag)  return SplineObj;
       else {
         // Insert the NewShiftPoint back into Points vector
-        std::vector<Vector3> NewPoints(Points.begin(), Points.begin() + ShiftPointIndex);
-        NewPoints.push_back(NewShiftPoint);
-        NewPoints.insert(NewPoints.end(), Points.begin() + ShiftPointIndex + 1, Points.end());
+        std::vector<Vector3> NewPoints(Points.size()+1);
+        for (int i = 0; i < ShiftPointIndex; i++)
+          NewPoints[i] =  Points[i];
+        NewPoints[ShiftPointIndex] = NewShiftPoint;
+        for (int i = ShiftPointIndex; i < Points.size(); i++)
+          NewPoints[i+1] =  Points[i];
         Points = NewPoints;
       }
     }
@@ -318,7 +321,7 @@ static Vector3 InitDirectionGene(const Vector3 & PosInit, const Vector3 & PosGoa
   return DirInit;
 }
 
-std::vector<cSpline3> TransientPathGene(const Robot & SimRobot, ReachabilityMap & RMObject, SelfLinkGeoInfo & SelfLinkGeoObj, SimPara & SimParaObj){
+std::vector<cSpline3> TransientPathGene(const Robot & SimRobot, SelfLinkGeoInfo & SelfLinkGeoObj, SimPara & SimParaObj){
   // This function generates the transition path for robot's end effector.
   // The path direction is chosen such that initial path is a parabola.
   Vector3 DirGoal = NonlinearOptimizerInfo::SDFInfo.SignedDistanceNormal(SimParaObj.ContactGoal);
@@ -327,31 +330,28 @@ std::vector<cSpline3> TransientPathGene(const Robot & SimRobot, ReachabilityMap 
   SimParaObj.setDirectionInit(DirInit);
   SimParaObj.setDirectionGoal(DirGoal);
   int SwingLinkInfoIndex = SimParaObj.getSwingLinkInfoIndex();
-  std::vector<cSpline3> SplineObj = SplineObjGene(SelfLinkGeoObj, RMObject, SwingLinkInfoIndex, SimParaObj);
+  std::vector<cSpline3> SplineObj = SplineObjGene(SelfLinkGeoObj, SwingLinkInfoIndex, SimParaObj);
 
   if(SimParaObj.getTransPathFeasiFlag()){
     const int SplineNumber = SplineObj.size();
-    const int SplineGrid = 5;
-    std::vector<Vector3> TransitionPoints(SplineNumber * SplineGrid + 1);
+    const int SplineGrid = 10;
+    std::vector<Vector3> PathWayPoints(SplineNumber * SplineGrid + 1);
 
     double sUnit = 1.0/(1.0 * SplineGrid);
     int TransitionIndex = 0;
-    for (int i = 0; i < SplineNumber; i++)
-    {
-      for (int j = 0; j < SplineGrid; j++)
-      {
+    for (int i = 0; i < SplineNumber; i++){
+      for (int j = 0; j < SplineGrid; j++){
         double s = 1.0 * j * sUnit;
         Vec3f ps = Position (SplineObj[i], s);
         Vector3 SplinePoint(ps.x, ps.y, ps.z);
-        TransitionPoints[TransitionIndex] = SplinePoint;
+        PathWayPoints[TransitionIndex] = SplinePoint;
         TransitionIndex++;
       }
     }
     Vec3f ps = Position (SplineObj[SplineNumber-1], 1.0);
     Vector3 SplinePoint(ps.x, ps.y, ps.z);
-    TransitionPoints[TransitionIndex] = SplinePoint;
-    SimParaObj.DataRecorderObj.TransitionPoints = TransitionPoints;
-    Vector3Writer(TransitionPoints, "TransitionPoints");
+    PathWayPoints[TransitionIndex] = SplinePoint;
+    SimParaObj.DataRecorderObj.setPathWaypoints(PathWayPoints);
   }
   return SplineObj;
 }

@@ -9,7 +9,6 @@ static Vector3 GoalDir;
 static std::vector<double> ReferenceConfig;
 static SelfLinkGeoInfo SelfLinkGeoObj;
 static double alignmentVal = 0.0;
-static double alignmentTol= 1e-5;
 
 struct OrientationOpt: public NonlinearOptimizerInfo
 {
@@ -151,10 +150,6 @@ std::vector<double> OrientationOptimazation(const Robot & SimRobot, const std::v
   SimRobotObj.UpdateConfig(Config(OptConfig));
   SimRobotObj.UpdateGeometry();
   OptConfig = YPRShifter(OptConfig);
-
-  // std::string ConfigPath = "/home/motion/Desktop/Whole-Body-Planning-for-Push-Recovery/build/";
-  // std::string OptConfigFile = "OptWholeBodyUpdatedConfig" + std::to_string(StageIndex) + ".config";
-  // RobotConfigWriter(OptConfig, ConfigPath, OptConfigFile);
 
   return OptConfig;
 }
