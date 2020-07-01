@@ -573,12 +573,10 @@ struct DataRecorderInfo{
   DataRecorderInfo(){
     PlanStageIndex = -1;
     LinkNo = -1;
-    LinkIndex = -1;
   };
-  void setPlanStageIndexNLinkNo(const int & _PlanStageIndex, const int & _LinkNo, const int & _LinkIndex){
+  void setPlanStageIndexNLinkNo(const int & _PlanStageIndex, const int & _LinkNo){
     PlanStageIndex = _PlanStageIndex;
     LinkNo = _LinkNo;
-    LinkIndex = _LinkIndex;
   }
   void setRCSData( const std::vector<Vector3> & _ReachableContacts,
                     const std::vector<Vector3> & _CollisionFreeContacts,
@@ -657,7 +655,6 @@ struct DataRecorderInfo{
 
   int PlanStageIndex;
   int LinkNo;
-  int LinkIndex;
 };
 
 struct SimPara{
@@ -729,9 +726,12 @@ struct SimPara{
     PlanStateTrajStr = CurrentCasePath + "PlanStateTraj.path";
     // const char *PlanStateTrajStr_Name = PlanStateTrajStr.c_str();
   }
+  string getCurrentCasePath(){ return CurrentCasePath; }
   void setImpulseForceMax(const Vector3 & ImpulseDirection){ ImpulseForceMax = ForceMax * ImpulseDirection; }
   void setPlanStageIndex(const int & _PlanStageIndex) {PlanStageIndex = _PlanStageIndex; }
   int  getPlanStageIndex(){ return PlanStageIndex; }
+  void setPlanEndEffectorIndex( const int & _PlanEndEffectorIndex) { PlanEndEffectorIndex = _PlanEndEffectorIndex; }
+  int  getPlanEndEffectorIndex(){ return PlanEndEffectorIndex; }
   void setSimTime(const double & _SimTime) { SimTime = _SimTime; }
   double getSimTime() { return SimTime; }
   void setContactInit(const Vector3 _ContactInit){ ContactInit = _ContactInit; }
@@ -759,10 +759,11 @@ struct SimPara{
   double  InitDuration;
   double  TotalDuration;
   double  ForwardDuration;
-  double  PhaseRatio;            // This ratio determines the boundary between acceleration and deceleration.
+  double  PhaseRatio;             // This ratio determines the boundary between acceleration and deceleration.
   double  PhaseTimeStep;
   double  ReductionRatio;
   int     PlanStageIndex;
+  int     PlanEndEffectorIndex;    // This PlanEndEffectorIndex saves successful end effector for push recovery.
   double  SimTime;
   bool    TransPathFeasiFlag;
   int     SwingLinkInfoIndex;
@@ -786,7 +787,6 @@ struct ControlReferenceInfo{
     ControlReferenceType = -1;
     SwingLinkInfoIndex = -1;           // Used for RobotLinkInfo
     ContactStatusInfoIndex = -1;
-    ComputationTime = 0.0;
     GoalContactPos.setZero();
     GoalContactGrad.setZero();
     }
@@ -827,8 +827,6 @@ struct ControlReferenceInfo{
   }
   void setWaitTime(const double & _WaitTime) { WaitTime = _WaitTime; }
   double getWaitTime() { return WaitTime; }
-  void setComputationTime(const double & _ComputationTime) { ComputationTime = _ComputationTime; }
-  double getComputationTime(){ return ComputationTime; }
   void setTouchDownConfig(const std::vector<double> _TouchDownConfig){ TouchDownConfig = _TouchDownConfig; }
   std::vector<double> getTouchDownConfig(){ return TouchDownConfig;}
 
@@ -838,7 +836,6 @@ struct ControlReferenceInfo{
   int     SwingLinkInfoIndex;
   int     ContactStatusInfoIndex;
   double  WaitTime;
-  double  ComputationTime;
 
   Vector3 GoalContactPos;
   Vector3 GoalContactGrad;

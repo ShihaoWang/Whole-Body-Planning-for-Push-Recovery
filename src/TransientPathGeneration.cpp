@@ -129,8 +129,8 @@ static std::vector<cSpline3> cSplineGene(const std::vector<Vector3> & Points, co
   double CurEnvPtDist = NonlinearOptimizerInfo::SDFInfo.SignedDistance(SplinePoint);
   double CurSelfPtDist; Vector3 CurSelfPtGrad;
   SelfLinkGeoObj.SelfCollisionDistNGrad(SwingLinkInfoIndex, SplinePoint, CurSelfPtDist, CurSelfPtGrad);
-  printf("Edge Point: (%f, %f, %f), Distance to Environment: %f, and Distance to Self-Collision: %f\n",
-                      ps.x, ps.y, ps.z, CurEnvPtDist, CurSelfPtDist);
+  // printf("Edge Point: (%f, %f, %f), Distance to Environment: %f, and Distance to Self-Collision: %f\n",
+  //                     ps.x, ps.y, ps.z, CurEnvPtDist, CurSelfPtDist);
   switch (ShiftPointVec.size()){
     case 0:{
       FeasibleFlag = true;

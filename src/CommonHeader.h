@@ -48,6 +48,8 @@ std::vector<double> ConfigReferenceGene(const Robot & SimRobotObj,  double & Inn
                                         ReachabilityMap & RMObject, SelfLinkGeoInfo & SelfLinkGeoObj,
                                         ControlReferenceInfo & ControlReference, SimPara & SimParaObj);
 bool FailureChecker(Robot & SimRobot, ReachabilityMap & RMObject);
+void PlanTimeRecorder(const double & PlanTimeVal, const string & CurrentCasePath);
+void PlanningInfoFileAppender(const int & PlanStageIndex, const int & TotalLinkNo, const string & CurrentCasePath, const double & CurTime);
 void PlanResWriter(const string & SpecificPath, const int & PushRecovFlag);
 
 /* 4. Main Simulation*/

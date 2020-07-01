@@ -65,6 +65,8 @@ int SimulationTest(WorldSimulation & Sim, const std::vector<ContactStatusInfo> &
           FailureFlag = true;
         }
         if(FailureFlag){
+          SimParaObj.setPlanStageIndex(PlanStageIndex);
+          SimParaObj.setSimTime(SimTime);
           ControlReferenceObj = ControlReferenceGene(SimRobot, curContactInfo, RMObject, SelfLinkGeoObj, SimParaObj);
           if(ControlReferenceObj.getReadyFlag()){
             CtrlFlag = true;

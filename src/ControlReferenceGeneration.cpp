@@ -160,6 +160,8 @@ static std::vector<Vector3> OptimalContactFinder(const std::vector<Vector3> & Su
   std::vector<Vector3> SelectedContacts;
   if(!CandidateContacts.size()){
     int OptiIndex = std::distance(ContactFailureMetric.begin(), std::max_element(ContactFailureMetric.begin(), ContactFailureMetric.end()));
+    CandidateContacts.push_back(SupportContact[OptiIndex]);
+    CandidateContactWeights.push_back(0.0);
     SelectedContacts.push_back(SupportContact[OptiIndex]);
   } else {
     int OptimalContactNumber = CandidateContacts.size();
@@ -275,28 +277,36 @@ ControlReferenceInfo ControlReferenceGene(Robot & SimRobot,
  ControlReferenceInfoObj.setReadyFlag(false);
  std::vector<ControlReferenceInfo> ControlReferenceObjVec;
  std::vector<double> ExecutionTimeVec;
+ int PlanEndEffectorIndex = 0;
+ std::clock_t start_time = std::clock();
+ double stage_planning_time = 0.0;
  for (auto & ContactFormObj : ContactFormVec) {
-   std::clock_t start_time = std::clock();
    std::vector<ContactStatusInfo> curContactInfo = ContactFormObj.FixedContactStatusInfo;
    std::vector<Vector3> ActContactPos = ActiveContactFinder(SimRobot, curContactInfo);
    bool ValidFlag;
    PIPInfo TipOverPIP = TipOverPIPGenerator(ActContactPos, COMPos, COMVel, ValidFlag);
    if(!ValidFlag) continue;
    SimParaObj.setSwingLinkInfoIndex(ContactFormObj.SwingLinkInfoIndex);
+   SimParaObj.setPlanEndEffectorIndex(PlanEndEffectorIndex);
+   SimParaObj.DataRecorderObj.setPlanStageIndexNLinkNo(SimParaObj.getPlanStageIndex(), PlanEndEffectorIndex);
    ControlReferenceInfo ControlReferenceObj =  ControlReferenceGeneInner(SimRobot, TipOverPIP, RMObject, SelfLinkGeoObj, ContactFormObj, SimParaObj);
-   double duration_time = (std::clock() - start_time)/(double)CLOCKS_PER_SEC;
-   std::printf("Planning takes: %f ms\n", 1000.0 * duration_time);
+   double planning_time = (std::clock() - start_time)/(double)CLOCKS_PER_SEC;
+   std::printf("Planning takes: %f ms\n", 1000.0 * planning_time);
+   stage_planning_time+=planning_time;
    start_time = std::clock();
-   ControlReferenceObj.setComputationTime(duration_time);
    ControlReferenceObj.setSwingLinkInfoIndex(ContactFormObj.SwingLinkInfoIndex);
    if(ControlReferenceObj.getReadyFlag()){
      ControlReferenceObjVec.push_back(ControlReferenceObj);
      ExecutionTimeVec.push_back(ControlReferenceObj.TimeTraj.back());
+     SimParaObj.DataRecorderObj.Write2File(SimParaObj.getCurrentCasePath());
+     PlanEndEffectorIndex++;
    }
  }
  if(ExecutionTimeVec.size()){
    int ObjIndex = std::distance(ExecutionTimeVec.begin(), std::min_element(ExecutionTimeVec.begin(), ExecutionTimeVec.end()));
    ControlReferenceInfoObj = ControlReferenceObjVec[ObjIndex];
+   PlanTimeRecorder(stage_planning_time, SimParaObj.getCurrentCasePath());
+   PlanningInfoFileAppender(SimParaObj.getPlanStageIndex(), ExecutionTimeVec.size()-1, SimParaObj.getCurrentCasePath(), SimParaObj.getSimTime());
  }
  return ControlReferenceInfoObj;
 }

@@ -43,16 +43,16 @@ std::vector<double> YPRShifter(std::vector<double> OptConfig){
   return OptConfig;
 }
 
-void FilePathManager(const string & SpecificPath){
-  if(IsPathExist(SpecificPath))
-    printf("%s exist!\n", SpecificPath.c_str());
+void FilePathManager(const string & CurrentCasePath){
+  if(IsPathExist(CurrentCasePath))
+    printf("%s exist!\n", CurrentCasePath.c_str());
   else {
-    string str = "mkdir " + SpecificPath;
+    string str = "mkdir " + CurrentCasePath;
     const char *command = str.c_str();
     system(command);
   }
   // Let them be internal objects
-  string str = "cd " + SpecificPath + " && ";
+  string str = "cd " + CurrentCasePath + " && ";
 
   str+="rm -f *Traj.txt && ";
   str+="rm -f *.path && ";
@@ -252,8 +252,32 @@ bool FailureChecker(Robot & SimRobot, ReachabilityMap & RMObject){
   return false;
 }
 
-void PlanResWriter(const string & SpecificPath, const int & PushRecovFlag){
-  const string PlanResStr = SpecificPath + "PlanRes.txt";
+void PlanTimeRecorder(const double & PlanTimeVal, const string & CurrentCasePath){
+  // This function saves the total planning time needed for each planning procedure.
+  string PlanTimeFileStr = CurrentCasePath + "PlanTime.txt";
+  const char *PlanTimeFile_Name = PlanTimeFileStr.c_str();
+
+  std::ofstream PlanTimeFile;
+  PlanTimeFile.open(PlanTimeFile_Name, std::ios_base::app);
+  PlanTimeFile<<std::to_string(PlanTimeVal);
+  PlanTimeFile<<"\n";
+  PlanTimeFile.close();
+}
+
+void PlanningInfoFileAppender(const int & PlanStageIndex, const int & TotalLinkNo, const string & CurrentCasePath, const double & CurTime){
+  // This function saves the simulation time where contact planning happens, PlanStageIndex, and TotalLinkNo.
+  std::ofstream PlanningInfoFileWriter;
+  string PlanningInfoFileStr = CurrentCasePath + "PlanningInfoFile.txt";
+  const char *PlanningInfoFileStr_Name = PlanningInfoFileStr.c_str();
+  PlanningInfoFileWriter.open(PlanningInfoFileStr_Name, std::ios_base::app);
+  PlanningInfoFileWriter<<std::to_string(PlanStageIndex)<<" "<< std::to_string(TotalLinkNo)<<" "<<std::to_string(CurTime)<<"\n";
+  PlanningInfoFileWriter.close();
+  return;
+}
+
+void PlanResWriter(const string & CurrentCasePath, const int & PushRecovFlag){
+  // This function saves the result of this motion planning procedure.
+  const string PlanResStr = CurrentCasePath + "PlanRes.txt";
   const char *PlanResStr_Name = PlanResStr.c_str();
   std::ofstream PlanResWriter;
   PlanResWriter.open(PlanResStr_Name);

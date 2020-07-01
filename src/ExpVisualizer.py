@@ -11,21 +11,9 @@ import draw_hull
 from OpenGL.GL import *
 import math
 import numpy as np
-import random
 
-ExpType = "flat"
-ContactType = "/1Contact"
+CurCase = "flat_1Contact"
 ExpNo = 0
-# PlanningType = "RHP"
-PlanningType = "OLP"
-
-EnviName = "Envi1"
-
-# ContactName = "ActiveReachableContact"
-# ContactName = "ContactFreeContact"
-# ContactName = "SupportContact"
-# ContactName = "OptimalContact"
-ContactName = "ReducedOptimalContact"
 
 class MyGLPlugin(vis.GLPluginInterface):
     def __init__(self, world):
@@ -122,14 +110,13 @@ def StateLoaderfn(*args):
             raise RuntimeError("Input name should be either one config file or two txt files!")
     return DOF, Config_Init, Velocity_Init
 
-def ContactLinkReader(File_Name, Path_Name):
+def ContactLinkReader(File_Path_Name):
     # This function is used to read-in the formation of the certain link and its associated contact points
     # The output of this function is a dictionary of several keys with multiple list values
     # File_Name = "./User_File/Contact_Link.txt"
     ContactLinkDictionary = dict()
     # The format of this function should be an integet with a list of contact points
     Link_Number_i = -1
-    File_Path_Name = Path_Name +File_Name
     with open(File_Path_Name) as Txt_File:
         Txt_File_Str = Txt_File.read().splitlines()
         Dictionary_Value_Add_Flag = 0
@@ -374,7 +361,7 @@ def ContactDataUnplot(vis, StepNo, LimbNo, ReachableContacts_data):
     RowStart = 0
     RowEnd = RowNo
     for i in range(RowStart, RowEnd):
-        ContactName = "Step" + str(StepNo) + "Limb" + str(LimbNo) + "Point:" + str(i)
+        ContactName = "Stage" + str(StepNo) + "LinkNo" + str(LimbNo) + "Point:" + str(i)
         vis.hide(ContactName, True)
 
 def ContactDataPlot(vis, StepNo, LimbNo, ReachableContacts_data):
@@ -388,33 +375,31 @@ def ContactDataPlot(vis, StepNo, LimbNo, ReachableContacts_data):
         point_start[0] = ReachableContact_i[0]
         point_start[1] = ReachableContact_i[1]
         point_start[2] = ReachableContact_i[2]
-        ContactName = "Step" + str(StepNo) +"Limb" + str(LimbNo) + "Point:" + str(i)
+        ContactName = "Stage" + str(StepNo) +"LinkNo" + str(LimbNo) + "Point:" + str(i)
         vis.add(ContactName, point_start)
         vis.hideLabel(ContactName, True)
         vis.setColor(ContactName, 65.0/255.0, 199.0/255.0, 244.0/255.0, 1.0)
 
-def TransitionDataUnplot(vis, StepNo, LimbNo, ReachableContacts_data):
-    RowNo, ColumnNo = ReachableContacts_data.shape
-    RowStart = 0
-    RowEnd = RowNo
-    for i in range(RowStart, RowEnd):
-        TransName = "Step" + str(StepNo) + "Limb" + str(LimbNo) + "TransPoint:" + str(i)
-        vis.hide(TransName, True)
+def TransitionDataUnplot(vis, StepNo, LimbNo):
+    TransName = "Stage" + str(StepNo) + "LinkNo" + str(LimbNo) + "Path"
+    vis.hide(TransName, True)
 
 def TransitionDataPlot(vis, StepNo, LimbNo, ReachableContacts_data):
     RowNo, ColumnNo = ReachableContacts_data.shape
     RowStart = 0
     RowEnd = RowNo
+    Traj = []
     for i in range(RowStart, RowEnd):
-        point_start = [0.0, 0.0, 0.0]
+        point_i = [0.0, 0.0, 0.0]
         ReachableContact_i = ReachableContacts_data[i]
-        point_start[0] = ReachableContact_i[0]
-        point_start[1] = ReachableContact_i[1]
-        point_start[2] = ReachableContact_i[2]
-        TransName = "Step" + str(StepNo) +"Limb" + str(LimbNo) + "TransPoint:" + str(i)
-        vis.add(TransName, point_start)
-        vis.hideLabel(TransName, True)
-        vis.setColor(TransName, 255.0/255.0, 255.0/255.0, 51.0/255.0, 1.0)
+        point_i[0] = ReachableContact_i[0]
+        point_i[1] = ReachableContact_i[1]
+        point_i[2] = ReachableContact_i[2]
+        Traj.append(point_i)
+    TransName = "Stage" + str(StepNo) + "LinkNo" + str(LimbNo) + "Path"
+    vis.add(TransName, Trajectory([0, 1], Traj))
+    vis.hideLabel(TransName, True)
+    vis.setColor(TransName, 255.0/255.0, 255.0/255.0, 51.0/255.0, 1.0)
 
 def ContactDataLoader(Specificpath, StepNo, LimbNo, IdealReachableContact):
     IdealReachableContacts = Specificpath+ "/" + str(StepNo) + "_" + str(LimbNo) + "_" + IdealReachableContact + ".bin"
@@ -487,6 +472,32 @@ def PlanningInterval(SimulationTime, PlanningTimeList, TimeStep):
                 else:
                     return i
 
+def WeightedContactDataPlot(vis, StepNo, LimbNo, OptimalContact_data, OptimalContactWeights_data):
+    scale = 1.0
+    for i in range(OptimalContact_data.size/3):
+        point_start = [0.0, 0.0, 0.0]
+        ReachableContact_i = OptimalContact_data[i]
+        point_start[0] = ReachableContact_i[0]
+        point_start[1] = ReachableContact_i[1]
+        point_start[2] = ReachableContact_i[2]
+
+        point_end = [0.0, 0.0, 0.0]
+        ReachableContactWeight_i = OptimalContactWeights_data[i]
+        point_end[0] = point_start[0] + scale * ReachableContactWeight_i[0]
+        point_end[1] = point_start[1] + scale * ReachableContactWeight_i[1]
+        point_end[2] = point_start[2] + scale * ReachableContactWeight_i[2]
+
+        ContactName = "Stage" + str(StepNo) +"LinkNo" + str(LimbNo) + "Point:" + str(i)
+        vis.add(ContactName, Trajectory([0, 1], [point_start, point_end]))
+        vis.hideLabel(ContactName, True)
+        vis.setColor(ContactName, 0.0, 204.0/255.0, 0.0, 1.0)
+        vis.setAttribute(ContactName, 'width', 5.0)
+
+def WeightedContactDataUnPlot(vis, StepNo, LimbNo, OptimalContact_data):
+    for i in range(OptimalContact_data.size/3):
+        ContactName = "Stage" + str(StepNo) +"LinkNo" + str(LimbNo) + "Point:" + str(i)
+        vis.hide(ContactName, True)
+
 def EndEffectorTrajPlot(vis, SimulationTime, PlanningObj, SpecificPath, PlotDuration, TimeStep):
     PlanningTimeList = PlanningObj[0]
     PlanningPairList = PlanningObj[1]
@@ -497,28 +508,36 @@ def EndEffectorTrajPlot(vis, SimulationTime, PlanningObj, SpecificPath, PlotDura
         StepNo = StepLimbPair[0]
         LimbNo = StepLimbPair[1]
         for i in range(0, LimbNo+1):
-            ContactPoints_data = ContactDataLoader(SpecificPath, StepNo, i, ContactName)
-            TransitionPoints_data = ContactDataLoader(SpecificPath, StepNo, i, "TransitionPoints")
-            ContactDataUnplot(vis, StepNo, i, ContactPoints_data)
-            TransitionDataUnplot(vis, StepNo, i, TransitionPoints_data)
+            CandidateContacts_data = ContactDataLoader(SpecificPath, StepNo, i, "CandidateContacts")
+            CandidateContactWeights_data = ContactDataLoader(SpecificPath, StepNo, i, "CandidateContactWeights")
+            WeightedContactDataPlot(vis, StepNo, LimbNo, CandidateContacts_data, CandidateContactWeights_data)
+
+            PathWaypoints_data = ContactDataLoader(SpecificPath, StepNo, i, "PathWaypoints")
+            TransitionDataPlot(vis, StepNo, LimbNo, PathWaypoints_data)
+
+            # WeightedContactDataUnPlot(vis, CandidateContacts_data)
+            # TransitionDataUnplot(vis, StepNo, i)
     else:
         PlanIndex = PlanningInterval(SimulationTime, PlanningTimeList, TimeStep)
         StepLimbPair = PlanningPairList[PlanIndex]
         StepNo = StepLimbPair[0]
         LimbNo = StepLimbPair[1]
-
         for i in range(0, LimbNo+1):
-            ContactPoints_data = ContactDataLoader(SpecificPath, StepNo, i, ContactName)
-            TransitionPoints_data = ContactDataLoader(SpecificPath, StepNo, i, "TransitionPoints")
-            if(PlanIndex>0):
-                LimbNoPre = PlanningPairList[PlanIndex-1][1]
-                for j in range(0, LimbNoPre+1):
-                    ContactPointsPre_data = ContactDataLoader(SpecificPath, PlanIndex-1, j, ContactName)
-                    TransitionPointsPre_data = ContactDataLoader(SpecificPath, PlanIndex-1, j, "TransitionPoints")
-                    ContactDataUnplot(vis, PlanIndex-1, j, ContactPointsPre_data)
-                    TransitionDataUnplot(vis, PlanIndex-1, j, TransitionPointsPre_data)
-            ContactDataPlot(vis, StepNo, i, ContactPoints_data)
-            TransitionDataPlot(vis, StepNo, i, TransitionPoints_data)
+            CandidateContacts_data = ContactDataLoader(SpecificPath, StepNo, i, "CandidateContacts")
+            CandidateContactWeights_data = ContactDataLoader(SpecificPath, StepNo, i, "CandidateContactWeights")
+            WeightedContactDataPlot(vis, StepNo, i, CandidateContacts_data, CandidateContactWeights_data)
+
+            PathWaypoints_data = ContactDataLoader(SpecificPath, StepNo, i, "PathWaypoints")
+            TransitionDataPlot(vis, StepNo, i, PathWaypoints_data)
+        if PlanIndex>0:
+            for i in range(0, PlanIndex):
+                StepLimbPair = PlanningPairList[i]
+                StepNo = StepLimbPair[0]
+                LimbNo = StepLimbPair[1]
+                for j in range(0, LimbNo+1):
+                    CandidateContacts_data = ContactDataLoader(SpecificPath, StepNo, j, "CandidateContacts")
+                    WeightedContactDataUnPlot(vis, StepNo, j, CandidateContacts_data)
+                    TransitionDataUnplot(vis, StepNo, j)
 
 def ExperimentVisualizer(world, ContactLinkDictionary, ExpTraj, PIPInfoList, ImpulseObj, PlanningObj, SpecificPath, Para):
 
@@ -549,10 +568,11 @@ def ExperimentVisualizer(world, ContactLinkDictionary, ExpTraj, PIPInfoList, Imp
     StateTrajLength = len(CtrlStateTraj.times)
     PIPTrajLength = len(EdgeAList)              # Here PIPTraj could be less than the length of state
 
+    StateTraj = []
+
     StateType = Para[0]
     VisMode = Para[1]
 
-    StateTraj = []
     if StateType == "F":
         print "Failure State Traj!"
         StateTraj = FailureStateTraj.milestones
@@ -593,7 +613,6 @@ def ExperimentVisualizer(world, ContactLinkDictionary, ExpTraj, PIPInfoList, Imp
                         Edgez = EdgezList_i[j]
                         PIPVisualizer(j, EdgeA, EdgeB, EdgeCOM, Edgex, Edgey, Edgez, COMPos, vis)
             elif VisMode == "Poly":
-                # EndEffectorTrajPlot(vis, SimulationTime, PlanningObj, SpecificPath, PlotDuration, TimeStep)
                 FeasiFlag = 1        # for j in range(0, len(EdgeAList_i)):
                 if (i >= (StateTrajLength - PIPTrajLength)):
                     EdgeIndex = i + PIPTrajLength - StateTrajLength
@@ -619,32 +638,31 @@ def ExperimentVisualizer(world, ContactLinkDictionary, ExpTraj, PIPInfoList, Imp
                 for i in range(0, len(EdgeAList[EdgeIndex])):
                     PIPCleaner(i, vis)
 
-        # Final Cleaning stage
         if VisMode == "Traj":
             PlanningPairList = PlanningObj[1]
             StepLimbPair = PlanningPairList[len(PlanningPairList)-1]
             StepNo = StepLimbPair[0]
             LimbNo = StepLimbPair[1]
             for i in range(0, LimbNo+1):
-                ContactPoints_data = ContactDataLoader(SpecificPath, StepNo, i, ContactName)
-                TransitionPoints_data = ContactDataLoader(SpecificPath, StepNo, i, "TransitionPoints")
-                ContactDataUnplot(vis, StepNo, i, ContactPoints_data)
-                TransitionDataUnplot(vis, StepNo, i, TransitionPoints_data)
+                CandidateContacts_data = ContactDataLoader(SpecificPath, StepNo, i, "CandidateContacts")
+                WeightedContactDataUnPlot(vis, StepNo, i, CandidateContacts_data)
+                TransitionDataUnplot(vis, StepNo, i)
         if VisMode == "Poly":
             vis.hide("ContactPolytope", True)
 
 def main():
-    ipdb.set_trace()
-    ExpNo = int(sys.argv[1:][0])
-    StateType = str(sys.argv[1:][1])
-    SwitchType = str(sys.argv[1:][2])
-    PlanningType = SwitchType
-    # VisMode = "Traj"  # "Traj", "Poly", "PIP"
-    # VisMode = "Poly"  # "Traj", "Poly", "PIP"
-    VisMode = "PIP"  # "Traj", "Poly", "PIP"
-    if(len(sys.argv[1:])>=4):
-        VisChoice = str(sys.argv[1:][3])
-        VisMode = "Traj"
+    ExpNo = 0
+    StateType = "P"
+    VisMode = "Traj"
+    if(len(sys.argv[1:])==1):
+        ExpNo = int(sys.argv[1:][0])
+    elif(len(sys.argv[1:])==2):
+        ExpNo = int(sys.argv[1:][0])
+        StateType = sys.argv[1:][1]
+    else:
+        ExpNo = int(sys.argv[1:][0])
+        StateType = sys.argv[1:][1]
+        VisChoice = str(sys.argv[1:][2])
         if VisChoice == "T" or VisChoice == "Traj":
             VisMode = "Traj"
         if VisChoice == "Poly" or VisChoice == "Polytope":
@@ -652,21 +670,21 @@ def main():
         if VisChoice == "PIP":
             VisMode = "PIP"
 
-    Robot_Option = "../user/hrp2/"
     world = WorldModel()                    	# WorldModel is a pre-defined class
+    import ipdb; ipdb.set_trace()
 
     curDir = os.getcwd()
-    ExpName = curDir + "/../result/" + ExpType
+    CurCasePath = curDir[0:-4] + "-Data/result/" + CurCase
 
-    XML_path = ExpName + "/../../" + EnviName + ".xml"
+    XML_path = CurCasePath + "/Environment.xml"
     result = world.readFile(XML_path)         	# Here result is a boolean variable indicating the result of this loading operation
     if not result:
         raise RuntimeError("Unable to load model " + XML_path)
-    ContactLinkDictionary = ContactLinkReader("ContactLink.txt", Robot_Option)
+    ContactLinkDictionary = ContactLinkReader(curDir + "/../user/ContactLink.txt")
     PlanStateTraj = Trajectory(world.robot(0))
     CtrlStateTraj = Trajectory(world.robot(0))
     FailureStateTraj = Trajectory(world.robot(0))
-    SpecificPath = ExpName + ContactType + "/" + str(ExpNo) + "/" + str(PlanningType)
+    SpecificPath = CurCasePath + "/" + str(ExpNo)
     PlanStateTraj.load(SpecificPath + "/PlanStateTraj.path")
     CtrlStateTraj.load(SpecificPath+ "/CtrlStateTraj.path")
     FailureStateTraj.load(SpecificPath + "/FailureStateTraj.path")
