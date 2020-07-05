@@ -112,7 +112,7 @@ static std::vector<double> GlobalFrameConfigUpdate(Robot & SimRobot, const doubl
   return FrameConfigVec;
 }
 
-Config WholeBodyDynamicsIntegrator(Robot & SimRobot, InvertedPendulumInfo & InvertedPendulumObj, const double & TimeDuration, const int & StepIndex){
+Config WholeBodyDynamicsIntegrator(Robot & SimRobot, InvertedPendulumInfo & InvertedPendulumObj, const double & TimeDuration){
   Vector3 RotAxis = InvertedPendulumObj.edge_b - InvertedPendulumObj.edge_a;
   RotAxis.setNormalized(RotAxis);
   const int IntergrationStep = 11;
@@ -130,10 +130,5 @@ Config WholeBodyDynamicsIntegrator(Robot & SimRobot, InvertedPendulumInfo & Inve
     UpdatedConfig[i] = FrameConfig[i];
   }
   UpdatedConfig = YPRShifter(UpdatedConfig);
-  // if(StepIndex>=0){
-  //   std::string ConfigPath = "/home/motion/Desktop/Whole-Body-Planning-for-Push-Recovery/build/";
-  //   std::string OptConfigFile = "WholeBodyUpdatedConfig" + std::to_string(StepIndex) + ".config";
-  //   RobotConfigWriter(UpdatedConfig, ConfigPath, OptConfigFile);
-  // }
   return Config(UpdatedConfig);
 }

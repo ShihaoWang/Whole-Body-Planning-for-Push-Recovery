@@ -70,13 +70,13 @@ PIPInfo TipOverPIPGenerator(const std::vector<Vector3> & ActiveContacts, const V
 ControlReferenceInfo ControlReferenceGene(Robot & SimRobot, const std::vector<ContactStatusInfo> & RobotContactInfo, ReachabilityMap & RMObject, SelfLinkGeoInfo & SelfLinkGeoObj, SimPara & SimParaObj);
 
 /* 7. Whole-Body Estimation */
-Config WholeBodyDynamicsIntegrator(Robot & SimRobot, InvertedPendulumInfo & InvertedPendulumObj, const double & TimeDuration, const int & StepIndex);
+Config WholeBodyDynamicsIntegrator(Robot & SimRobot, InvertedPendulumInfo & InvertedPendulumObj, const double & TimeDuration);
 
 /* 8. Transient Path Generation*/
 std::vector<SplineLib::cSpline3> TransientPathGene(const Robot & SimRobot, SelfLinkGeoInfo & SelfLinkGeoObj, SimPara & SimParaObj);
 ControlReferenceInfo TrajectoryPlanning(Robot & SimRobotInner, const InvertedPendulumInfo & InvertedPendulumObj, ReachabilityMap & RMObject,SelfLinkGeoInfo & SelfLinkGeoObj,
                                         EndEffectorPathInfo & EndEffectorPathObj, SimPara & SimParaObj);
-std::vector<double> TrajConfigOptimazation(const Robot & SimRobot, ReachabilityMap & RMObject, SelfLinkGeoInfo & _SelfLinkGeoObj, SimPara & SimParaObj, const double & EndEffectorProjx, const double & EndEffectorProjy, const int & StageIndex);
+std::vector<double> TrajConfigOptimazation(const Robot & SimRobot, ReachabilityMap & RMObject, SelfLinkGeoInfo & _SelfLinkGeoObj, SimPara & SimParaObj, const double & EndEffectorProjx, const double & EndEffectorProjy);
 std::vector<double> LastStageConfigOptimazation(const Robot & SimRobot, ReachabilityMap & RMObject, SelfLinkGeoInfo & _SelfLinkGeoObj, SimPara & SimParaObj, const int & StageIndex);
 
 #endif

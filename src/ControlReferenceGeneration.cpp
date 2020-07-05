@@ -199,7 +199,7 @@ static std::vector<Vector3> OptimalContactSearcher( Robot SimRobot,     const PI
       InvertedPendulumInfo InvertedPendulumObj(PIPObj.L, PIPObj.g, PIPObj.theta, PIPObj.thetadot, COMPos, COMVel);
       InvertedPendulumObj.setEdges(PIPObj.edge_a, PIPObj.edge_b);
 
-      Config UpdatedConfig  = WholeBodyDynamicsIntegrator(SimRobot, InvertedPendulumObj, SimParaObj.ForwardDuration, -1);
+      Config UpdatedConfig  = WholeBodyDynamicsIntegrator(SimRobot, InvertedPendulumObj, SimParaObj.ForwardDuration);
       SimRobot.UpdateConfig(UpdatedConfig);
 
       COMPos = InvertedPendulumObj.COMPos;
