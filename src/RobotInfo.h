@@ -808,11 +808,12 @@ struct ControlReferenceInfo{
   void SetInitContactStatus(const std::vector<ContactStatusInfo> &_InitContactStatus){ InitContactStatus = _InitContactStatus; }
   std::vector<ContactStatusInfo> getInitContactStatus(){return InitContactStatus;}
 
-  void SetGoalContactStatus(const std::vector<ContactStatusInfo> & _GoalContactStatus) {GoalContactStatus = _GoalContactStatus;}
+  void SetGoalContactStatus(const std::vector<ContactStatusInfo> & _GoalContactStatus) { GoalContactStatus = _GoalContactStatus;}
   std::vector<ContactStatusInfo> getGoalContactStatus() {return GoalContactStatus;}
 
   void TrajectoryUpdate(const std::vector<double> & timeTraj, const std::vector<Config> & configTraj, const std::vector<Vector3> & endeffectorTraj){
     TimeTraj = timeTraj;
+    ConfigTraj = configTraj;
     PlannedConfigTraj = LinearPath(timeTraj, configTraj);
     std::vector<Vector> endeffectorPath;
     for (Vector3 EndEffectorPos: endeffectorTraj){
@@ -825,6 +826,72 @@ struct ControlReferenceInfo{
     }
     EndEffectorTraj = LinearPath(timeTraj, endeffectorPath);
   }
+
+  double NegPI2PosPI(const double & angle){
+    double angle_ = angle;
+    if((angle_>=-M_PI)&&(angle_<=M_PI)){
+      return angle_;
+    }
+    if(angle_<-M_PI){
+      while(1){
+        angle_+=2.0 * M_PI;
+        if((angle_>=-M_PI)&&(angle_<=M_PI)) return angle_;
+      }
+    }
+    else {
+      while(1){
+        angle_-=2.0 * M_PI;
+        if((angle_>=-M_PI)&&(angle_<=M_PI)) return angle_;
+      }
+    }
+  }
+
+  double AngleInterpolator(const double & preAng, const double & nextAng, const double & preTime, const double & nextTime, const double & curTime){
+    double preAngShift = preAng;
+    double nextAngShift = nextAng;
+    if (abs(nextAng - preAng)>M_PI){
+      // Singularity exists!
+      // Force them to became an angle between -pi to pi
+      preAngShift = NegPI2PosPI(preAng);
+      nextAngShift = NegPI2PosPI(nextAng);
+    }
+    double angleInterpolated = (nextAngShift - preAngShift)/(nextTime - preTime) * (curTime - preTime) + preAng;
+  }
+  void EulerAngleInterpolator(const double & curTime, double & Yaw, double & Pitch, double & Roll){
+    // This function is used to address the euler angle singularity problem.
+    if(curTime<0.0){
+      Config FirstConfig = ConfigTraj.front();
+      Yaw = FirstConfig[3];
+      Pitch = FirstConfig[4];
+      Roll = FirstConfig[5];
+    }
+    else{
+      if(curTime>=TimeTraj.back()){
+        Config LastConfig = ConfigTraj.back();
+        Yaw = LastConfig[3];
+        Pitch = LastConfig[4];
+        Roll = LastConfig[5];
+      }
+      else{
+        int preInd, nextInd;
+        for (int i = 0; i < TimeTraj.size()-1; i++) {
+          if(curTime>=TimeTraj[i]){
+            preInd = i;
+            nextInd = preInd+1;
+            break;
+          }
+        }
+      Config preConfig = ConfigTraj[preInd];
+      Config nextConfig = ConfigTraj[nextInd];
+      double preTime = TimeTraj[preInd];
+      double nextTime = TimeTraj[nextInd];
+      Yaw = AngleInterpolator(preConfig[3], nextConfig[3], preTime, nextTime, curTime);
+      Pitch = AngleInterpolator(preConfig[4], nextConfig[4], preTime, nextTime, curTime);
+      Roll = AngleInterpolator(preConfig[5], nextConfig[5], preTime, nextTime, curTime);
+      }
+    }
+  }
+
   void setWaitTime(const double & _WaitTime) { WaitTime = _WaitTime; }
   double getWaitTime() { return WaitTime; }
   void setTouchDownConfig(const std::vector<double> _TouchDownConfig){ TouchDownConfig = _TouchDownConfig; }
@@ -846,6 +913,7 @@ struct ControlReferenceInfo{
   LinearPath EndEffectorTraj;
 
   std::vector<double> TimeTraj;
+  std::vector<Config> ConfigTraj;
   std::vector<ContactStatusInfo> InitContactStatus;
   std::vector<ContactStatusInfo> GoalContactStatus;
 };

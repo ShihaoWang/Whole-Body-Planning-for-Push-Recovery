@@ -167,9 +167,9 @@ std::vector<double> LastStageConfigOptimazation(const Robot & SimRobot, Reachabi
   SimRobotObj.UpdateConfig(Config(OptConfig));
   SimRobotObj.UpdateGeometry();
 
-  // std::string ConfigPath = "/home/motion/Desktop/Whole-Body-Planning-for-Push-Recovery/build/";
-  // std::string OptConfigFile = "SwingUpdatedConfig" + std::to_string(StageIndex) + ".config";
-  // RobotConfigWriter(OptConfig, ConfigPath, OptConfigFile);
+  std::string ConfigPath = "/home/motion/Desktop/Whole-Body-Planning-for-Push-Recovery/build/";
+  std::string OptConfigFile = "LastConfig.config";
+  RobotConfigWriter(OptConfig, ConfigPath, OptConfigFile);
 
   // SimParaObj.setTrajConfigOptFlag(OptFlag);
   OptConfig = YPRShifter(OptConfig);

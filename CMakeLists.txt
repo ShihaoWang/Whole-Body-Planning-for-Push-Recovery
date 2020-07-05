@@ -75,7 +75,6 @@ add_executable(MyApp
 	       src/TransientPathGeneration.cpp
 	       src/TrajectoryPlanning.cpp
 	       src/TrajectoryConfigOptimization.cpp
-	       src/TrajectoryPhaseTime.cpp
 	       src/OrientationOptimization.cpp
 	       src/LastStageConfigOptimization.cpp)
 

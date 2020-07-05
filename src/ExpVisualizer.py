@@ -671,8 +671,6 @@ def main():
             VisMode = "PIP"
 
     world = WorldModel()                    	# WorldModel is a pre-defined class
-    import ipdb; ipdb.set_trace()
-
     curDir = os.getcwd()
     CurCasePath = curDir[0:-4] + "-Data/result/" + CurCase
 
