@@ -238,8 +238,8 @@ static ControlReferenceInfo ControlReferenceGeneInner(const Robot & SimRobot, co
   Vector3 COMPos, COMVel;
   getCentroidalState(SimRobot, COMPos, COMVel);
   InvertedPendulumInfo InvertedPendulumObj( TipOverPIPObj.L, TipOverPIPObj.g,
-    TipOverPIPObj.theta, TipOverPIPObj.thetadot,
-    COMPos, COMVel);
+                                            TipOverPIPObj.theta, TipOverPIPObj.thetadot,
+                                            COMPos, COMVel);
     InvertedPendulumObj.setEdges(TipOverPIPObj.edge_a, TipOverPIPObj.edge_b);
   for (int i = 0; i < OptimalContact.size(); i++) {
     Robot SimRobotInner = SimRobot;
@@ -298,6 +298,8 @@ ControlReferenceInfo ControlReferenceGene(Robot & SimRobot,
    if(ControlReferenceObj.getReadyFlag()){
      ControlReferenceObjVec.push_back(ControlReferenceObj);
      ExecutionTimeVec.push_back(ControlReferenceObj.TimeTraj.back());
+     SimParaObj.DataRecorderObj.PlannedConfigTraj = ControlReferenceObj.PlannedConfigTraj;
+     SimParaObj.DataRecorderObj.EndEffectorTraj = ControlReferenceObj.EndEffectorTraj;
      SimParaObj.DataRecorderObj.Write2File(SimParaObj.getCurrentCasePath());
      PlanEndEffectorIndex++;
    }

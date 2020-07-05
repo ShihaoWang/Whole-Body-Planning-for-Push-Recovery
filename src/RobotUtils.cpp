@@ -252,6 +252,19 @@ bool FailureChecker(Robot & SimRobot, ReachabilityMap & RMObject){
   return false;
 }
 
+bool PenetrationTester(const Robot & SimRobotObj, const int & SwingLinkInfoIndex){
+  double DistTol = 1.0;
+  for (int i = 0; i < NonlinearOptimizerInfo::RobotLinkInfo[SwingLinkInfoIndex].LocalContacts.size(); i++) {
+    Vector3 LocalPos;
+    SimRobotObj.GetWorldPosition( NonlinearOptimizerInfo::RobotLinkInfo[SwingLinkInfoIndex].LocalContacts[i],
+                                  NonlinearOptimizerInfo::RobotLinkInfo[SwingLinkInfoIndex].LinkIndex, LocalPos);
+    double LocalPosDist = NonlinearOptimizerInfo::SDFInfo.SignedDistance(LocalPos);
+    if(LocalPosDist<DistTol) DistTol = LocalPosDist;
+  }
+  if(DistTol<0.0) return true;
+  else return false;
+}
+
 void PlanTimeRecorder(const double & PlanTimeVal, const string & CurrentCasePath){
   // This function saves the total planning time needed for each planning procedure.
   string PlanTimeFileStr = CurrentCasePath + "PlanTime.txt";
@@ -283,4 +296,11 @@ void PlanResWriter(const string & CurrentCasePath, const int & PushRecovFlag){
   PlanResWriter.open(PlanResStr_Name);
   PlanResWriter<<std::to_string(PushRecovFlag)<<"\n";
   PlanResWriter.close();
+}
+
+void SwingLinkStatePrint(const std::vector<double> & Config, const std::vector<int> & SwingLinkChain){
+  for (int i = 0; i < SwingLinkChain.size(); i++) {
+    std::printf("%f ", Config[SwingLinkChain[i]]);
+  }
+  std::printf("\n");
 }

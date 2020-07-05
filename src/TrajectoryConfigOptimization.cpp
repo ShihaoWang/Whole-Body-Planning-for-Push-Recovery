@@ -8,6 +8,7 @@ static Vector3 GoalPos;
 static Vector3 GoalDir;
 static std::vector<double> ReferenceConfig;
 static SelfLinkGeoInfo SelfLinkGeoObj;
+static double EndEffectorTol = 1e-3;
 
 struct TrajConfigOpt: public NonlinearOptimizerInfo
 {
@@ -77,15 +78,29 @@ struct TrajConfigOpt: public NonlinearOptimizerInfo
       for (int j = 0; j < BoxVerticesVec.size(); j++)
         DistVec[j] = SelfLinkGeoObj.SelfCollisionDist(SwingLinkInfoIndex, BoxVerticesVec[j]);
       SelfCollisionDistVec[i] = *std::min_element(DistVec.begin(), DistVec.end());
+      F[ConstraintIndex] = SelfCollisionDistVec[i];
+      ConstraintIndex+=1;
     }
-    F[ConstraintIndex] = *std::min_element(SelfCollisionDistVec.begin(), SelfCollisionDistVec.end());
+    RobotLink3D EndEffectorLink = SimRobotObj.links[NonlinearOptimizerInfo::RobotLinkInfo[SwingLinkInfoIndex].LinkIndex];
+
+    Vector3 EndEffectorInitxDir, EndEffectorInityDir;   // Eventually these two directions should be orthgonal to goal direction.
+    EndEffectorInitxDir.x = EndEffectorLink.T_World.R.data[0][0];
+    EndEffectorInitxDir.y = EndEffectorLink.T_World.R.data[0][1];
+    EndEffectorInitxDir.z = EndEffectorLink.T_World.R.data[0][2];
+    F[ConstraintIndex] = EndEffectorInitxDir.dot(GoalDir);
+    ConstraintIndex+=1;
+
+    EndEffectorInityDir.x = EndEffectorLink.T_World.R.data[1][0];
+    EndEffectorInityDir.y = EndEffectorLink.T_World.R.data[1][1];
+    EndEffectorInityDir.z = EndEffectorLink.T_World.R.data[1][2];
+    F[ConstraintIndex] = EndEffectorInityDir.dot(GoalDir);
     ConstraintIndex+=1;
 
     return F;
   }
 };
 
-std::vector<double> TrajConfigOptimazation(const Robot & SimRobot, ReachabilityMap & RMObject, SelfLinkGeoInfo & _SelfLinkGeoObj, SimPara & SimParaObj, const int & StageIndex){
+std::vector<double> TrajConfigOptimazation(const Robot & SimRobot, ReachabilityMap & RMObject, SelfLinkGeoInfo & _SelfLinkGeoObj, SimPara & SimParaObj, const double & EndEffectorProjx, const double & EndEffectorProjy, const int & StageIndex){
   // This function is used to optimize robot's configuration such that a certain contact can be reached for that end effector.
   SimRobotObj = SimRobot;
   SwingLinkInfoIndex = SimParaObj.getSwingLinkInfoIndex();
@@ -104,7 +119,8 @@ std::vector<double> TrajConfigOptimazation(const Robot & SimRobot, ReachabilityM
   // Cost function on the norm difference between the reference avg position and the modified contact position.
   int neF = 1;
   neF += NonlinearOptimizerInfo::RobotLinkInfo[SwingLinkInfoIndex].LocalContacts.size();
-  neF += 1;                                                                                           // Self-Collision Avoidance
+  neF += SwingLinkChain.size()-3;                                               // Self-Collision Avoidance
+  neF += 2;                                                                     // End Effector Orientation Constraint
   TrajConfigOptProblem.InnerVariableInitialize(n, neF);
 
   /*
@@ -129,6 +145,13 @@ std::vector<double> TrajConfigOptimazation(const Robot & SimRobot, ReachabilityM
     Flow_vec[i] = 0;
     Fupp_vec[i] = 1e10;
   }
+
+  Flow_vec[neF-2] = EndEffectorProjx - EndEffectorTol;
+  Fupp_vec[neF-2] = EndEffectorProjx + EndEffectorTol;
+
+  Flow_vec[neF-1] = EndEffectorProjy - EndEffectorTol;
+  Fupp_vec[neF-1] = EndEffectorProjy + EndEffectorTol;
+
   TrajConfigOptProblem.ConstraintBoundsUpdate(Flow_vec, Fupp_vec);
 
   /*
@@ -154,11 +177,8 @@ std::vector<double> TrajConfigOptimazation(const Robot & SimRobot, ReachabilityM
   TrajConfigOptProblem.Solve(SwingLinkChainGuess);
 
   std::vector<double> OptConfig = ReferenceConfig;
-
   for (int i = 0; i < n; i++)
-  {
     OptConfig[SwingLinkChain[i]] = SwingLinkChainGuess[i];
-  }
   SimRobotObj.UpdateConfig(Config(OptConfig));
   SimRobotObj.UpdateGeometry();
 

@@ -1,5 +1,6 @@
 #include "CommonHeader.h"
 #include "NonlinearOptimizerInfo.h"
+#include "gurobi_c++.h"
 
 static std::vector<double> ProjectionLength(const Vector3 & InitDir, const Vector3 & GoalDir, const int & gridNo){
   double x = GoalDir.dot(InitDir);
@@ -12,6 +13,18 @@ static std::vector<double> ProjectionLength(const Vector3 & InitDir, const Vecto
     projVec[i] = cos(angle_rad);
   }
   return projVec;
+}
+
+static std::vector<double> EdgeProjVec(const Vector3 & InitxDir, const Vector3 & GoalDir, const int & gridNo){
+  double xProj = InitxDir.dot(GoalDir);
+  double xProjUnit = xProj/(1.0 * gridNo);
+  std::vector<double> xProjVec(gridNo);
+  double xProjVal = xProj - xProjUnit;
+  for (int i = 0; i < gridNo; i++) {
+    xProjVec[i] = xProjVal;
+    xProjVal = xProjVal - xProjUnit;
+  }
+  return xProjVec;
 }
 
 static std::vector<double> ReductionRatioVecGene(const double & ReductionRatio, const int & sRes){
@@ -110,24 +123,210 @@ static double AccPhaseTimeInner(const double & PosDiff,
   }
 }
 
-static void Velocity2Pos(   const double & PosDiff,
-                            const double & InitVelocity,  double & GoalVelocity,
-                            const double & VelocityBound, const double & AccBound,
-                            const double & DurationTime){
+static double Velocity2Pos(   const double & PosDiff,
+                              const double & InitVelocity,  double & GoalVelocity,
+                              const double & VelocityBound, const double & AccBound,
+                              const double & DurationTime){
   // Figure out the velocity that this system reaches GoalPos with Duration time.
+  // Potentially, if the exact position cannot be met at current time, an position offset is added.
+  double AccEst, VelocityEst;
   if(PosDiff>0.0){
-    double AccEst = 2.0 * (PosDiff - InitVelocity * DurationTime)/(DurationTime * DurationTime);  // This value is sure to be less than the bound.
-    double VelocityEst = InitVelocity + AccEst * DurationTime;
-    if(VelocityEst<VelocityBound) GoalVelocity = VelocityEst;
-    else GoalVelocity = VelocityBound;
+    AccEst = 2.0 * (PosDiff - InitVelocity * DurationTime)/(DurationTime * DurationTime);  // This value is sure to be less than the bound.
+    VelocityEst = InitVelocity + AccEst * DurationTime;
+    if(VelocityEst>=0.0){
+      if(VelocityEst<VelocityBound) GoalVelocity = VelocityEst;
+      else GoalVelocity = VelocityBound;
+    }
+    else
+    {
+      // This means that the duration time is too long for this joint and this joint can actually move to a place and remain there.
+      double PosZero = InitVelocity * InitVelocity/(2.0 * AccBound);
+      if(PosZero<PosDiff) GoalVelocity = 0.0;
+      else GoalVelocity = VelocityEst;
+    }
   }
   else{
-    double AccEst = -2.0 * (PosDiff - InitVelocity * DurationTime)/(DurationTime * DurationTime);  // This value is sure to be less than the bound.
-    double VelocityEst = InitVelocity - AccEst * DurationTime;
-    if(VelocityEst>-VelocityBound) GoalVelocity = VelocityEst;
-    else GoalVelocity = -VelocityBound;
+    // NOTE: Bug exist!
+    AccEst = -2.0 * (PosDiff - InitVelocity * DurationTime)/(DurationTime * DurationTime);  // This value is sure to be less than the bound.
+    VelocityEst = InitVelocity - AccEst * DurationTime;
+    if(VelocityEst<=0.0){
+      if(VelocityEst>-VelocityBound) GoalVelocity = VelocityEst;
+      else GoalVelocity = -VelocityBound;
+    }
+    else
+    {
+      // This means that the duration time is too long for this joint and this joint can actually move to a place and remain there.
+      double PosZero = InitVelocity * InitVelocity/(2.0 * AccBound);
+      if(PosZero<-PosDiff) GoalVelocity = 0.0;
+      else GoalVelocity = VelocityEst;
+    }
   }
 }
+
+static double Velocity2PosQP( const double & delta_q,
+                              const double & qdot_zero, double & goal_velocity,
+                              const double & qdot_max,  const double & qddot_max,
+                              const double & delta_t){
+  /*
+      Variables to be optimized:  Joint's discretized velocity at each grid time.
+      qdot_1, ..., qdot_N
+  */
+  const int grid_no = 10;
+  double delta_t_unit = delta_t/(1.0 * grid_no);
+  Velocity2Pos(delta_q, qdot_zero, goal_velocity, qdot_max,qddot_max, delta_t);
+
+  try {
+    GRBEnv env = GRBEnv();
+    GRBModel model = GRBModel(env);
+
+    // Create variables
+    std::vector<GRBVar> OptVariables;
+    OptVariables.reserve(grid_no);
+    for (int i = 0; i < grid_no; i++){
+      std::string x_name = "qdot_" + std::to_string(i);
+      GRBVar qdot_i = model.addVar(-1.0 * qdot_max, qdot_max, 0.0, GRB_CONTINUOUS, x_name);
+      OptVariables.push_back(qdot_i);
+    }
+
+    // Set objective: ||qdot_grid_no - qdot_zero||_2^2
+    GRBQuadExpr obj = 0;
+    obj+=(OptVariables[0] - qdot_zero) * (OptVariables[0] - qdot_zero);
+    for (int i = 0; i < grid_no-1; i++) {
+      obj+=(OptVariables[i+1] - OptVariables[i]) * (OptVariables[i+1] - OptVariables[i]);
+    }
+    model.setObjective(obj);
+
+    // Next step is to add constraint: there are two types of constraints
+    // 0. acceleartion bound
+    int ConsInd = 0;
+    std::string cons_name = "acc" + std::to_string(ConsInd);
+    GRBLinExpr acc_i = (OptVariables[0] - qdot_zero);
+    GRBLinExpr acc_lower = -qddot_max * delta_t_unit;
+    GRBLinExpr acc_upper = -acc_lower;
+    model.addConstr(acc_i>=acc_lower, cons_name);
+    ConsInd+=1;
+    cons_name = "acc" + std::to_string(ConsInd);
+    model.addConstr(acc_i<=acc_upper, cons_name);
+    ConsInd+=1;
+
+    for (int i = 0; i < grid_no-1; i++){
+      std::string cons_name = "acc" + std::to_string(ConsInd);
+      acc_i = OptVariables[i+1] - OptVariables[i];
+      model.addConstr(acc_i>=acc_lower, cons_name);
+      ConsInd+=1;
+      cons_name = "acc" + std::to_string(ConsInd);
+      model.addConstr(acc_i<=acc_upper, cons_name);
+      ConsInd+=1;
+    }
+
+    // 1. equality constraint
+    cons_name = "delta_q" + std::to_string(ConsInd);
+    GRBLinExpr lhs_delta_q = qdot_zero + OptVariables.back();
+    GRBLinExpr rhs_delta_q = 2.0 * delta_q/delta_t_unit;
+    for (int i = 0; i < grid_no-1; i++) {
+      lhs_delta_q+=2.0 * OptVariables[i];
+    }
+    model.addConstr(lhs_delta_q==rhs_delta_q, cons_name);
+    ConsInd+=1;
+
+    model.optimize();
+    cout << "Objective Value: " << model.get(GRB_DoubleAttr_ObjVal)<< endl;
+    std::vector<double> qdot_soln(grid_no);
+    for (int i = 0; i < grid_no; i++){
+      qdot_soln[i] = OptVariables[i].get(GRB_DoubleAttr_X);
+      std::cout<<qdot_soln[i]<<std::endl;
+
+    }
+    goal_velocity = qdot_soln.back();
+  } catch(GRBException e)
+  {
+    cout << "Error code = " << e.getErrorCode() << endl;
+    cout << e.getMessage() << endl;
+  } catch(...)
+  {
+    cout << "Exception during optimization" << endl;
+  }
+  return goal_velocity;
+}
+
+static double AccPhaseTimePathMethodQCP(    const std::vector<double> & CurConfig,      const std::vector<double> & NextConfig,
+                                            const std::vector<double> & CurVelocity,    std::vector<double> & NextVelocity,
+                                            const std::vector<double> & VelocityBound,  const std::vector<double> & AccelerationBound,
+                                            const std::vector<int> SwingLinkChain){
+  /*
+      Variables to be optimized:
+      Joint's velocity, acceleration and time
+  */
+
+  try {
+    GRBEnv env = GRBEnv();
+    GRBModel model = GRBModel(env);
+
+    // Create variables
+    std::vector<GRBVar> OptVariables;
+    OptVariables.reserve(SwingLinkChain.size() * 2 + 2);
+    // qdot
+    for (int i = 0; i < SwingLinkChain.size(); i++){
+      std::string x_name = "qdot_" + std::to_string(i);
+      double qdot_max = VelocityBound[SwingLinkChain[i]];
+      GRBVar qdot_i = model.addVar(-1.0 * qdot_max, qdot_max, 0.0, GRB_CONTINUOUS, x_name);
+      OptVariables.push_back(qdot_i);
+    }
+    // qddot
+    for (int i = 0; i < SwingLinkChain.size(); i++){
+      std::string x_name = "qddot_" + std::to_string(i);
+      double qddot_max = AccelerationBound[SwingLinkChain[i]];
+      GRBVar qdot_i = model.addVar(-1.0 * qddot_max, qddot_max, 0.0, GRB_CONTINUOUS, x_name);
+      OptVariables.push_back(qdot_i);
+    }
+    std::string delta_t_name = "delta_t";
+    GRBVar delta_t = model.addVar(0.0, 100.0, 0.0, GRB_CONTINUOUS, delta_t_name);
+    OptVariables.push_back(delta_t);
+
+    // Set objective: delta_t
+    GRBQuadExpr obj = OptVariables.back();
+    model.setObjective(obj);
+
+    // Set Constraint
+    int ConsInd = 0;
+    std::string cons_name;
+    for (int i = 0; i < SwingLinkChain.size(); i++) {
+      double delta_q = NextConfig[SwingLinkChain[i]] - CurConfig[SwingLinkChain[i]];
+      cons_name = "integration" + std::to_string(ConsInd);
+      model.addQConstr(delta_q == 0.5 * (CurVelocity[SwingLinkChain[i]] + OptVariables[i]) * delta_t, cons_name);
+      ConsInd++;
+    }
+    for (int i = 0; i < SwingLinkChain.size(); i++) {
+      double qdot_max = VelocityBound[SwingLinkChain[i]];
+      cons_name = "velocity" + std::to_string(ConsInd);
+      model.addQConstr(CurVelocity[SwingLinkChain[i]] + OptVariables[i+SwingLinkChain.size()] * delta_t==OptVariables[i], cons_name);
+      ConsInd++;
+    }
+
+    model.set(GRB_IntParam_NonConvex, 2);
+    model.optimize();
+    cout << "Objective Value: " << model.get(GRB_DoubleAttr_ObjVal)<< endl;
+    std::vector<double> qdot_soln(OptVariables.size());
+    for (int i = 0; i < OptVariables.size(); i++){
+      qdot_soln[i] = OptVariables[i].get(GRB_DoubleAttr_X);
+      std::cout<<qdot_soln[i]<<std::endl;
+    }
+    for (int i = 0; i < SwingLinkChain.size(); i++) {
+      NextVelocity[SwingLinkChain[i]] = qdot_soln[i];
+    }
+    return qdot_soln.back();
+
+  } catch(GRBException e)
+  {
+    cout << "Error code = " << e.getErrorCode() << endl;
+    cout << e.getMessage() << endl;
+  } catch(...)
+  {
+    cout << "Exception during optimization" << endl;
+  }
+  return 0.0;
+}
+
 
 double AccPhaseTimePathMethod(  const std::vector<double> & CurConfig,      const std::vector<double> & NextConfig,
                                 const std::vector<double> & CurVelocity,    std::vector<double> & NextVelocity,
@@ -196,16 +395,28 @@ ControlReferenceInfo TrajectoryPlanning(Robot & SimRobotInner, const InvertedPen
   EndEffectorInitDir.y = EndEffectorLink.T_World.R.data[2][1];
   EndEffectorInitDir.z = EndEffectorLink.T_World.R.data[2][2];
 
+  Vector3 EndEffectorInitxDir, EndEffectorInityDir;   // Eventually these two directions should be orthgonal to goal direction.
+  EndEffectorInitxDir.x = EndEffectorLink.T_World.R.data[0][0];
+  EndEffectorInitxDir.y = EndEffectorLink.T_World.R.data[0][1];
+  EndEffectorInitxDir.z = EndEffectorLink.T_World.R.data[0][2];
+
+  EndEffectorInityDir.x = EndEffectorLink.T_World.R.data[1][0];
+  EndEffectorInityDir.y = EndEffectorLink.T_World.R.data[1][1];
+  EndEffectorInityDir.z = EndEffectorLink.T_World.R.data[1][2];
+
   Vector3 EndEffectorGoalDir = SimParaObj.getGoalDirection();
 
   int SwingLinkInfoIndex = SimParaObj.getSwingLinkInfoIndex();
   std::vector<int> SwingLinkChain = RMObject.EndEffectorLink2Pivotal[SwingLinkInfoIndex];
 
   // The main idea is that end effector will gradually move to be aligned with goal direction.
-  const int sNumber = 5;                 // (sNumber-1) segments
+  const int sNumber = 21;                 // (sNumber-1) segments
   double sDiff = 1.0/(1.0 * sNumber - 1.0);
   double sVal = 0.0;
   std::vector<double> projVec = ProjectionLength(EndEffectorInitDir, EndEffectorGoalDir, sNumber - 1);
+
+  std::vector<double> EndEffectorProjxVec = EdgeProjVec(EndEffectorInitxDir, EndEffectorGoalDir, sNumber-1);
+  std::vector<double> EndEffectorProjyVec = EdgeProjVec(EndEffectorInityDir, EndEffectorGoalDir, sNumber-1);
 
   double CurrentTime = 0.0;
   Config CurrentConfig = Config(YPRShifter(SimRobotInner.q));
@@ -231,20 +442,15 @@ ControlReferenceInfo TrajectoryPlanning(Robot & SimRobotInner, const InvertedPen
 
   ControlReferenceInfo ControlReferenceObj;
   ControlReferenceObj.setReadyFlag(false);
-  bool LastStageFlag = false;
-  for (int sIndex = 1; sIndex < sNumber; sIndex++) {
+  int sIndex = 1;
+  bool PenetrationFlag = false;
+  while ((sIndex<sNumber) && !PenetrationFlag){
     sVal = 1.0 * sIndex * sDiff;
     EndEffectorPathObj.s2Pos(sVal, CurrentContactPos);
     Vector3 PlannedCurrentContactPos = CurrentContactPos;
     SimParaObj.setCurrentContactPos(PlannedCurrentContactPos);
-    switch (sIndex) {
-      case 4: LastStageFlag = true;
-      break;
-      default:
-      break;
-    }
     std::vector<double> NextConfig = TrajConfigOptimazation(SimRobotInner, RMObject,
-                                                            SelfLinkGeoObj, SimParaObj, sIndex);
+                                                            SelfLinkGeoObj, SimParaObj, EndEffectorProjxVec[sIndex],  EndEffectorProjyVec[sIndex], sIndex);
     std::vector<double> NextVelocity = WholeBodyVelocityTraj[WholeBodyVelocityTraj.size()-1];
     Config UpdatedConfig;
     double StageTime;
@@ -266,11 +472,9 @@ ControlReferenceInfo TrajectoryPlanning(Robot & SimRobotInner, const InvertedPen
       SimRobotInner.UpdateConfig(Config(NextConfig));
       UpdatedConfig  = WholeBodyDynamicsIntegrator(SimRobotInner, InvertedPendulumObj, StageTime, sIndex);
       SimRobotInner.UpdateConfig(UpdatedConfig);
-      if(!LastStageFlag)
-        UpdatedConfig = OrientationOptimazation(SimRobotInner, SwingLinkChain, SimParaObj, projVec[sIndex], sIndex);
-      else
-        UpdatedConfig = LastStageConfigOptimazation(SimRobotInner, RMObject, SelfLinkGeoObj, SimParaObj, sIndex);
-      SimRobotInner.UpdateConfig(UpdatedConfig);
+
+      PenetrationFlag = PenetrationTester(SimRobotInner, SwingLinkInfoIndex);
+      if(PenetrationFlag) continue;
 
       std::string ConfigPath = "/home/motion/Desktop/Whole-Body-Planning-for-Push-Recovery/build/";
       std::string OptConfigFile = "InnerOpt" + std::to_string(sIndex) + ".config";
@@ -291,11 +495,25 @@ ControlReferenceInfo TrajectoryPlanning(Robot & SimRobotInner, const InvertedPen
       WholeBodyVelocityTraj.push_back(Config(NextVelocity));
       PlannedEndEffectorTraj.push_back(PlannedCurrentContactPos);
     }
+    sIndex++;
   }
   for (int i = 0; i < WholeBodyConfigTraj.size(); i++) {
     std::string ConfigPath = "/home/motion/Desktop/Whole-Body-Planning-for-Push-Recovery/build/";
     std::string OptConfigFile = "InnerOpt" + std::to_string(i) + ".config";
     RobotConfigWriter(WholeBodyConfigTraj[i], ConfigPath, OptConfigFile);
+  }
+  for (int i = 0; i < WholeBodyConfigTraj.size(); i++) {
+    std::string ConfigPath = "/home/motion/Desktop/Whole-Body-Planning-for-Push-Recovery/build/";
+    std::string OptConfigFile = "InnerVel" + std::to_string(i) + ".config";
+    RobotConfigWriter(WholeBodyVelocityTraj[i], ConfigPath, OptConfigFile);
+  }
+  std::cout<<"Config"<<std::endl;
+  for (int i = 0; i < WholeBodyConfigTraj.size(); i++) {
+    SwingLinkStatePrint(WholeBodyConfigTraj[i], SwingLinkChain);
+  }
+  std::cout<<"Velocity"<<std::endl;
+  for (int i = 0; i < WholeBodyConfigTraj.size(); i++) {
+    SwingLinkStatePrint(WholeBodyVelocityTraj[i], SwingLinkChain);
   }
   if(SimParaObj.getTrajConfigOptFlag()){
     std::vector<ContactStatusInfo> GoalContactInfo = SimParaObj.FixedContactStatusInfo;

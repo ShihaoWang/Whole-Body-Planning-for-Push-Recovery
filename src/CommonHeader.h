@@ -51,6 +51,8 @@ bool FailureChecker(Robot & SimRobot, ReachabilityMap & RMObject);
 void PlanTimeRecorder(const double & PlanTimeVal, const string & CurrentCasePath);
 void PlanningInfoFileAppender(const int & PlanStageIndex, const int & TotalLinkNo, const string & CurrentCasePath, const double & CurTime);
 void PlanResWriter(const string & SpecificPath, const int & PushRecovFlag);
+void SwingLinkStatePrint(const std::vector<double> & Config, const std::vector<int> & SwingLinkChain);
+bool PenetrationTester(const Robot & SimRobotObj, const int & SwingLinkInfoIndex);
 
 /* 4. Main Simulation*/
 LinearPath InitialSimulation(WorldSimulation & Sim, const SimPara & SimParaObj);
@@ -74,8 +76,7 @@ Config WholeBodyDynamicsIntegrator(Robot & SimRobot, InvertedPendulumInfo & Inve
 std::vector<SplineLib::cSpline3> TransientPathGene(const Robot & SimRobot, SelfLinkGeoInfo & SelfLinkGeoObj, SimPara & SimParaObj);
 ControlReferenceInfo TrajectoryPlanning(Robot & SimRobotInner, const InvertedPendulumInfo & InvertedPendulumObj, ReachabilityMap & RMObject,SelfLinkGeoInfo & SelfLinkGeoObj,
                                         EndEffectorPathInfo & EndEffectorPathObj, SimPara & SimParaObj);
-std::vector<double> TrajConfigOptimazation(const Robot & SimRobot, ReachabilityMap & RMObject, SelfLinkGeoInfo & _SelfLinkGeoObj, SimPara & SimParaObj, const int & StageIndex);
-std::vector<double> OrientationOptimazation(const Robot & SimRobot, const std::vector<int> & _SwingLinkChain, const SimPara & SimParaObj, const double & _alignmentVal, const int & StageIndex);
+std::vector<double> TrajConfigOptimazation(const Robot & SimRobot, ReachabilityMap & RMObject, SelfLinkGeoInfo & _SelfLinkGeoObj, SimPara & SimParaObj, const double & EndEffectorProjx, const double & EndEffectorProjy, const int & StageIndex);
 std::vector<double> LastStageConfigOptimazation(const Robot & SimRobot, ReachabilityMap & RMObject, SelfLinkGeoInfo & _SelfLinkGeoObj, SimPara & SimParaObj, const int & StageIndex);
 
 #endif
