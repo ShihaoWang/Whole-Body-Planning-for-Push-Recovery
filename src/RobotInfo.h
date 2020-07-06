@@ -874,10 +874,10 @@ struct ControlReferenceInfo{
       }
       else{
         int preInd, nextInd;
-        for (int i = 0; i < TimeTraj.size()-1; i++) {
-          if(curTime>=TimeTraj[i]){
-            preInd = i;
-            nextInd = preInd+1;
+        for (int i = 1; i < TimeTraj.size(); i++) {
+          if(curTime<TimeTraj[i]){
+            nextInd = i;
+            preInd = nextInd - 1;
             break;
           }
         }

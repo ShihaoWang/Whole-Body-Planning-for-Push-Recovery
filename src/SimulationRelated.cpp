@@ -51,7 +51,6 @@ std::vector<double> ConfigReferenceGene(const Robot & SimRobotObj,  double & Inn
   ControlReference.PlannedConfigTraj.Eval(InnerTime, qDesConfig);     // A problem with this interpolation is a bad visualization due to Euler Angle singularity.
   double Yaw, Pitch, Roll;
   ControlReference.EulerAngleInterpolator(InnerTime, Yaw, Pitch, Roll);
-
   qDesConfig[3] = Yaw;
   qDesConfig[4] = Pitch;
   qDesConfig[5] = Roll;

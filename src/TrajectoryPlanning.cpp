@@ -329,8 +329,8 @@ ControlReferenceInfo TrajectoryPlanning(Robot & SimRobotInner, const InvertedPen
     SimRobotInner.UpdateConfig(UpdatedConfig);
 
     PenetrationFlag = PenetrationTester(SimRobotInner, SwingLinkInfoIndex);
-    if(PenetrationFlag)
-      UpdatedConfig = LastStageConfigOptimazation(SimRobotInner, RMObject, SelfLinkGeoObj, SimParaObj, -1);
+    if(PenetrationFlag) continue;
+      // UpdatedConfig = LastStageConfigOptimazation(SimRobotInner, RMObject, SelfLinkGeoObj, SimParaObj, -1);
 
     // std::string ConfigPath = "/home/motion/Desktop/Whole-Body-Planning-for-Push-Recovery/build/";
     // std::string OptConfigFile = "InnerOpt" + std::to_string(sIndex) + ".config";

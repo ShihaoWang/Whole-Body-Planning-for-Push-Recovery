@@ -240,7 +240,7 @@ static ControlReferenceInfo ControlReferenceGeneInner(const Robot & SimRobot, co
   InvertedPendulumInfo InvertedPendulumObj( TipOverPIPObj.L, TipOverPIPObj.g,
                                             TipOverPIPObj.theta, TipOverPIPObj.thetadot,
                                             COMPos, COMVel);
-    InvertedPendulumObj.setEdges(TipOverPIPObj.edge_a, TipOverPIPObj.edge_b);
+  InvertedPendulumObj.setEdges(TipOverPIPObj.edge_a, TipOverPIPObj.edge_b);
   for (int i = 0; i < OptimalContact.size(); i++) {
     Robot SimRobotInner = SimRobot;
     SimParaObj.setContactGoal(OptimalContact[i]);

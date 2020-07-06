@@ -245,7 +245,7 @@ PIPInfo TipOverPIPGenerator(const std::vector<Vector3> & ActiveContacts, const V
     // Here it's the case that at most two PIPs could have failures.
     // Here the rotation is around a vertex.
     double DisTol = 1e-8;
-    if((!PIPTotal[PIPIndices[0]].onFlag)&&(!PIPTotal[PIPIndices[1]].onFlag)){
+    if((PIPTotal[PIPIndices[0]].onFlag)&&(PIPTotal[PIPIndices[1]].onFlag)){
       Vector3 FirstEdgeA  =     PIPTotal[PIPIndices[0]].edge_a;
       Vector3 FirstEdgeB  =     PIPTotal[PIPIndices[0]].edge_b;
       Vector3 SecondEdgeA =     PIPTotal[PIPIndices[1]].edge_a;
