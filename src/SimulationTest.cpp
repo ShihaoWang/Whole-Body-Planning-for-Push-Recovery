@@ -10,7 +10,7 @@ int SimulationTest(WorldSimulation & Sim, const std::vector<ContactStatusInfo> &
   /* Simulation parameters */
   int     DOF             = Sim.world->robots[0]->q.size();
   double  DetectionWait   = SimParaObj.DetectionWait;
-  double  DetectionCount  = 0.0;
+  double  DetectionCount  = DetectionWait;
   int     PlanStageIndex  = 0;
   double  MPCDuration     = 0.25;                 // Duration for MPC executation until next planning
   double  MPCCounter      = MPCDuration;
@@ -57,7 +57,7 @@ int SimulationTest(WorldSimulation & Sim, const std::vector<ContactStatusInfo> &
 
     SelfLinkGeoObj.LinkBBsUpdate(SimRobot);
     if(!CtrlFlag){
-      if(DetectionWait>=DetectionWait){
+      if(DetectionCount>=DetectionWait){
         FailureMetric = FailureMetricEval(PIPTotal);
         std::printf("Simulation Time: %f, and Failure Metric Value: %f\n", Sim.time, FailureMetric);
         if(FailureMetric < 0.0){
@@ -74,20 +74,19 @@ int SimulationTest(WorldSimulation & Sim, const std::vector<ContactStatusInfo> &
             PlanStageIndex++;
           }
         }
-      }else{
-        DetectionWait+=SimParaObj.TimeStep;
+      } else{
+        DetectionCount+=SimParaObj.TimeStep;
       }
-    } else {
+     } else {
       double InnerTime = SimTime - CtrlStartTime;
       qDes =  ConfigReferenceGene(SimRobot, InnerTime, RMObject, SelfLinkGeoObj, ControlReferenceObj, SimParaObj);
+      if (ControlReferenceObj.getTouchDownFlag()){
+        CtrlFlag = false;
+        DetectionCount = 0.0;
+        curContactInfo = ControlReferenceObj.GoalContactStatus;
+        FailureFlag = false;
+      }
     }
-    if (ControlReferenceObj.getTouchDownFlag()){
-      CtrlFlag = false;
-      DetectionCount = 0.0;
-      curContactInfo = ControlReferenceObj.GoalContactStatus;
-      FailureFlag = false;
-    }
-
     NewControllerPtr->SetConstant(Config(qDes));
     StateLogger(Sim, FailureStateObj, CtrlStateTraj, PlanStateTraj, FailureStateTraj, qDes, SimParaObj);
     Sim.Advance(SimParaObj.TimeStep);

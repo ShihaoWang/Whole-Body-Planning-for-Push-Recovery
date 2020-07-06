@@ -55,14 +55,30 @@ std::vector<double> ConfigReferenceGene(const Robot & SimRobotObj,  double & Inn
   qDesConfig[4] = Pitch;
   qDesConfig[5] = Roll;
 
+  double TimeRatio = 0.5;
+
   if(!ControlReference.getTouchDownFlag()){
     for (int i = 0; i < SimRobotObj.q.size(); i++)
         qDes.push_back(qDesConfig[i]);
   } else qDes = ControlReference.getTouchDownConfig();
 
-  if((!ControlReference.getTouchDownFlag())&&(SwingContactDist<TouchDownTol)){
-      ControlReference.setTouchDownFlag(true);
-      ControlReference.setTouchDownConfig(qDes);
+  if(!ControlReference.getTouchDownFlag()){
+    if(ControlReference.ControlReferenceType==1){
+      // Contact Addition Case
+      if(SwingContactDist<TouchDownTol){
+        ControlReference.setTouchDownFlag(true);
+        ControlReference.setTouchDownConfig(qDes);
+      }
     }
+    else{
+      // Contact Modification Case
+      if(InnerTime>TimeRatio * ControlReference.TimeTraj.back()){
+        if(SwingContactDist<TouchDownTol){
+          ControlReference.setTouchDownFlag(true);
+          ControlReference.setTouchDownConfig(qDes);
+        }
+      }
+    }
+  }
   return qDes;
 }

@@ -57,18 +57,25 @@ static SplineInfo SplinePiece3DObjGene(const double & sInit, const double & sGoa
   return SplineObj;
 }
 
-static std::vector<Vector3> BasePointsGene(const Vector3 & PosInit, const Vector3 & NormalInit, const Vector3 & PosGoal, const Vector3 & NormalGoal)
-{
-  // This function is used to generate the cubic spline for given robot's end effector path.
-  const double scale = 0.25;
+static std::vector<Vector3> BasePointsGene(const Vector3 & PosInit, const Vector3 & NormalInit, const Vector3 & PosGoal, const Vector3 & NormalGoal){
+  // This function is used to generate the spline for given robot's end effector path.
+  const double scale = 0.5;
+  Vector3 DirGoal = -scale * NormalGoal;
   SplineInfo BaseSpline = SplinePiece3DObjGene(0.0, 1.0, PosInit, scale * NormalInit, PosGoal, -scale * NormalGoal);
   const int segmentNo = 5;
   double sUnit = 1.0/(1.0 * segmentNo);
   std::vector<Vector3> BasePoints(segmentNo+1);
-  for (int i = 0; i < segmentNo + 1; i++)
-  {
+
+  // Parabolic Spline is generated here.
+  // y(s) = a*s^2 + b*s + c
+  Vector3 c = PosInit;
+  Vector3 a = DirGoal - PosGoal + PosInit;
+  Vector3 b = DirGoal - 2.0 * a;
+
+  for (int i = 0; i < segmentNo + 1; i++){
     double s = 1.0 * i * sUnit;
-    Vector3 BasePoint = BaseSpline.SplinePosVector(s);
+    // Vector3 BasePoint = BaseSpline.SplinePosVector(s);
+    Vector3 BasePoint = a * s * s + b * s + c;
     BasePoints[i] = BasePoint;
   }
   return BasePoints;
