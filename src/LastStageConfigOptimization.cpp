@@ -5,7 +5,6 @@ static Robot SimRobotObj;
 static int SwingLinkInfoIndex;
 static std::vector<int> SwingLinkChain;
 static Vector3 GoalPos;
-static Vector3 GoalDir;
 static std::vector<double> ReferenceConfig;
 static SelfLinkGeoInfo SelfLinkGeoObj;
 static double LastStageTol = 0.0025;   // 2.5mm
@@ -91,7 +90,6 @@ std::vector<double> LastStageConfigOptimazation(const Robot & SimRobot, Reachabi
   SwingLinkInfoIndex = SimParaObj.getSwingLinkInfoIndex();
   SwingLinkChain = RMObject.EndEffectorLink2Pivotal[SwingLinkInfoIndex];
   GoalPos = SimParaObj.getCurrentContactPos();
-  GoalDir = SimParaObj.getGoalDirection();
   ReferenceConfig = SimRobot.q;
   SelfLinkGeoObj = _SelfLinkGeoObj;
 
@@ -167,9 +165,9 @@ std::vector<double> LastStageConfigOptimazation(const Robot & SimRobot, Reachabi
   SimRobotObj.UpdateConfig(Config(OptConfig));
   SimRobotObj.UpdateGeometry();
 
-  std::string ConfigPath = "/home/motion/Desktop/Whole-Body-Planning-for-Push-Recovery/build/";
-  std::string OptConfigFile = "LastConfig.config";
-  RobotConfigWriter(OptConfig, ConfigPath, OptConfigFile);
+  // std::string ConfigPath = "/home/motion/Desktop/Whole-Body-Planning-for-Push-Recovery/build/";
+  // std::string OptConfigFile = "LastConfig.config";
+  // RobotConfigWriter(OptConfig, ConfigPath, OptConfigFile);
 
   // SimParaObj.setTrajConfigOptFlag(OptFlag);
   OptConfig = YPRShifter(OptConfig);

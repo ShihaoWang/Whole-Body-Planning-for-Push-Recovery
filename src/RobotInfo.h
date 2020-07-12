@@ -711,6 +711,7 @@ struct SimPara{
     // const char *fEdgezTrajFile_Name = fEdgezTrajFile.c_str();
     string fVertexTrajFile = CurrentCasePath + "EdgeVertexTraj.txt";
 
+    EdgeFileNames.clear();
     EdgeFileNames.push_back(fedge_aFile);
     EdgeFileNames.push_back(fedge_bFile);
     EdgeFileNames.push_back(fEdgeCOMFile);
@@ -773,7 +774,7 @@ struct SimPara{
   DataRecorderInfo DataRecorderObj;
   Vector3 ImpulseForceMax;
   std::string CurrentCasePath;
-  std::vector<string >EdgeFileNames;
+  std::vector<string> EdgeFileNames;
   string FailureStateTrajStr, CtrlStateTrajStr, PlanStateTrajStr;
   Vector3 ContactInit, ContactGoal;
   Vector3 DirectionInit, DirectionGoal;
@@ -824,6 +825,7 @@ struct ControlReferenceInfo{
       EndEffectorPosVec[2] = EndEffectorPos[2];
       endeffectorPath.push_back(EndEffectorPosVec);
     }
+    EffectorTraj = endeffectorTraj;
     EndEffectorTraj = LinearPath(timeTraj, endeffectorPath);
   }
 
@@ -914,6 +916,7 @@ struct ControlReferenceInfo{
 
   std::vector<double> TimeTraj;
   std::vector<Config> ConfigTraj;
+  std::vector<Vector3> EffectorTraj;
   std::vector<ContactStatusInfo> InitContactStatus;
   std::vector<ContactStatusInfo> GoalContactStatus;
 };

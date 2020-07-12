@@ -57,11 +57,12 @@ static SplineInfo SplinePiece3DObjGene(const double & sInit, const double & sGoa
   return SplineObj;
 }
 
-static std::vector<Vector3> BasePointsGene(const Vector3 & PosInit, const Vector3 & NormalInit, const Vector3 & PosGoal, const Vector3 & NormalGoal){
+static std::vector<Vector3> BasePointsGene(const Vector3 & PosInit, const Vector3 & NormalInit, const Vector3 & PosGoal, const Vector3 & NormalGoal, const int & ContactType){
   // This function is used to generate the spline for given robot's end effector path.
-  const double scale = 0.5;
+  double scale = 0.25;
+  if(!ContactType) scale = 0.5;
   Vector3 DirGoal = -scale * NormalGoal;
-  SplineInfo BaseSpline = SplinePiece3DObjGene(0.0, 1.0, PosInit, scale * NormalInit, PosGoal, -scale * NormalGoal);
+  // SplineInfo BaseSpline = SplinePiece3DObjGene(0.0, 1.0, PosInit, scale * NormalInit, PosGoal, -scale * NormalGoal);
   const int segmentNo = 5;
   double sUnit = 1.0/(1.0 * segmentNo);
   std::vector<Vector3> BasePoints(segmentNo+1);
@@ -273,7 +274,7 @@ static Vector3 SinglePointShifter(const Vector3 & Point, const int & SwingLinkIn
   return NewPoint;
 }
 
-static std::vector<cSpline3> SplineObjGene(SelfLinkGeoInfo & SelfLinkGeoObj, const int & SwingLinkInfoIndex, SimPara & SimParaObj){
+static std::vector<cSpline3> SplineObjGene(SelfLinkGeoInfo & SelfLinkGeoObj, const int & SwingLinkInfoIndex, SimPara & SimParaObj, const int & ContactType){
   // This function is used to generate a collision-free path!
   Vector3 PosInit     = SimParaObj.ContactInit;
   Vector3 NormalInit  = SimParaObj.DirectionInit;
@@ -281,7 +282,7 @@ static std::vector<cSpline3> SplineObjGene(SelfLinkGeoInfo & SelfLinkGeoObj, con
   Vector3 NormalGoal  = SimParaObj.DirectionGoal;
 
   std::vector<cSpline3> SplineObj;
-  std::vector<Vector3> Points = BasePointsGene(PosInit, NormalInit, PosGoal, NormalGoal);
+  std::vector<Vector3> Points = BasePointsGene(PosInit, NormalInit, PosGoal, NormalGoal, ContactType);
   // Vector3Writer(Points, "InitialPathWayPoints");
   double SelfTol = SelfCollisionDist(SelfLinkGeoObj, SwingLinkInfoIndex, Points);
   bool InitShiftFeasFlag;     // For the shift of initial pts.
@@ -328,7 +329,7 @@ static Vector3 InitDirectionGene(const Vector3 & PosInit, const Vector3 & PosGoa
   return DirInit;
 }
 
-std::vector<cSpline3> TransientPathGene(const Robot & SimRobot, SelfLinkGeoInfo & SelfLinkGeoObj, SimPara & SimParaObj){
+std::vector<cSpline3> TransientPathGene(const Robot & SimRobot, SelfLinkGeoInfo & SelfLinkGeoObj, SimPara & SimParaObj, const int & ContactType){
   // This function generates the transition path for robot's end effector.
   // The path direction is chosen such that initial path is a parabola.
   Vector3 DirGoal = NonlinearOptimizerInfo::SDFInfo.SignedDistanceNormal(SimParaObj.ContactGoal);
@@ -337,7 +338,7 @@ std::vector<cSpline3> TransientPathGene(const Robot & SimRobot, SelfLinkGeoInfo 
   SimParaObj.setDirectionInit(DirInit);
   SimParaObj.setDirectionGoal(DirGoal);
   int SwingLinkInfoIndex = SimParaObj.getSwingLinkInfoIndex();
-  std::vector<cSpline3> SplineObj = SplineObjGene(SelfLinkGeoObj, SwingLinkInfoIndex, SimParaObj);
+  std::vector<cSpline3> SplineObj = SplineObjGene(SelfLinkGeoObj, SwingLinkInfoIndex, SimParaObj, ContactType);
 
   if(SimParaObj.getTransPathFeasiFlag()){
     const int SplineNumber = SplineObj.size();

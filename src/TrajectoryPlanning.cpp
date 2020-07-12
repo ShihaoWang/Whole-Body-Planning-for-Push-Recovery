@@ -28,7 +28,7 @@ static std::vector<double> EdgeProjVec(const Vector3 & InitxDir, const Vector3 &
   return xProjVec;
 }
 
-static double EdgeProjMagnitude(const double & cur_s,  const Vector3 & InitxDir, const Vector3 & GoalDir){
+double EdgeProjMagnitude(const double & cur_s,  const Vector3 & InitxDir, const Vector3 & GoalDir){
   // This function calculates the projection based on current s'length.
   double xProj = InitxDir.dot(GoalDir);
   return (1.0 - cur_s) * xProj;
@@ -202,7 +202,7 @@ bool AccPhaseTimePathMethod(    const std::vector<double> & CurConfig,        co
   return true;
 }
 
-static bool DecPhaseTimePathMethod(   const std::vector<double> & CurConfig,      std::vector<double> & NextConfig,
+static bool DecPhaseTimePathMethod(     const std::vector<double> & CurConfig,      const std::vector<double> & NextConfig,
                                         const std::vector<double> & CurVelocity,    std::vector<double> & NextVelocity,
                                         const std::vector<double> & VelocityBound,  const std::vector<double> & AccelerationBound,
                                         const std::vector<int> & SwingLinkChain,      const double & ReductionRatio, double & DecTime){
@@ -262,6 +262,31 @@ static bool StageStateOptimization( const double & sVal, const double & sUnit, d
   return false;
 }
 
+double LastStageTime(   const std::vector<double> & CurConfig,        const std::vector<double> & NextConfig,
+                        const std::vector<double> & CurVelocity,      std::vector<double> & NextVelocity,
+                        const std::vector<double> & VelocityBound,    const std::vector<double> & AccelerationBound,
+                        const std::vector<int> & SwingLinkChain,      const double & ReductionMag){
+    // This function solves for the time in acceleration phase.
+    std::vector<double> AccPhaseTimeTotal(SwingLinkChain.size());
+    std::vector<double> SwingLinkChainVelocity(SwingLinkChain.size());
+    for (int i = 0; i < SwingLinkChain.size(); i++) {
+      double InitPos = CurConfig[SwingLinkChain[i]];
+      double GoalPos = NextConfig[SwingLinkChain[i]];
+      double PosDiff = GoalPos - InitPos;
+      double InitVelocity = CurVelocity[SwingLinkChain[i]];
+      double GoalVelocity;
+      double VelBound = VelocityBound[SwingLinkChain[i]];
+      double AccBound = AccelerationBound[SwingLinkChain[i]];
+      double AccPhaseTime = AccPhaseTimeInner(PosDiff, InitVelocity, GoalVelocity, ReductionMag * VelBound, AccBound);
+      // printf("Link: %d PosDiff: %f,   InitVelocity: %f,   GoalVelocity: %f,   AccTime: %f and Valid: %d\n",
+      //                               SwingLinkChain[i], PosDiff, InitVelocity, GoalVelocity, AccPhaseTime, GoalVelocity * PosDiff>0.0);
+      AccPhaseTimeTotal[i] = AccPhaseTime;
+      SwingLinkChainVelocity[i] = GoalVelocity;
+    }
+    NextVelocity = SwingLinkChainVelocity;
+    return *max_element(AccPhaseTimeTotal.begin(), AccPhaseTimeTotal.end());
+}
+
 ControlReferenceInfo TrajectoryPlanning(Robot & SimRobotInner, const InvertedPendulumInfo & InvertedPendulumInner, ReachabilityMap & RMObject,SelfLinkGeoInfo & SelfLinkGeoObj,
                                         EndEffectorPathInfo & EndEffectorPathObj, SimPara & SimParaObj){
 
@@ -315,26 +340,44 @@ ControlReferenceInfo TrajectoryPlanning(Robot & SimRobotInner, const InvertedPen
 
   bool PenetrationFlag = false;
   int sIndex = 0;
+  double StageTime = 0.05;      //Initialize to reserve for Task-space planning
+  double sNew;
   while ((sVal<1.0)&& (!PenetrationFlag)){
     std::vector<double> NextConfig, NextVelocity;
-    double StageTime;
-    double sNew;
-    bool StageOptFlag = StageStateOptimization(sVal, sUnit, sNew, CurrentContactPos, SimRobotInner, CurrentConfig, WholeBodyVelocityTraj.back(),
-                           NextConfig, NextVelocity, RMObject, SelfLinkGeoObj, EndEffectorPathObj, SwingLinkChain,
-                           EndEffectorInitxDir, EndEffectorInityDir, SimParaObj, StageTime);
-    sVal = sNew;
+    // bool StageOptFlag = StageStateOptimization(sVal, sUnit, sNew, CurrentContactPos, SimRobotInner, CurrentConfig, WholeBodyVelocityTraj.back(),
+    //                        NextConfig, NextVelocity, RMObject, SelfLinkGeoObj, EndEffectorPathObj, SwingLinkChain,
+    //                        EndEffectorInitxDir, EndEffectorInityDir, SimParaObj, StageTime);
+
+
+    bool StageOptFlag = TaskSpacePlanning(sVal, sNew, SimRobotInner,
+                                  CurrentConfig, WholeBodyVelocityTraj.back(),
+                                  NextConfig, NextVelocity,
+                                  EndEffectorPathObj, SwingLinkChain,
+                                  EndEffectorInitxDir, EndEffectorInityDir,
+                                  SimParaObj, StageTime);
+
     if(!StageOptFlag) break;
     SimRobotInner.UpdateConfig(Config(NextConfig));
     Config UpdatedConfig  = WholeBodyDynamicsIntegrator(SimRobotInner, InvertedPendulumObj, StageTime);
     SimRobotInner.UpdateConfig(UpdatedConfig);
 
     PenetrationFlag = PenetrationTester(SimRobotInner, SwingLinkInfoIndex);
-    if(PenetrationFlag) continue;
-      // UpdatedConfig = LastStageConfigOptimazation(SimRobotInner, RMObject, SelfLinkGeoObj, SimParaObj, -1);
+    if(PenetrationFlag){
+      UpdatedConfig = LastStageConfigOptimazation(SimRobotInner, RMObject, SelfLinkGeoObj, SimParaObj, -1);
+      double ReductionMag = ReductionMagnitude(sVal, SimParaObj.PhaseRatio, SimParaObj.ReductionRatio);
+      StageTime = LastStageTime(WholeBodyConfigTraj.back(),   UpdatedConfig,
+                                   WholeBodyVelocityTraj.back(),  NextVelocity,
+                                   SimRobotInner.velMax, SimRobotInner.accMax,
+                                   SwingLinkChain,  ReductionMag);
+    }
+
 
     // std::string ConfigPath = "/home/motion/Desktop/Whole-Body-Planning-for-Push-Recovery/build/";
     // std::string OptConfigFile = "InnerOpt" + std::to_string(sIndex) + ".config";
     // RobotConfigWriter(UpdatedConfig, ConfigPath, OptConfigFile);
+
+    sVal = sNew;
+    // std::cout<<"sVal: "<<sVal<<std::endl;
 
     CurrentTime+=StageTime;
     CurrentConfig = UpdatedConfig;
@@ -365,12 +408,12 @@ ControlReferenceInfo TrajectoryPlanning(Robot & SimRobotInner, const InvertedPen
   // for (int i = 0; i < WholeBodyConfigTraj.size(); i++) {
   //   SwingLinkStatePrint(WholeBodyVelocityTraj[i], SwingLinkChain);
   // }
-  LinearPath WholeBodyConfigTrajPath(TimeTraj, WholeBodyConfigTraj);
-  std::ofstream WholeBodyConfigTrajFile;
-  const string  WholeBodyConfigTrajName = "WholeBodyConfigTraj.path";
-  WholeBodyConfigTrajFile.open(WholeBodyConfigTrajName.c_str());
-  WholeBodyConfigTrajPath.Save(WholeBodyConfigTrajFile);
-  WholeBodyConfigTrajFile.close();
+  // LinearPath WholeBodyConfigTrajPath(TimeTraj, WholeBodyConfigTraj);
+  // std::ofstream WholeBodyConfigTrajFile;
+  // const string  WholeBodyConfigTrajName = "WholeBodyConfigTraj.path";
+  // WholeBodyConfigTrajFile.open(WholeBodyConfigTrajName.c_str());
+  // WholeBodyConfigTrajPath.Save(WholeBodyConfigTrajFile);
+  // WholeBodyConfigTrajFile.close();
 
   if(SimParaObj.getTrajConfigOptFlag()){
     std::vector<ContactStatusInfo> GoalContactInfo = SimParaObj.FixedContactStatusInfo;

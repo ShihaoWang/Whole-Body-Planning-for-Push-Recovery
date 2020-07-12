@@ -73,10 +73,17 @@ ControlReferenceInfo ControlReferenceGene(Robot & SimRobot, const std::vector<Co
 Config WholeBodyDynamicsIntegrator(Robot & SimRobot, InvertedPendulumInfo & InvertedPendulumObj, const double & TimeDuration);
 
 /* 8. Transient Path Generation*/
-std::vector<SplineLib::cSpline3> TransientPathGene(const Robot & SimRobot, SelfLinkGeoInfo & SelfLinkGeoObj, SimPara & SimParaObj);
+std::vector<SplineLib::cSpline3> TransientPathGene(const Robot & SimRobot, SelfLinkGeoInfo & SelfLinkGeoObj, SimPara & SimParaObj, const int & ContactType);
 ControlReferenceInfo TrajectoryPlanning(Robot & SimRobotInner, const InvertedPendulumInfo & InvertedPendulumObj, ReachabilityMap & RMObject,SelfLinkGeoInfo & SelfLinkGeoObj,
                                         EndEffectorPathInfo & EndEffectorPathObj, SimPara & SimParaObj);
 std::vector<double> TrajConfigOptimazation(const Robot & SimRobot, ReachabilityMap & RMObject, SelfLinkGeoInfo & _SelfLinkGeoObj, SimPara & SimParaObj, const double & EndEffectorProjx, const double & EndEffectorProjy);
 std::vector<double> LastStageConfigOptimazation(const Robot & SimRobot, ReachabilityMap & RMObject, SelfLinkGeoInfo & _SelfLinkGeoObj, SimPara & SimParaObj, const int & StageIndex);
-
+double EdgeProjMagnitude(const double & cur_s,  const Vector3 & InitxDir, const Vector3 & GoalDir);
+/* 9. Tasp-space Optimization */
+bool TaskSpacePlanning(const double & sVal, double & sNew, Robot & SimRobotInner,
+                              const Config & _CurrentConfig, const Config & _CurrentVelocity,
+                              std::vector<double> & NextConfig, std::vector<double> & NextVelocity,
+                              const EndEffectorPathInfo & EndEffectorPathObj, const std::vector<int> & _SwingLinkChain,
+                              const Vector3 & EndEffectorInitxDir, const Vector3 & EndEffectorInityDir,
+                              SimPara & SimParaObj, const double & StageTime);
 #endif

@@ -39,11 +39,11 @@ int main(){
   double DetectionWait  = std::stod(DetectionWaitStr);
   double TimeStep       = 0.025;
   double InitDuration    = 2.0;
-  double TotalDuration   = 5.0;                   // Simulation lasts for 5s after initial duration
-  double FowardDuration = 0.25;                    // Used to optimal contact point planning
+  double TotalDuration   = 5.0;                       // Simulation lasts for 5s after initial duration
+  double FowardDuration = 0.5;                       // Used to optimal contact point planning
   double PhaseRatio     = 0.75;
-  double PhaseTimeStep  = 0.05;                   // Reserved to be used for time discretization method.
-  double ReductionRatio = 0.5;
+  double PhaseTimeStep  = 0.05;                       // Reserved to be used for time discretization method.
+  double ReductionRatio = 0.75;
 
   SimPara SimParaObj(ForceMax, PushDuration, DetectionWait, TimeStep, InitDuration, TotalDuration, FowardDuration, PhaseRatio, PhaseTimeStep, ReductionRatio);
 
@@ -83,7 +83,7 @@ int main(){
 
   /* 5. Internal Experimentation Loop */
   int TotalNumber = 100;
-  int FileIndex = FileIndexFinder(false); FileIndex = 5;
+  int FileIndex = FileIndexFinder(false);
   while(FileIndex<=TotalNumber){
 
     RobotWorld world;

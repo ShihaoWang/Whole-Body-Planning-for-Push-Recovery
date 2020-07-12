@@ -22,6 +22,8 @@ else()
         message(STATUS "The compiler ${CMAKE_CXX_COMPILER} has no C++11 support. Please use a different C++ compiler.")
 endif()
 
+#set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
+
 # Klampt CMake Properties
 set(KLAMPT_ROOT "/home/motion/Klampt")
 set(CMAKE_MODULE_PATH "${KLAMPT_ROOT}/CMakeModules")
@@ -76,7 +78,8 @@ add_executable(MyApp
 	       src/TrajectoryPlanning.cpp
 	       src/TrajectoryConfigOptimization.cpp
 	       src/OrientationOptimization.cpp
-	       src/LastStageConfigOptimization.cpp)
+	       src/LastStageConfigOptimization.cpp
+	       src/TaskSpacePlanning.cpp)
 
 
 target_link_libraries(MyApp  ${KLAMPT_LIBRARIES} ${SNOPT_LIBRARIES} ${GUROBI_LIBRARIES} ${CILANTRO_LIBRARIES} ${GLEW_LIBRARY})

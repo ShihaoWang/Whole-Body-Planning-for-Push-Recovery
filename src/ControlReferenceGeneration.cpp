@@ -218,7 +218,7 @@ static std::vector<Vector3> OptimalContactSearcher( Robot SimRobot,     const PI
       SimParaObj.DataRecorderObj.setRCSData(ReachableContacts, CollisionFreeContacts, SupportiveContacts);
 
       // 3. Optimal Contact
-      int CutOffNo = 10;
+      int CutOffNo = 5;
       OptimalContact = OptimalContactFinder(SupportiveContacts, FixedContactPos, COMPos, COMVel, CutOffNo, SimParaObj);
       if(!OptimalContact.size()) return OptimalContact;
 
@@ -245,7 +245,7 @@ static ControlReferenceInfo ControlReferenceGeneInner(const Robot & SimRobot, co
     Robot SimRobotInner = SimRobot;
     SimParaObj.setContactGoal(OptimalContact[i]);
     SimParaObj.setTransPathFeasiFlag(false);
-    std::vector<SplineLib::cSpline3> SplineObj = TransientPathGene(SimRobotInner, SelfLinkGeoObj, SimParaObj);
+    std::vector<SplineLib::cSpline3> SplineObj = TransientPathGene(SimRobotInner, SelfLinkGeoObj, SimParaObj, ContactFormObj.ContactType);
     if(SimParaObj.getTransPathFeasiFlag()){
       EndEffectorPathInfo EndEffectorPathObj(SplineObj);
       // Here two methods will be conducted for comparison purpose.
@@ -292,12 +292,14 @@ ControlReferenceInfo ControlReferenceGene(Robot & SimRobot,
    ControlReferenceInfo ControlReferenceObj =  ControlReferenceGeneInner(SimRobot, TipOverPIP, RMObject, SelfLinkGeoObj, ContactFormObj, SimParaObj);
    double planning_time = (std::clock() - start_time)/(double)CLOCKS_PER_SEC;
    std::printf("Planning takes: %f ms\n", 1000.0 * planning_time);
-   stage_planning_time+=planning_time;
+   // stage_planning_time+=planning_time;
    start_time = std::clock();
    ControlReferenceObj.setSwingLinkInfoIndex(ContactFormObj.SwingLinkInfoIndex);
+   ControlReferenceObj.setControlReferenceType(ContactFormObj.ContactType);
    if(ControlReferenceObj.getReadyFlag()){
      ControlReferenceObjVec.push_back(ControlReferenceObj);
      ExecutionTimeVec.push_back(ControlReferenceObj.TimeTraj.back());
+     PlanTimeRecorder(planning_time, SimParaObj.getCurrentCasePath());
      SimParaObj.DataRecorderObj.PlannedConfigTraj = ControlReferenceObj.PlannedConfigTraj;
      SimParaObj.DataRecorderObj.EndEffectorTraj = ControlReferenceObj.EndEffectorTraj;
      SimParaObj.DataRecorderObj.Write2File(SimParaObj.getCurrentCasePath());
@@ -307,7 +309,6 @@ ControlReferenceInfo ControlReferenceGene(Robot & SimRobot,
  if(ExecutionTimeVec.size()){
    int ObjIndex = std::distance(ExecutionTimeVec.begin(), std::min_element(ExecutionTimeVec.begin(), ExecutionTimeVec.end()));
    ControlReferenceInfoObj = ControlReferenceObjVec[ObjIndex];
-   PlanTimeRecorder(stage_planning_time, SimParaObj.getCurrentCasePath());
    PlanningInfoFileAppender(SimParaObj.getPlanStageIndex(), ExecutionTimeVec.size()-1, SimParaObj.getCurrentCasePath(), SimParaObj.getSimTime());
  }
  return ControlReferenceInfoObj;

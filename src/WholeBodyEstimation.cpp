@@ -130,5 +130,7 @@ Config WholeBodyDynamicsIntegrator(Robot & SimRobot, InvertedPendulumInfo & Inve
     UpdatedConfig[i] = FrameConfig[i];
   }
   UpdatedConfig = YPRShifter(UpdatedConfig);
+
+
   return Config(UpdatedConfig);
 }
