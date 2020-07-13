@@ -53,6 +53,9 @@ void PlanningInfoFileAppender(const int & PlanStageIndex, const int & TotalLinkN
 void PlanResWriter(const string & SpecificPath, const int & PushRecovFlag);
 void SwingLinkStatePrint(const std::vector<double> & Config, const std::vector<int> & SwingLinkChain);
 bool PenetrationTester(const Robot & SimRobotObj, const int & SwingLinkInfoIndex);
+Vector3 getEndEffectorZAxis(const Robot & SimRobotInner, const int & SwingLinkInfoIndex);
+void getEndEffectorXYAxes(const Robot & SimRobotInner, const int & SwingLinkInfoIndex, Vector3 & EndEffectorInitxDir, Vector3 & EndEffectorInityDir);
+
 
 /* 4. Main Simulation*/
 LinearPath InitialSimulation(WorldSimulation & Sim, const SimPara & SimParaObj);
@@ -76,14 +79,8 @@ Config WholeBodyDynamicsIntegrator(Robot & SimRobot, InvertedPendulumInfo & Inve
 std::vector<SplineLib::cSpline3> TransientPathGene(const Robot & SimRobot, SelfLinkGeoInfo & SelfLinkGeoObj, SimPara & SimParaObj, const int & ContactType);
 ControlReferenceInfo TrajectoryPlanning(Robot & SimRobotInner, const InvertedPendulumInfo & InvertedPendulumObj, ReachabilityMap & RMObject,SelfLinkGeoInfo & SelfLinkGeoObj,
                                         EndEffectorPathInfo & EndEffectorPathObj, SimPara & SimParaObj);
-std::vector<double> TrajConfigOptimazation(const Robot & SimRobot, ReachabilityMap & RMObject, SelfLinkGeoInfo & _SelfLinkGeoObj, SimPara & SimParaObj, const double & EndEffectorProjx, const double & EndEffectorProjy);
+std::vector<double> TrajConfigOptimazation(const Robot & SimRobot, ReachabilityMap & RMObject, SelfLinkGeoInfo & _SelfLinkGeoObj, SimPara & SimParaObj, const double & EndEffectorProjx, const double & EndEffectorProjy, const int & StageIndex);
 std::vector<double> LastStageConfigOptimazation(const Robot & SimRobot, ReachabilityMap & RMObject, SelfLinkGeoInfo & _SelfLinkGeoObj, SimPara & SimParaObj, const int & StageIndex);
 double EdgeProjMagnitude(const double & cur_s,  const Vector3 & InitxDir, const Vector3 & GoalDir);
-/* 9. Tasp-space Optimization */
-bool TaskSpacePlanning(const double & sVal, double & sNew, Robot & SimRobotInner,
-                              const Config & _CurrentConfig, const Config & _CurrentVelocity,
-                              std::vector<double> & NextConfig, std::vector<double> & NextVelocity,
-                              const EndEffectorPathInfo & EndEffectorPathObj, const std::vector<int> & _SwingLinkChain,
-                              const Vector3 & EndEffectorInitxDir, const Vector3 & EndEffectorInityDir,
-                              SimPara & SimParaObj, const double & StageTime);
+
 #endif

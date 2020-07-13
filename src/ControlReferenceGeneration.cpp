@@ -243,6 +243,7 @@ static ControlReferenceInfo ControlReferenceGeneInner(const Robot & SimRobot, co
   InvertedPendulumObj.setEdges(TipOverPIPObj.edge_a, TipOverPIPObj.edge_b);
   for (int i = 0; i < OptimalContact.size(); i++) {
     Robot SimRobotInner = SimRobot;
+    SelfLinkGeoObj.LinkBBsUpdate(SimRobotInner);
     SimParaObj.setContactGoal(OptimalContact[i]);
     SimParaObj.setTransPathFeasiFlag(false);
     std::vector<SplineLib::cSpline3> SplineObj = TransientPathGene(SimRobotInner, SelfLinkGeoObj, SimParaObj, ContactFormObj.ContactType);
@@ -256,7 +257,6 @@ static ControlReferenceInfo ControlReferenceGeneInner(const Robot & SimRobot, co
       4. Based on that time, robot's whole-body configuration is updated with inverted pendulum model.
       5. The whole algorithm terminates when robot's self-collision has been triggered or no feasible IK solution can be found.
       */
-
       ControlReferenceObj = TrajectoryPlanning(SimRobotInner, InvertedPendulumObj, RMObject, SelfLinkGeoObj,
         EndEffectorPathObj, SimParaObj);
         if(ControlReferenceObj.getReadyFlag()) break;

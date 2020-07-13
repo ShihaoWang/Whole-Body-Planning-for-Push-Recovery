@@ -47,6 +47,7 @@ int SimulationTest(WorldSimulation & Sim, const std::vector<ContactStatusInfo> &
   while(Sim.time <= TotalDuration){
     SimRobot = *Sim.world->robots[0];
     SimTime = Sim.time;
+    
     if(!FailureFlag) PushImposer(Sim,  SimTime - InitTime, SimParaObj, FailureFlag);
 
     Vector3 COMPos, COMVel;
@@ -55,7 +56,6 @@ int SimulationTest(WorldSimulation & Sim, const std::vector<ContactStatusInfo> &
     std::vector<PIPInfo> PIPTotal = PIPGenerator(ActContactPos, COMPos, COMVel);
     ContactPolytopeWriter(ActContactPos, PIPTotal, SimParaObj);
 
-    SelfLinkGeoObj.LinkBBsUpdate(SimRobot);
     if(!CtrlFlag){
       if(DetectionCount>=DetectionWait){
         FailureMetric = FailureMetricEval(PIPTotal);

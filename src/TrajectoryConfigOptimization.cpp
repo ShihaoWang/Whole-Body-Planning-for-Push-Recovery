@@ -100,7 +100,7 @@ struct TrajConfigOpt: public NonlinearOptimizerInfo
   }
 };
 
-std::vector<double> TrajConfigOptimazation(const Robot & SimRobot, ReachabilityMap & RMObject, SelfLinkGeoInfo & _SelfLinkGeoObj, SimPara & SimParaObj, const double & EndEffectorProjx, const double & EndEffectorProjy){
+std::vector<double> TrajConfigOptimazation(const Robot & SimRobot, ReachabilityMap & RMObject, SelfLinkGeoInfo & _SelfLinkGeoObj, SimPara & SimParaObj, const double & EndEffectorProjx, const double & EndEffectorProjy, const int & StageIndex){
   // This function is used to optimize robot's configuration such that a certain contact can be reached for that end effector.
   SimRobotObj = SimRobot;
   SwingLinkInfoIndex = SimParaObj.getSwingLinkInfoIndex();
@@ -182,6 +182,10 @@ std::vector<double> TrajConfigOptimazation(const Robot & SimRobot, ReachabilityM
   SimRobotObj.UpdateConfig(Config(OptConfig));
   SimRobotObj.UpdateGeometry();
 
+  // std::string ConfigPath = "/home/motion/Desktop/Whole-Body-Planning-for-Push-Recovery/build/";
+  // std::string OptConfigFile = "SwingUpdatedConfig" + std::to_string(StageIndex) + ".config";
+  // RobotConfigWriter(OptConfig, ConfigPath, OptConfigFile);
+
   // Self-collision constraint numerical checker
   std::vector<double> SelfCollisionDistVec(SwingLinkChain.size()-3);
   for (int i = 0; i < SwingLinkChain.size()-3; i++)     // Due to the bounding box size of torso link
@@ -210,11 +214,6 @@ std::vector<double> TrajConfigOptimazation(const Robot & SimRobot, ReachabilityM
     std::printf("TrajConfigOptimazation Failure due to Goal Contact Non-reachability for Link %d! \n", NonlinearOptimizerInfo::RobotLinkInfo[SwingLinkInfoIndex].LinkIndex);
     OptFlag = false;
   }
-
-  // std::string ConfigPath = "/home/motion/Desktop/Whole-Body-Planning-for-Push-Recovery/build/";
-  // std::string OptConfigFile = "SwingUpdatedConfig.config";
-  // RobotConfigWriter(OptConfig, ConfigPath, OptConfigFile);
-
   SimParaObj.setTrajConfigOptFlag(OptFlag);
   OptConfig = YPRShifter(OptConfig);
   return OptConfig;
