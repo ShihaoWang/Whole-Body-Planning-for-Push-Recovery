@@ -74,6 +74,7 @@ ControlReferenceInfo ControlReferenceGene(Robot & SimRobot, const std::vector<Co
 
 /* 7. Whole-Body Estimation */
 Config WholeBodyDynamicsIntegrator(Robot & SimRobot, InvertedPendulumInfo & InvertedPendulumObj, const double & TimeDuration);
+std::vector<double> CurrentBaseDeltaCal(const Robot & _SimRobot, const InvertedPendulumInfo & _InvertedPendulumObj, const double & TimeDuration);
 
 /* 8. Transient Path Generation*/
 std::vector<SplineLib::cSpline3> TransientPathGene(const Robot & SimRobot, SelfLinkGeoInfo & SelfLinkGeoObj, SimPara & SimParaObj);
@@ -81,5 +82,15 @@ ControlReferenceInfo TrajectoryPlanning(Robot & SimRobotInner, const InvertedPen
                                         EndEffectorPathInfo & EndEffectorPathObj, SimPara & SimParaObj);
 std::vector<double> TrajConfigOptimazation(const Robot & SimRobot, ReachabilityMap & RMObject, SelfLinkGeoInfo & _SelfLinkGeoObj, SimPara & SimParaObj, const double & EndEffectorProjx, const double & EndEffectorProjy);
 std::vector<double> LastStageConfigOptimazation(const Robot & SimRobot, ReachabilityMap & RMObject, SelfLinkGeoInfo & _SelfLinkGeoObj, SimPara & SimParaObj, const int & StageIndex);
-
+ControlReferenceInfo TaskTrajectoryPlanning(Robot & SimRobotInner, const InvertedPendulumInfo & InvertedPendulumInner, ReachabilityMap & RMObject,SelfLinkGeoInfo & SelfLinkGeoObj,
+                                            EndEffectorPathInfo & EndEffectorPathObj, SimPara & SimParaObj);
+bool TaskTrajectoryPlanningInner( const double & _sVal, double & _sNew,
+                                  Robot & _SimRobotInner,
+                                  const Config & _PreVelocity,                      const std::vector<double> & _CurrentBaseDelta,
+                                  const Config & _CurrentConfig,                    const Config & _CurrentVelocity,
+                                  std::vector<double> & _NextConfig,                std::vector<double> & _NextVelocity,
+                                  const EndEffectorPathInfo & EndEffectorPathInner, const std::vector<int> & _SwingLinkChain,
+                                  const Vector3 & _EndEffectorInitxDir,             const Vector3 & _EndEffectorInityDir,
+                                  SimPara & _SimParaObj,
+                                  const double & _StageTime,                        const double & _DampingRatio);
 #endif

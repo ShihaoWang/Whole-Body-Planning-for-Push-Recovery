@@ -131,3 +131,26 @@ Config WholeBodyDynamicsIntegrator(Robot & SimRobot, InvertedPendulumInfo & Inve
   }
   return Config(UpdatedConfig);
 }
+
+std::vector<double> CurrentBaseDeltaCal(const Robot & _SimRobot, const InvertedPendulumInfo & _InvertedPendulumObj, const double & TimeDuration){
+  Robot SimRobot = _SimRobot;
+  InvertedPendulumInfo InvertedPendulumObj = _InvertedPendulumObj;
+  Vector3 RotAxis = InvertedPendulumObj.edge_b - InvertedPendulumObj.edge_a;
+  RotAxis.setNormalized(RotAxis);
+  const int IntergrationStep = 11;
+  int IntergrationIndex = 0;
+  double TimeStep = TimeDuration/(1.0 * IntergrationStep - 1.0);
+  double ThetaInit = InvertedPendulumObj.Theta;
+  for (int IntergrationIndex = 0; IntergrationIndex < IntergrationStep; IntergrationIndex++){
+    StepIntegrator(InvertedPendulumObj, RotAxis, TimeStep);
+  }
+
+  std::vector<double> CurrentBaseDelta(6);
+
+  double ThetaOffset = InvertedPendulumObj.Theta - ThetaInit;
+  std::vector<double> FrameConfig = GlobalFrameConfigUpdate(SimRobot, ThetaOffset, RotAxis, InvertedPendulumObj.edge_a);   // This would be 6 global coordinates.
+  std::vector<double> UpdatedConfig = SimRobot.q;
+  for (int i = 0; i < 6; i++)
+    CurrentBaseDelta[i] = FrameConfig[i] - _SimRobot.q[i];
+  return CurrentBaseDelta;
+}
