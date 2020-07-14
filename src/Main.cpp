@@ -39,10 +39,10 @@ int main(){
   double DetectionWait  = std::stod(DetectionWaitStr);
   double TimeStep       = 0.025;
   double InitDuration    = 2.0;
-  double TotalDuration   = 5.0;                   // Simulation lasts for 5s after initial duration
-  double FowardDuration = 0.5;                    // Used to optimal contact point planning
+  double TotalDuration   = 5.0;                     // Simulation lasts for 5s after initial duration
+  double FowardDuration = 0.6;                      // Used to optimal contact point planning
   double PhaseRatio     = 0.75;
-  double PhaseTimeStep  = 0.05;                   // Reserved to be used for time discretization method.
+  double PhaseTimeStep  = 0.05;                     // Reserved to be used for time discretization method.
   double ReductionRatio = 0.5;
 
   SimPara SimParaObj(ForceMax, PushDuration, DetectionWait, TimeStep, InitDuration, TotalDuration, FowardDuration, PhaseRatio, PhaseTimeStep, ReductionRatio);
