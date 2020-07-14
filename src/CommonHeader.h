@@ -53,9 +53,8 @@ void PlanningInfoFileAppender(const int & PlanStageIndex, const int & TotalLinkN
 void PlanResWriter(const string & SpecificPath, const int & PushRecovFlag);
 void SwingLinkStatePrint(const std::vector<double> & Config, const std::vector<int> & SwingLinkChain);
 bool PenetrationTester(const Robot & SimRobotObj, const int & SwingLinkInfoIndex);
-Vector3 getEndEffectorZAxis(const Robot & SimRobotInner, const int & SwingLinkInfoIndex);
 void getEndEffectorXYAxes(const Robot & SimRobotInner, const int & SwingLinkInfoIndex, Vector3 & EndEffectorInitxDir, Vector3 & EndEffectorInityDir);
-
+double EstimatedFailureMetric(const Robot & SimRobotInner, const std::vector<ContactStatusInfo> & GoalContactInfo, const Vector3 & COMPos, const Vector3 & COMVel);
 
 /* 4. Main Simulation*/
 LinearPath InitialSimulation(WorldSimulation & Sim, const SimPara & SimParaObj);
@@ -76,11 +75,10 @@ ControlReferenceInfo ControlReferenceGene(Robot & SimRobot, const std::vector<Co
 Config WholeBodyDynamicsIntegrator(Robot & SimRobot, InvertedPendulumInfo & InvertedPendulumObj, const double & TimeDuration);
 
 /* 8. Transient Path Generation*/
-std::vector<SplineLib::cSpline3> TransientPathGene(const Robot & SimRobot, SelfLinkGeoInfo & SelfLinkGeoObj, SimPara & SimParaObj, const int & ContactType);
+std::vector<SplineLib::cSpline3> TransientPathGene(const Robot & SimRobot, SelfLinkGeoInfo & SelfLinkGeoObj, SimPara & SimParaObj);
 ControlReferenceInfo TrajectoryPlanning(Robot & SimRobotInner, const InvertedPendulumInfo & InvertedPendulumObj, ReachabilityMap & RMObject,SelfLinkGeoInfo & SelfLinkGeoObj,
                                         EndEffectorPathInfo & EndEffectorPathObj, SimPara & SimParaObj);
-std::vector<double> TrajConfigOptimazation(const Robot & SimRobot, ReachabilityMap & RMObject, SelfLinkGeoInfo & _SelfLinkGeoObj, SimPara & SimParaObj, const double & EndEffectorProjx, const double & EndEffectorProjy, const int & StageIndex);
+std::vector<double> TrajConfigOptimazation(const Robot & SimRobot, ReachabilityMap & RMObject, SelfLinkGeoInfo & _SelfLinkGeoObj, SimPara & SimParaObj, const double & EndEffectorProjx, const double & EndEffectorProjy);
 std::vector<double> LastStageConfigOptimazation(const Robot & SimRobot, ReachabilityMap & RMObject, SelfLinkGeoInfo & _SelfLinkGeoObj, SimPara & SimParaObj, const int & StageIndex);
-double EdgeProjMagnitude(const double & cur_s,  const Vector3 & InitxDir, const Vector3 & GoalDir);
 
 #endif

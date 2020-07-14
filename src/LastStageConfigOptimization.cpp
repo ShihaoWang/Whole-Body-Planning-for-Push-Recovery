@@ -5,9 +5,11 @@ static Robot SimRobotObj;
 static int SwingLinkInfoIndex;
 static std::vector<int> SwingLinkChain;
 static Vector3 GoalPos;
-static std::vector<double> ReferenceConfig;
+static Vector3 GoalDir;
+static std::vector<double> ReferenceConfig, OriginalConfig;
 static SelfLinkGeoInfo SelfLinkGeoObj;
-static double LastStageTol = 0.0025;   // 2.5mm
+static double EndEffectorDistTol = 0.01;  // 1cm
+static double LastStageTol = 0.0025;      // 2.5mm
 
 struct LastStageConfigOpt: public NonlinearOptimizerInfo
 {
@@ -49,16 +51,21 @@ struct LastStageConfigOpt: public NonlinearOptimizerInfo
   {
     // This funciton provides the constraint for the configuration variable
     std::vector<double> F(nObjNCons);
-    for (int i = 0; i < SwingLinkChain.size(); i++)
-        ReferenceConfig[SwingLinkChain[i]] = SwingLinkConfig[i];
+    // double ConfigDiff = 0.0;
+    for (int i = 0; i < SwingLinkChain.size(); i++){
+      // double ConfigDiff_i = OriginalConfig[SwingLinkChain[i]] - SwingLinkConfig[i];
+      // ConfigDiff+=ConfigDiff_i * ConfigDiff_i;
+      ReferenceConfig[SwingLinkChain[i]] = SwingLinkConfig[i];
+    }
     SimRobotObj.UpdateConfig(Config(ReferenceConfig));
-    SimRobotObj.UpdateGeometry();
+    // F[0] = ConfigDiff;
     Vector3 EndEffectorAvgPos;
     SimRobotObj.GetWorldPosition( NonlinearOptimizerInfo::RobotLinkInfo[SwingLinkInfoIndex].AvgLocalContact,
                                   NonlinearOptimizerInfo::RobotLinkInfo[SwingLinkInfoIndex].LinkIndex,
                                   EndEffectorAvgPos);
-    Vector3 AvgDiff = EndEffectorAvgPos - GoalPos;
-    F[0] = AvgDiff.normSquared();
+    Vector3 EndEffectorPosDiff = EndEffectorAvgPos - GoalPos;
+    F[0] = EndEffectorPosDiff.normSquared();
+
     int ConstraintIndex = 1;
     // Self-collision constraint
     std::vector<double> SelfCollisionDistVec(SwingLinkChain.size()-3);
@@ -77,7 +84,7 @@ struct LastStageConfigOpt: public NonlinearOptimizerInfo
     {
       Vector3 LinkiPjPos;
       SimRobotObj.GetWorldPosition(NonlinearOptimizerInfo::RobotLinkInfo[SwingLinkInfoIndex].LocalContacts[i], NonlinearOptimizerInfo::RobotLinkInfo[SwingLinkInfoIndex].LinkIndex, LinkiPjPos);
-      F[ConstraintIndex] = SDFInfo.SignedDistance(LinkiPjPos);
+      F[ConstraintIndex] = SDFInfo.SignedDistance(LinkiPjPos) - EndEffectorDistTol;
       ConstraintIndex+=1;
     }
     return F;
@@ -90,7 +97,9 @@ std::vector<double> LastStageConfigOptimazation(const Robot & SimRobot, Reachabi
   SwingLinkInfoIndex = SimParaObj.getSwingLinkInfoIndex();
   SwingLinkChain = RMObject.EndEffectorLink2Pivotal[SwingLinkInfoIndex];
   GoalPos = SimParaObj.getCurrentContactPos();
+  GoalDir = SimParaObj.getGoalDirection();
   ReferenceConfig = SimRobot.q;
+  OriginalConfig = SimRobot.q;
   SelfLinkGeoObj = _SelfLinkGeoObj;
 
   LastStageConfigOpt LastStageConfigOptProblem;
@@ -102,8 +111,8 @@ std::vector<double> LastStageConfigOptimazation(const Robot & SimRobot, Reachabi
 
   // Cost function on the norm difference between the reference avg position and the modified contact position.
   int neF = 1;
+  neF += 1;
   neF += SwingLinkContactSize;
-  neF += 1;                                                                                           // Self-Collision Avoidance
   LastStageConfigOptProblem.InnerVariableInitialize(n, neF);
 
   /*
@@ -129,7 +138,7 @@ std::vector<double> LastStageConfigOptimazation(const Robot & SimRobot, Reachabi
     Fupp_vec[i] = 1e10;
   }
   for (int i = neF - SwingLinkContactSize; i < neF; i++) {
-    Flow_vec[i] = 0.0;
+    Flow_vec[i] = -LastStageTol;
     Fupp_vec[i] = LastStageTol;
   }
   LastStageConfigOptProblem.ConstraintBoundsUpdate(Flow_vec, Fupp_vec);
@@ -146,7 +155,7 @@ std::vector<double> LastStageConfigOptimazation(const Robot & SimRobot, Reachabi
 
   // Here we would like allow much more time to be spent on IK
   LastStageConfigOptProblem.NonlinearProb.setIntParameter("Iterations limit", 250);
-  LastStageConfigOptProblem.NonlinearProb.setIntParameter("Major iterations limit", 25);
+  LastStageConfigOptProblem.NonlinearProb.setIntParameter("Major iterations limit", 35);
   LastStageConfigOptProblem.NonlinearProb.setIntParameter("Major print level", 0);
   LastStageConfigOptProblem.NonlinearProb.setIntParameter("Minor print level", 0);
   /*
@@ -165,11 +174,6 @@ std::vector<double> LastStageConfigOptimazation(const Robot & SimRobot, Reachabi
   SimRobotObj.UpdateConfig(Config(OptConfig));
   SimRobotObj.UpdateGeometry();
 
-  // std::string ConfigPath = "/home/motion/Desktop/Whole-Body-Planning-for-Push-Recovery/build/";
-  // std::string OptConfigFile = "LastConfig.config";
-  // RobotConfigWriter(OptConfig, ConfigPath, OptConfigFile);
-
-  // SimParaObj.setTrajConfigOptFlag(OptFlag);
   OptConfig = YPRShifter(OptConfig);
   return OptConfig;
 }

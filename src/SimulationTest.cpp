@@ -32,7 +32,6 @@ int SimulationTest(WorldSimulation & Sim, const std::vector<ContactStatusInfo> &
   PlanStateTraj = InitTraj;
   double TotalDuration = SimParaObj.TotalDuration + Sim.time;
   std::printf("Initial Simulation Done!\n");
-
   std::vector<double> qDes = PlanStateTraj.milestones[PlanStateTraj.milestones.size()-1];               // This is commanded robot configuration to the controller.
   double InitTime = Sim.time;
 
@@ -40,14 +39,13 @@ int SimulationTest(WorldSimulation & Sim, const std::vector<ContactStatusInfo> &
   FailureStateInfo      FailureStateObj;
   Robot                 SimRobot;
   bool                  FailureFlag = false;
+  bool                  OverallFailureFlag = false;
   double                FailureMetric;
   double                SimTime;
   std::vector<ContactStatusInfo> curContactInfo =  InitContactInfo;
-
   while(Sim.time <= TotalDuration){
     SimRobot = *Sim.world->robots[0];
     SimTime = Sim.time;
-    
     if(!FailureFlag) PushImposer(Sim,  SimTime - InitTime, SimParaObj, FailureFlag);
 
     Vector3 COMPos, COMVel;
@@ -56,37 +54,43 @@ int SimulationTest(WorldSimulation & Sim, const std::vector<ContactStatusInfo> &
     std::vector<PIPInfo> PIPTotal = PIPGenerator(ActContactPos, COMPos, COMVel);
     ContactPolytopeWriter(ActContactPos, PIPTotal, SimParaObj);
 
-    if(!CtrlFlag){
-      if(DetectionCount>=DetectionWait){
-        FailureMetric = FailureMetricEval(PIPTotal);
-        std::printf("Simulation Time: %f, and Failure Metric Value: %f\n", Sim.time, FailureMetric);
-        if(FailureMetric < 0.0){
-          if(!FailureStateObj.FailureStateFlag)  FailureStateObj.FailureStateUpdate(SimTime, SimRobot.q, SimRobot.dq);
-          FailureFlag = true;
-        }
-        if(FailureFlag){
-          SimParaObj.setPlanStageIndex(PlanStageIndex);
-          SimParaObj.setSimTime(SimTime);
-          ControlReferenceObj = ControlReferenceGene(SimRobot, curContactInfo, RMObject, SelfLinkGeoObj, SimParaObj);
-          if(ControlReferenceObj.getReadyFlag()){
-            CtrlFlag = true;
-            CtrlStartTime = SimTime;
-            PlanStageIndex++;
+    SelfLinkGeoObj.LinkBBsUpdate(SimRobot);
+    if(!OverallFailureFlag){
+      if(!CtrlFlag){
+        if(DetectionCount>=DetectionWait){
+          FailureMetric = FailureMetricEval(PIPTotal);
+          std::printf("Simulation Time: %f, and Failure Metric Value: %f\n", Sim.time, FailureMetric);
+          if(FailureMetric < 0.0){
+            if(!FailureStateObj.FailureStateFlag)  FailureStateObj.FailureStateUpdate(SimTime, SimRobot.q, SimRobot.dq);
+            FailureFlag = true;
           }
+          if(FailureFlag){
+            SimParaObj.setPlanStageIndex(PlanStageIndex);
+            SimParaObj.setSimTime(SimTime);
+            ControlReferenceObj = ControlReferenceGene(SimRobot, curContactInfo, RMObject, SelfLinkGeoObj, SimParaObj);
+            if(ControlReferenceObj.getReadyFlag()){
+              CtrlFlag = true;
+              CtrlStartTime = SimTime;
+              PlanStageIndex++;
+            }
+          }
+        } else{
+          DetectionCount+=SimParaObj.TimeStep;
         }
-      } else{
-        DetectionCount+=SimParaObj.TimeStep;
-      }
-     } else {
-      double InnerTime = SimTime - CtrlStartTime;
-      qDes =  ConfigReferenceGene(SimRobot, InnerTime, RMObject, SelfLinkGeoObj, ControlReferenceObj, SimParaObj);
-      if (ControlReferenceObj.getTouchDownFlag()){
-        CtrlFlag = false;
-        DetectionCount = 0.0;
-        curContactInfo = ControlReferenceObj.GoalContactStatus;
-        FailureFlag = false;
+       } else {
+        double InnerTime = SimTime - CtrlStartTime;
+        qDes =  ConfigReferenceGene(SimRobot, InnerTime, RMObject, SelfLinkGeoObj, ControlReferenceObj, SimParaObj);
+        if (ControlReferenceObj.getTouchDownFlag()){
+          CtrlFlag = false;
+          DetectionCount = 0.0;
+          curContactInfo = ControlReferenceObj.GoalContactStatus;
+          FailureFlag = false;
+        }
       }
     }
+
+    OverallFailureFlag = FailureChecker(SimRobot, RMObject);
+
     NewControllerPtr->SetConstant(Config(qDes));
     StateLogger(Sim, FailureStateObj, CtrlStateTraj, PlanStateTraj, FailureStateTraj, qDes, SimParaObj);
     Sim.Advance(SimParaObj.TimeStep);

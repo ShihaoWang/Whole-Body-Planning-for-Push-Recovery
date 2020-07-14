@@ -1,5 +1,26 @@
 #include "CommonHeader.h"
+#include "RobotInfo.h"
 #include "NonlinearOptimizerInfo.h"
+#include "gurobi_c++.h"
+
+static void LastStageTimeEst(const std::vector<double> & TimeTraj, double & StageTime){
+  double TimeTotal = TimeTraj.back();
+  int TimeSize = TimeTraj.size();
+  StageTime = TimeTotal/(1.0 * TimeSize);
+}
+
+static std::vector<double> ProjectionLength(const Vector3 & InitDir, const Vector3 & GoalDir, const int & gridNo){
+  double x = GoalDir.dot(InitDir);
+  double y = (InitDir - x * GoalDir).length();
+  double angle_rad = atan2 (y,x);
+  double angle_unit = angle_rad/(1.0 * gridNo);
+  std::vector<double> projVec(gridNo);
+  for (int i = 0; i < gridNo; i++) {
+    angle_rad-=angle_unit;
+    projVec[i] = cos(angle_rad);
+  }
+  return projVec;
+}
 
 static std::vector<double> EdgeProjVec(const Vector3 & InitxDir, const Vector3 & GoalDir, const int & gridNo){
   double xProj = InitxDir.dot(GoalDir);
@@ -11,6 +32,21 @@ static std::vector<double> EdgeProjVec(const Vector3 & InitxDir, const Vector3 &
     xProjVal = xProjVal - xProjUnit;
   }
   return xProjVec;
+}
+
+static double EdgeProjMagnitude(const double & cur_s,  const Vector3 & InitxDir, const Vector3 & GoalDir){
+  // This function calculates the projection based on current s'length.
+  double xProj = InitxDir.dot(GoalDir);
+  return (1.0 - cur_s) * xProj;
+}
+
+static double ReductionMagnitude(const double & cur_s, const double & phase_s, const double & reduction_ratio){
+  if(cur_s<phase_s) return 1.0;
+  else{
+    if(cur_s<=1.0){
+      return 1.0 - (1.0 - reduction_ratio)/(1.0 - phase_s) * (cur_s - phase_s);
+    } else return reduction_ratio;
+  }
 }
 
 static std::vector<double> ReductionRatioVecGene(const double & ReductionRatio, const int & sRes){
@@ -25,11 +61,10 @@ static std::vector<double> ReductionRatioVecGene(const double & ReductionRatio, 
   return ReductionRatioVec;
 }
 
-static double PositivePosNVel(  const double & RawPosDiff,
+static double PositivePosNVel(  double PosDiff,
                                 const double & RawInitVelocity,  double & GoalVelocity,
                                 const double & VelocityBound, const double & AccBound){
    // Two procedure => accelerate to velocity limit and remains there
-   double PosDiff = RawPosDiff;
    double InitVelocity = RawInitVelocity;
    double AccDist = (VelocityBound * VelocityBound - InitVelocity * InitVelocity)/(2.0 * AccBound);
    double AccTimeOffset = 0.0;
@@ -56,10 +91,9 @@ static double PositivePosNVel(  const double & RawPosDiff,
    }
  }
 
- static double NegativePosNVel(  const double & RawPosDiff,
+ static double NegativePosNVel(  double PosDiff,
                                  const double & RawInitVelocity,  double & GoalVelocity,
                                  const double & VelocityBound, const double & AccBound){
-  double PosDiff = RawPosDiff;
   double InitVelocity = RawInitVelocity;
   double AccDist = (VelocityBound * VelocityBound - InitVelocity * InitVelocity)/(2.0 * AccBound);
   double AccTimeOffset = 0.0;
@@ -111,132 +145,33 @@ static double AccPhaseTimeInner(const double & PosDiff,
   }
 }
 
-static bool Velocity2Pos(     const double & PosDiff,
+static bool Velocity2Pos(     const double & InitPos,       const double & GoalPos,
                               const double & InitVelocity,  double & GoalVelocity,
                               const double & VelocityBound, const double & AccBound,
                               const double & DurationTime){
-  // Figure out the velocity that this system reaches GoalPos with Duration time.
-  // Potentially, if the exact position cannot be met at current time, an position offset is added.
-  double AccTol = 1e-6;
-  double AccEst, VelocityEst;
-  if(PosDiff>0.0){
-    AccEst = 2.0 * (PosDiff - InitVelocity * DurationTime)/(DurationTime * DurationTime);  // This value is sure to be less than the bound.
-    if(AccEst * AccEst >(AccBound * AccBound + AccTol)) return false;
-    VelocityEst = InitVelocity + AccEst * DurationTime;
-    if(VelocityEst>=0.0){
-      if(VelocityEst<VelocityBound) GoalVelocity = VelocityEst;
-      else GoalVelocity = VelocityBound;
-    }
-    else
-    {
-      // This means that the duration time is too long for this joint and this joint can actually move to a place and remain there.
-      double PosZero = InitVelocity * InitVelocity/(2.0 * AccBound);
-      if(PosZero<PosDiff) GoalVelocity = 0.0;
-      else GoalVelocity = VelocityEst;
-    }
-  }
-  else{
-    AccEst = -2.0 * (PosDiff - InitVelocity * DurationTime)/(DurationTime * DurationTime);  // This value is sure to be less than the bound.
-    if(AccEst * AccEst >(AccBound * AccBound + AccTol)) return false;
-    VelocityEst = InitVelocity - AccEst * DurationTime;
-    if(VelocityEst<=0.0){
-      if(VelocityEst>-VelocityBound) GoalVelocity = VelocityEst;
+  bool FinderFlag = true;
+  double AccTol = 1e-3;
+  double PosDiff = GoalPos - InitPos;
+  double AccEst = 2.0 * (PosDiff - InitVelocity * DurationTime)/(DurationTime * DurationTime);
+  if(AccEst * AccEst<=AccBound * AccBound + AccTol){
+    double VelocityEst = InitVelocity + AccEst * DurationTime;
+    if(VelocityEst * VelocityEst<=VelocityBound * VelocityBound)
+      GoalVelocity = VelocityEst;
+    else{
+      if(VelocityEst>0) GoalVelocity = VelocityBound;
       else GoalVelocity = -VelocityBound;
     }
-    else
-    {
-      // This means that the duration time is too long for this joint and this joint can actually move to a place and remain there.
-      double PosZero = InitVelocity * InitVelocity/(2.0 * AccBound);
-      if(PosZero<-PosDiff) GoalVelocity = 0.0;
-      else GoalVelocity = VelocityEst;
-    }
   }
-  return true;
+  else
+    FinderFlag = false;
+
+  return FinderFlag;
 }
 
-static double PositivePosNVelDecrease(const double & PosDiff, const double & InitVelocity,
-                                      const double & VelocityBound, const double & AccBound){
-    double PosDecre = InitVelocity * InitVelocity/(2.0 * AccBound);
-    if(PosDecre>PosDiff){
-      double MidVelocity = sqrt(InitVelocity * InitVelocity - 2.0 * AccBound * PosDiff);
-      double InitTime = (InitVelocity - MidVelocity)/AccBound;
-      double MidTime = MidVelocity/AccBound;
-      double EndTime = sqrt(2.0) * MidTime;
-      return InitTime + MidTime + EndTime;
-    }
-    else {
-      // Then the minimum time should start with an acceleration stage then deceleration stage.
-      double MidVelocity = sqrt((InitVelocity * InitVelocity + 2.0 * AccBound * PosDiff)/2.0);
-      if(MidVelocity>=VelocityBound){
-        double InitTime = (VelocityBound - InitVelocity)/AccBound;
-        double PosInit = (VelocityBound * VelocityBound - InitVelocity * InitVelocity)/(2.0 * AccBound);
-        double PosEnd = VelocityBound * VelocityBound/(2.0 * AccBound);
-        double PosMid = PosDiff - PosInit - PosEnd;
-        double MidTime = PosMid/VelocityBound;
-        double EndTime = VelocityBound/AccBound;
-        return InitTime + MidTime + EndTime;
-      }
-      else {
-        double MidTime = (MidVelocity - InitVelocity)/(2.0 * AccBound);
-        double EndTime = MidVelocity/AccBound;
-        return MidTime + EndTime;
-      }
-    }
-}
-
-static double AccPhaseTimeDecreaseInner(const double & PosDiff,       const double & InitVelocity,
-                                        const double & VelocityBound, const double & AccBound){
-  // This function calculates the time it takes to reach the target position where its velocity will be zero.
-  if(PosDiff>0.0){
-    if(InitVelocity>0.0){
-      return PositivePosNVelDecrease(PosDiff, InitVelocity, VelocityBound, AccBound);
-    }
-    else {
-      double AccTime = -InitVelocity/AccBound;
-      double AccDist = InitVelocity * InitVelocity/(2.0 * AccBound);
-      double PosTotal = PosDiff + AccDist;
-      double AccTimeDecrease = PositivePosNVelDecrease(PosTotal, 0.0, VelocityBound, AccBound);
-      return AccTime + AccTimeDecrease;
-    }
-  }
-  else{
-    if(InitVelocity<0.0){
-      return PositivePosNVelDecrease(-PosDiff, -InitVelocity, VelocityBound, AccBound);
-    } else {
-      double AccTime = InitVelocity/AccBound;
-      double AccDist = InitVelocity * InitVelocity/(2.0 * AccBound);
-      double AccTimeDecrease = PositivePosNVelDecrease(-PosDiff + AccDist, 0.0, VelocityBound, AccBound);
-      return AccTime + AccTimeDecrease;
-    }
-  }
-}
-
-static double AccPhaseTimeDecrease(   const std::vector<double> & CurConfig,      const std::vector<double> & NextConfig,
-                                      const std::vector<double> & CurVelocity,    std::vector<double> & NextVelocity,
-                                      const std::vector<double> & VelocityBound,  const std::vector<double> & AccelerationBound,
-                                      const std::vector<int> SwingLinkChain){
-  // This function is used to take care of the situation where joints cannot move to the target position at full speed at the same time.
-  std::vector<double> AccPhaseTimeTotal(SwingLinkChain.size());
-  for (int i = 0; i < SwingLinkChain.size(); i++) {
-    double InitPos = CurConfig[SwingLinkChain[i]];
-    double GoalPos = NextConfig[SwingLinkChain[i]];
-    double PosDiff = GoalPos - InitPos;
-    double InitVelocity = CurVelocity[SwingLinkChain[i]];
-    double VelBound = VelocityBound[SwingLinkChain[i]];
-    double AccBound = AccelerationBound[SwingLinkChain[i]];
-    double AccPhaseTime = AccPhaseTimeDecreaseInner(PosDiff, InitVelocity, VelBound, AccBound);
-    // printf("Link: %d PosDiff: %f,   InitVelocity: %f,   GoalVelocity: %f,   AccTime: %f and Valid: %d\n",
-    //                               SwingLinkChain[i], PosDiff, InitVelocity, GoalVelocity, AccPhaseTime, GoalVelocity * PosDiff>0.0);
-    AccPhaseTimeTotal[i] = AccPhaseTime;
-    NextVelocity[SwingLinkChain[i]] = 0.0;
-  }
-  double AccTime = *max_element(AccPhaseTimeTotal.begin(), AccPhaseTimeTotal.end());
-}
-
-double AccPhaseTimePathMethod(  const std::vector<double> & CurConfig,      const std::vector<double> & NextConfig,
-                                const std::vector<double> & CurVelocity,    std::vector<double> & NextVelocity,
-                                const std::vector<double> & VelocityBound,  const std::vector<double> & AccelerationBound,
-                                const std::vector<int> SwingLinkChain){
+bool AccPhaseTimePathMethod(    const std::vector<double> & CurConfig,        const std::vector<double> & NextConfig,
+                                const std::vector<double> & CurVelocity,      std::vector<double> & NextVelocity,
+                                const std::vector<double> & VelocityBound,    const std::vector<double> & AccelerationBound,
+                                const std::vector<int> & SwingLinkChain,        double & AccTime){
   // This function solves for the time in acceleration phase.
   std::vector<double> AccPhaseTimeTotal(SwingLinkChain.size());
   std::vector<double> SwingLinkChainVelocity(SwingLinkChain.size());
@@ -254,10 +189,8 @@ double AccPhaseTimePathMethod(  const std::vector<double> & CurConfig,      cons
     AccPhaseTimeTotal[i] = AccPhaseTime;
     SwingLinkChainVelocity[i] = GoalVelocity;
   }
-  double AccTime = *max_element(AccPhaseTimeTotal.begin(), AccPhaseTimeTotal.end());
-
+  AccTime = *max_element(AccPhaseTimeTotal.begin(), AccPhaseTimeTotal.end());
   double AccLinkIndex = std::distance(AccPhaseTimeTotal.begin(), std::max_element(AccPhaseTimeTotal.begin(), AccPhaseTimeTotal.end()));
-  bool VelocityUpdateFlag = true;
   for (int i = 0; i < SwingLinkChain.size(); i++) {
     double InitPos = CurConfig[SwingLinkChain[i]];
     double GoalPos = NextConfig[SwingLinkChain[i]];
@@ -266,28 +199,73 @@ double AccPhaseTimePathMethod(  const std::vector<double> & CurConfig,      cons
     double GoalVelocity;
     double VelBound = VelocityBound[SwingLinkChain[i]];
     double AccBound = AccelerationBound[SwingLinkChain[i]];
-    VelocityUpdateFlag = Velocity2Pos(PosDiff, InitVelocity, GoalVelocity, VelBound, AccBound, AccTime);
-    if(!VelocityUpdateFlag) break;
+    bool FinderFlag = Velocity2Pos(InitPos, GoalPos, InitVelocity, GoalVelocity, VelBound, AccBound, AccTime);
+    if(!FinderFlag) return false;
     // printf("Updated Link: %d,   PosDiff: %f,  InitVelocity: %f,   GoalVelocity: %f and Valid: %d\n",
     //         SwingLinkChain[i], PosDiff, InitVelocity, GoalVelocity,  GoalVelocity * PosDiff>0.0);
     NextVelocity[SwingLinkChain[i]] = GoalVelocity;
   }
-  if(!VelocityUpdateFlag) AccTime = AccPhaseTimeDecrease( CurConfig, NextConfig,
-                                                          CurVelocity, NextVelocity,
-                                                          VelocityBound, AccelerationBound, SwingLinkChain);
-
-  return AccTime;
+  return true;
 }
 
-static double DecPhaseTimePathMethod(  const std::vector<double> & CurConfig,      const std::vector<double> & NextConfig,
-                                const std::vector<double> & CurVelocity,    std::vector<double> & NextVelocity,
-                                const std::vector<double> & VelocityBound,  const std::vector<double> & AccelerationBound,
-                                const std::vector<int> SwingLinkChain, const double & ReductionRatio){
+static bool DecPhaseTimePathMethod(   const std::vector<double> & CurConfig,      std::vector<double> & NextConfig,
+                                        const std::vector<double> & CurVelocity,    std::vector<double> & NextVelocity,
+                                        const std::vector<double> & VelocityBound,  const std::vector<double> & AccelerationBound,
+                                        const std::vector<int> & SwingLinkChain,      const double & ReductionRatio, double & DecTime){
    // This function solves for the time in deceleration phase.
    std::vector<double> DampingVelocityBound(VelocityBound.size());
    for (int i = 0; i < DampingVelocityBound.size(); i++)
      DampingVelocityBound[i] = VelocityBound[i] * ReductionRatio;
-   return AccPhaseTimePathMethod(CurConfig, NextConfig, CurVelocity, NextVelocity, DampingVelocityBound, AccelerationBound, SwingLinkChain);
+   return AccPhaseTimePathMethod(CurConfig, NextConfig, CurVelocity, NextVelocity, DampingVelocityBound, AccelerationBound, SwingLinkChain, DecTime);
+}
+
+static bool StageStateOptimization( const double & sVal, const double & sUnit, double & sNew, Vector3 & CurrentContactPos,Robot & SimRobotInner,
+                                    const Config & CurrentConfig, const Config & CurrentVelocity,
+                                    std::vector<double> & NextConfig, std::vector<double> & NextVelocity,
+                                    ReachabilityMap & RMObject, SelfLinkGeoInfo & SelfLinkGeoObj,
+                                    EndEffectorPathInfo & EndEffectorPathObj, const std::vector<int> & SwingLinkChain,
+                                    const Vector3 & EndEffectorInitxDir, const Vector3 & EndEffectorInityDir,
+                                    SimPara & SimParaObj, double & StageTime){
+  int TotalInter = 25;
+  int IterInd = 0;
+  Vector3 EndEffectorGoalDir = SimParaObj.getGoalDirection();
+  double sCurUnit = sUnit;
+  double scaleRatio = 1.25;
+  while(IterInd<TotalInter){
+    double sCur = sVal;
+    sCur+=sCurUnit;
+    sNew = sCur;
+    EndEffectorPathObj.s2Pos(sCur, CurrentContactPos);
+    Vector3 PlannedCurrentContactPos = CurrentContactPos;
+    SimParaObj.setCurrentContactPos(PlannedCurrentContactPos);
+    double EndEffectorProjx = EdgeProjMagnitude(sCur, EndEffectorInitxDir, EndEffectorGoalDir);
+    double EndEffectorProjy = EdgeProjMagnitude(sCur, EndEffectorInityDir, EndEffectorGoalDir);
+    NextConfig = TrajConfigOptimazation(SimRobotInner, RMObject, SelfLinkGeoObj, SimParaObj, EndEffectorProjx, EndEffectorProjy);
+    NextVelocity = CurrentVelocity;
+    Config UpdatedConfig;
+    bool FinderFlag;
+    if(!SimParaObj.getTrajConfigOptFlag()) return false;
+    else
+    {
+      if(sCur<SimParaObj.PhaseRatio){
+        FinderFlag = AccPhaseTimePathMethod( CurrentConfig, NextConfig,
+                                            CurrentVelocity, NextVelocity,
+                                            SimRobotInner.velMax, SimRobotInner.accMax,
+                                            SwingLinkChain, StageTime);
+      }
+      else
+      {
+        double ReductionMag = ReductionMagnitude(sCur, SimParaObj.PhaseRatio, SimParaObj.ReductionRatio);
+        FinderFlag = DecPhaseTimePathMethod( CurrentConfig, NextConfig,
+                                            CurrentVelocity, NextVelocity,
+                                            SimRobotInner.velMax, SimRobotInner.accMax,
+                                            SwingLinkChain, ReductionMag, StageTime);
+      }
+      if(FinderFlag == true) return true;
+    }
+    sCurUnit = scaleRatio * sCurUnit;
+  }
+  return false;
 }
 
 ControlReferenceInfo TrajectoryPlanning(Robot & SimRobotInner, const InvertedPendulumInfo & InvertedPendulumInner, ReachabilityMap & RMObject,SelfLinkGeoInfo & SelfLinkGeoObj,
@@ -296,30 +274,23 @@ ControlReferenceInfo TrajectoryPlanning(Robot & SimRobotInner, const InvertedPen
 
   InvertedPendulumInfo InvertedPendulumObj = InvertedPendulumInner;
   int SwingLinkInfoIndex = SimParaObj.getSwingLinkInfoIndex();
-  Vector3 EndEffectorInitDir = getEndEffectorZAxis(SimRobotInner, SwingLinkInfoIndex);
-  Vector3 EndEffectorGoalDir = SimParaObj.getGoalDirection();
   Vector3 EndEffectorInitxDir, EndEffectorInityDir;   // Eventually these two directions should be orthgonal to goal direction.
   getEndEffectorXYAxes(SimRobotInner, SwingLinkInfoIndex, EndEffectorInitxDir, EndEffectorInityDir);
-
+  Vector3 EndEffectorGoalDir = SimParaObj.getGoalDirection();
   std::vector<int> SwingLinkChain = RMObject.EndEffectorLink2Pivotal[SwingLinkInfoIndex];
 
   // The main idea is that end effector will gradually move to be aligned with goal direction.
-  const int sNumber = 21;                 // (sNumber-1) segments
-  double sDiff = 1.0/(1.0 * sNumber - 1.0);
   double sVal = 0.0;
-
-  std::vector<double> EndEffectorProjxVec = EdgeProjVec(EndEffectorInitxDir, EndEffectorGoalDir, sNumber-1);
-  std::vector<double> EndEffectorProjyVec = EdgeProjVec(EndEffectorInityDir, EndEffectorGoalDir, sNumber-1);
-
+  double sUnit = 0.1;
   double CurrentTime = 0.0;
   Config CurrentConfig = Config(YPRShifter(SimRobotInner.q));
   Config CurrentVelocity = SimRobotInner.dq;
   Vector3 CurrentContactPos = SimParaObj.getContactInit();
 
-  std::vector<double>   TimeTraj;                 TimeTraj.reserve(sNumber);
-  std::vector<Config>   WholeBodyConfigTraj;      WholeBodyConfigTraj.reserve(sNumber);
-  std::vector<Config>   WholeBodyVelocityTraj;    WholeBodyVelocityTraj.reserve(sNumber);
-  std::vector<Vector3>  PlannedEndEffectorTraj;   PlannedEndEffectorTraj.reserve(sNumber);
+  std::vector<double>   TimeTraj;
+  std::vector<Config>   WholeBodyConfigTraj;
+  std::vector<Config>   WholeBodyVelocityTraj;
+  std::vector<Vector3>  PlannedEndEffectorTraj;
 
   TimeTraj.push_back(CurrentTime);
   WholeBodyConfigTraj.push_back(CurrentConfig);
@@ -328,71 +299,62 @@ ControlReferenceInfo TrajectoryPlanning(Robot & SimRobotInner, const InvertedPen
 
   SimParaObj.setTrajConfigOptFlag(false);
 
-  Vector3 EndEffectorPosOffset; EndEffectorPosOffset.setZero();
-  double sBoundary = round((sNumber - 1) * SimParaObj.PhaseRatio);
-  double resS = sNumber - sBoundary;
-  std::vector<double> ReducRatioVec = ReductionRatioVecGene(SimParaObj.PhaseRatio, resS);
+  double sBoundary = SimParaObj.PhaseRatio;
 
   ControlReferenceInfo ControlReferenceObj;
   ControlReferenceObj.setReadyFlag(false);
-  int sIndex = 1;
+
   bool PenetrationFlag = false;
-  while ((sIndex<sNumber) && !PenetrationFlag){
-    sVal = 1.0 * sIndex * sDiff;
-    EndEffectorPathObj.s2Pos(sVal, CurrentContactPos);
-    Vector3 PlannedCurrentContactPos = CurrentContactPos;
-    SimParaObj.setCurrentContactPos(PlannedCurrentContactPos);
-    std::vector<double> NextConfig = TrajConfigOptimazation(SimRobotInner, RMObject,
-                                                            SelfLinkGeoObj, SimParaObj,
-                                                            EndEffectorProjxVec[sIndex],
-                                                            EndEffectorProjyVec[sIndex],
-                                                            sIndex);
-    std::vector<double> NextVelocity = WholeBodyVelocityTraj[WholeBodyVelocityTraj.size()-1];
-    Config UpdatedConfig;
+  int sIndex = 0;
+
+  double ThetaPre, ThetadotPre;
+  Vector3 COMVelPre, COMPosPre;
+
+  ThetaPre = InvertedPendulumObj.Theta;
+  ThetadotPre = InvertedPendulumObj.Thetadot;
+  COMVelPre = InvertedPendulumObj.COMVel;
+  COMPosPre = InvertedPendulumObj.COMPos;
+
+  while ((sVal<1.0)&& (!PenetrationFlag)){
+    std::vector<double> NextConfig, NextVelocity;
     double StageTime;
-    if(!SimParaObj.getTrajConfigOptFlag()) break;
-    else {
-      if(sIndex<sBoundary){
-        StageTime = AccPhaseTimePathMethod( CurrentConfig, NextConfig,
-                                            WholeBodyVelocityTraj[sIndex-1], NextVelocity,
-                                            SimRobotInner.velMax, SimRobotInner.accMax,
-                                            SwingLinkChain);
-      }
-      else {
-        int ReducRatioVecIndex = sIndex - sBoundary;
-        StageTime = DecPhaseTimePathMethod( CurrentConfig, NextConfig,
-                                            WholeBodyVelocityTraj[sIndex-1], NextVelocity,
-                                            SimRobotInner.velMax, SimRobotInner.accMax,
-                                            SwingLinkChain, ReducRatioVec[ReducRatioVecIndex]);
-      }
-      SimRobotInner.UpdateConfig(Config(NextConfig));
+    double sNew;
+    bool StageOptFlag = StageStateOptimization(sVal, sUnit, sNew, CurrentContactPos, SimRobotInner, CurrentConfig, WholeBodyVelocityTraj.back(),
+                           NextConfig, NextVelocity, RMObject, SelfLinkGeoObj, EndEffectorPathObj, SwingLinkChain,
+                           EndEffectorInitxDir, EndEffectorInityDir, SimParaObj, StageTime);
+    sVal = sNew;
+    if(!StageOptFlag) break;
+    SimRobotInner.UpdateConfig(Config(NextConfig));
+    Config UpdatedConfig  = WholeBodyDynamicsIntegrator(SimRobotInner, InvertedPendulumObj, StageTime);
+    SimRobotInner.UpdateConfig(UpdatedConfig);
+
+    PenetrationFlag = PenetrationTester(SimRobotInner, SwingLinkInfoIndex);
+    if(PenetrationFlag){
+      LastStageTimeEst(TimeTraj, StageTime);
+      InvertedPendulumObj.Theta = ThetaPre;
+      InvertedPendulumObj.Thetadot = ThetadotPre;
+      InvertedPendulumObj.COMVel = COMVelPre;
+      InvertedPendulumObj.COMPos = COMPosPre;
+      SimRobotInner.UpdateConfig(WholeBodyConfigTraj.back());
       UpdatedConfig  = WholeBodyDynamicsIntegrator(SimRobotInner, InvertedPendulumObj, StageTime);
       SimRobotInner.UpdateConfig(UpdatedConfig);
-
-      SelfLinkGeoObj.LinkBBsUpdate(SimRobotInner);
-
-      PenetrationFlag = PenetrationTester(SimRobotInner, SwingLinkInfoIndex);
-      if(PenetrationFlag) continue;
-
-      std::string ConfigPath = "/home/motion/Desktop/Whole-Body-Planning-for-Push-Recovery/build/";
-      std::string OptConfigFile = "InnerOpt" + std::to_string(sIndex) + ".config";
-      RobotConfigWriter(UpdatedConfig, ConfigPath, OptConfigFile);
-
-      Vector3 EndEffectorContactPos;
-      SimRobotInner.GetWorldPosition( NonlinearOptimizerInfo::RobotLinkInfo[SwingLinkInfoIndex].AvgLocalContact,
-                                      NonlinearOptimizerInfo::RobotLinkInfo[SwingLinkInfoIndex].LinkIndex,
-                                      EndEffectorContactPos);
-      EndEffectorPosOffset = CurrentContactPos - EndEffectorContactPos;
-      CurrentTime+=StageTime;
-      CurrentConfig = UpdatedConfig;
-      CurrentVelocity = Config(NextVelocity);
-      // printf("CurrentTime: %f, %d th's StageTime %f\n", CurrentTime, sIndex, StageTime);
-
-      TimeTraj.push_back(CurrentTime);
-      WholeBodyConfigTraj.push_back(CurrentConfig);
-      WholeBodyVelocityTraj.push_back(Config(NextVelocity));
-      PlannedEndEffectorTraj.push_back(PlannedCurrentContactPos);
+      UpdatedConfig = LastStageConfigOptimazation(SimRobotInner, RMObject, SelfLinkGeoObj, SimParaObj, -1);
     }
+
+    CurrentTime+=StageTime;
+    CurrentConfig = UpdatedConfig;
+    CurrentVelocity = Config(NextVelocity);
+
+    TimeTraj.push_back(CurrentTime);
+    WholeBodyConfigTraj.push_back(CurrentConfig);
+    WholeBodyVelocityTraj.push_back(Config(NextVelocity));
+    PlannedEndEffectorTraj.push_back(CurrentContactPos);
+
+    ThetaPre = InvertedPendulumObj.Theta;
+    ThetadotPre = InvertedPendulumObj.Thetadot;
+    COMVelPre = InvertedPendulumObj.COMVel;
+    COMPosPre = InvertedPendulumObj.COMPos;
+
     sIndex++;
   }
   for (int i = 0; i < WholeBodyConfigTraj.size(); i++) {
@@ -413,6 +375,13 @@ ControlReferenceInfo TrajectoryPlanning(Robot & SimRobotInner, const InvertedPen
   for (int i = 0; i < WholeBodyConfigTraj.size(); i++) {
     SwingLinkStatePrint(WholeBodyVelocityTraj[i], SwingLinkChain);
   }
+  LinearPath WholeBodyConfigTrajPath(TimeTraj, WholeBodyConfigTraj);
+  std::ofstream WholeBodyConfigTrajFile;
+  const string  WholeBodyConfigTrajName = "WholeBodyConfigTraj.path";
+  WholeBodyConfigTrajFile.open(WholeBodyConfigTrajName.c_str());
+  WholeBodyConfigTrajPath.Save(WholeBodyConfigTrajFile);
+  WholeBodyConfigTrajFile.close();
+
   if(SimParaObj.getTrajConfigOptFlag()){
     std::vector<ContactStatusInfo> GoalContactInfo = SimParaObj.FixedContactStatusInfo;
     for(int i = 0; i<GoalContactInfo[SwingLinkInfoIndex].LocalContactStatus.size(); i++)
@@ -420,6 +389,8 @@ ControlReferenceInfo TrajectoryPlanning(Robot & SimRobotInner, const InvertedPen
     ControlReferenceObj.SetInitContactStatus(SimParaObj.FixedContactStatusInfo);
     ControlReferenceObj.SetGoalContactStatus(GoalContactInfo);
     ControlReferenceObj.TrajectoryUpdate(TimeTraj, WholeBodyConfigTraj, PlannedEndEffectorTraj);
+    double EstFailureMetric = EstimatedFailureMetric(SimRobotInner, GoalContactInfo, InvertedPendulumObj.COMPos, InvertedPendulumObj.COMVel);
+    ControlReferenceObj.setFailueMetric(EstFailureMetric);
     ControlReferenceObj.setReadyFlag(true);
   }
   return ControlReferenceObj;

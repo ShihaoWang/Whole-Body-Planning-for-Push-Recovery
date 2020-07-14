@@ -36,7 +36,7 @@ std::vector<double> ConfigReferenceGene(const Robot & SimRobotObj,  double & Inn
                                         ReachabilityMap & RMObject, SelfLinkGeoInfo & SelfLinkGeoObj,
                                         ControlReferenceInfo & ControlReference, SimPara & SimParaObj){
   // This function generates robot's reference configuration at each time.
-  double TouchDownTol  = 0.005;                      //  5 mm as a Touch Down Terminal Tolerance.
+  double TouchDownTol  = 0.01;                      //  1 cm as a Touch Down Terminal Tolerance.
   std::vector<double> qDes;
   int SwingLinkInfoIndex = ControlReference.getSwingLinkInfoIndex();
   std::vector<double> EndEffectorSDVec;
@@ -49,7 +49,12 @@ std::vector<double> ConfigReferenceGene(const Robot & SimRobotObj,  double & Inn
   double SwingContactDist = *min_element(EndEffectorSDVec.begin(), EndEffectorSDVec.end());
   Config qDesConfig;
   ControlReference.PlannedConfigTraj.Eval(InnerTime, qDesConfig);     // A problem with this interpolation is a bad visualization due to Euler Angle singularity.
-  
+  double Yaw, Pitch, Roll;
+  ControlReference.EulerAngleInterpolator(InnerTime, Yaw, Pitch, Roll);
+  qDesConfig[3] = Yaw;
+  qDesConfig[4] = Pitch;
+  qDesConfig[5] = Roll;
+
   double TimeRatio = 0.5;
 
   if(!ControlReference.getTouchDownFlag()){

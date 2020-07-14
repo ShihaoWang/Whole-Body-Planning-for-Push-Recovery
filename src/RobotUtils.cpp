@@ -305,20 +305,9 @@ void SwingLinkStatePrint(const std::vector<double> & Config, const std::vector<i
   std::printf("\n");
 }
 
-Vector3 getEndEffectorZAxis(const Robot & SimRobotInner, const int & SwingLinkInfoIndex){
-  RobotLink3D EndEffectorLink = SimRobotInner.links[NonlinearOptimizerInfo::RobotLinkInfo[SwingLinkInfoIndex].LinkIndex];
-
-  Vector3 EndEffectorInitDir;
-  EndEffectorInitDir.x = EndEffectorLink.T_World.R.data[2][0];
-  EndEffectorInitDir.y = EndEffectorLink.T_World.R.data[2][1];
-  EndEffectorInitDir.z = EndEffectorLink.T_World.R.data[2][2];
-  return EndEffectorInitDir;
-}
-
 void getEndEffectorXYAxes(const Robot & SimRobotInner, const int & SwingLinkInfoIndex, Vector3 & EndEffectorInitxDir, Vector3 & EndEffectorInityDir){
   RobotLink3D EndEffectorLink = SimRobotInner.links[NonlinearOptimizerInfo::RobotLinkInfo[SwingLinkInfoIndex].LinkIndex];
 
-  // Vector3 EndEffectorInitxDir, EndEffectorInityDir;   // Eventually these two directions should be orthgonal to goal direction.
   EndEffectorInitxDir.x = EndEffectorLink.T_World.R.data[0][0];
   EndEffectorInitxDir.y = EndEffectorLink.T_World.R.data[0][1];
   EndEffectorInitxDir.z = EndEffectorLink.T_World.R.data[0][2];
@@ -326,6 +315,26 @@ void getEndEffectorXYAxes(const Robot & SimRobotInner, const int & SwingLinkInfo
   EndEffectorInityDir.x = EndEffectorLink.T_World.R.data[1][0];
   EndEffectorInityDir.y = EndEffectorLink.T_World.R.data[1][1];
   EndEffectorInityDir.z = EndEffectorLink.T_World.R.data[1][2];
-
   return;
+}
+
+// std::vector<Config> ConfigReferenceYPRCheck(const std::vector<Config> & WholeBodyConfigTraj){
+//   int ConfigSize = WholeBodyConfigTraj.size();
+//   if(ConfigSize<2) return WholeBodyConfigTraj;
+//   std::vector<Config> WholeBodyConfigTrajNew;
+//   WholeBodyConfigTrajNew.reserve(ConfigSize);
+//
+//   Config CurConfig = WholeBodyConfigTraj[0];
+//   Config NextConfig = WholeBodyConfigTraj[1];
+//   for (int i = 0; i < ConfigSize-1; i++) {
+//
+//   }
+// }
+
+double EstimatedFailureMetric(const Robot & SimRobotInner, const std::vector<ContactStatusInfo> & GoalContactInfo, const Vector3 & COMPos, const Vector3 & COMVel){
+  // This function calculates robot's estimated failure metric given new ContactStatus, COMPos, and COMVel;
+  std::vector<Vector3> ActContactPos = ActiveContactFinder(SimRobotInner, GoalContactInfo);
+  std::vector<PIPInfo> PIPTotal = PIPGenerator(ActContactPos, COMPos, COMVel);
+  double FailureMetric = FailureMetricEval(PIPTotal);
+  return FailureMetric;
 }
