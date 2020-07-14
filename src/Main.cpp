@@ -83,7 +83,7 @@ int main(){
 
   /* 5. Internal Experimentation Loop */
   int TotalNumber = 100;
-  int FileIndex = FileIndexFinder(false); FileIndex = 5;
+  int FileIndex = FileIndexFinder(false);
   while(FileIndex<=TotalNumber){
 
     RobotWorld world;

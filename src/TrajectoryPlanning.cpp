@@ -281,7 +281,7 @@ ControlReferenceInfo TrajectoryPlanning(Robot & SimRobotInner, const InvertedPen
 
   // The main idea is that end effector will gradually move to be aligned with goal direction.
   double sVal = 0.0;
-  double sUnit = 0.1;
+  double sUnit = 0.2;
   double CurrentTime = 0.0;
   Config CurrentConfig = Config(SimRobotInner.q);
   Config CurrentVelocity = SimRobotInner.dq;
@@ -375,12 +375,12 @@ ControlReferenceInfo TrajectoryPlanning(Robot & SimRobotInner, const InvertedPen
   // for (int i = 0; i < WholeBodyConfigTraj.size(); i++) {
   //   SwingLinkStatePrint(WholeBodyVelocityTraj[i], SwingLinkChain);
   // }
-  LinearPath WholeBodyConfigTrajPath(TimeTraj, WholeBodyConfigTraj);
-  std::ofstream WholeBodyConfigTrajFile;
-  const string  WholeBodyConfigTrajName = "WholeBodyConfigTraj.path";
-  WholeBodyConfigTrajFile.open(WholeBodyConfigTrajName.c_str());
-  WholeBodyConfigTrajPath.Save(WholeBodyConfigTrajFile);
-  WholeBodyConfigTrajFile.close();
+  // LinearPath WholeBodyConfigTrajPath(TimeTraj, WholeBodyConfigTraj);
+  // std::ofstream WholeBodyConfigTrajFile;
+  // const string  WholeBodyConfigTrajName = "WholeBodyConfigTraj.path";
+  // WholeBodyConfigTrajFile.open(WholeBodyConfigTrajName.c_str());
+  // WholeBodyConfigTrajPath.Save(WholeBodyConfigTrajFile);
+  // WholeBodyConfigTrajFile.close();
 
   if(SimParaObj.getTrajConfigOptFlag()){
     std::vector<ContactStatusInfo> GoalContactInfo = SimParaObj.FixedContactStatusInfo;
