@@ -829,72 +829,7 @@ struct ControlReferenceInfo{
     }
     EndEffectorTraj = LinearPath(timeTraj, endeffectorPath);
   }
-
-  double NegPI2PosPI(const double & angle){
-    double angle_ = angle;
-    if((angle_>=-M_PI)&&(angle_<=M_PI)){
-      return angle_;
-    }
-    if(angle_<-M_PI){
-      while(1){
-        angle_+=2.0 * M_PI;
-        if((angle_>=-M_PI)&&(angle_<=M_PI)) return angle_;
-      }
-    }
-    else {
-      while(1){
-        angle_-=2.0 * M_PI;
-        if((angle_>=-M_PI)&&(angle_<=M_PI)) return angle_;
-      }
-    }
-  }
-
-  double AngleInterpolator(const double & preAng, const double & nextAng, const double & preTime, const double & nextTime, const double & curTime){
-    double preAngShift = preAng;
-    double nextAngShift = nextAng;
-    if (abs(nextAng - preAng)>M_PI){
-      // Singularity exists!
-      // Force them to became an angle between -pi to pi
-      preAngShift = NegPI2PosPI(preAng);
-      nextAngShift = NegPI2PosPI(nextAng);
-    }
-    double angleInterpolated = (nextAngShift - preAngShift)/(nextTime - preTime) * (curTime - preTime) + preAng;
-  }
-  void EulerAngleInterpolator(const double & curTime, double & Yaw, double & Pitch, double & Roll){
-    // This function is used to address the euler angle singularity problem.
-    if(curTime<0.0){
-      Config FirstConfig = ConfigTraj.front();
-      Yaw = FirstConfig[3];
-      Pitch = FirstConfig[4];
-      Roll = FirstConfig[5];
-    }
-    else{
-      if(curTime>=TimeTraj.back()){
-        Config LastConfig = ConfigTraj.back();
-        Yaw = LastConfig[3];
-        Pitch = LastConfig[4];
-        Roll = LastConfig[5];
-      }
-      else{
-        int preInd, nextInd;
-        for (int i = 1; i < TimeTraj.size(); i++) {
-          if(curTime<TimeTraj[i]){
-            nextInd = i;
-            preInd = nextInd - 1;
-            break;
-          }
-        }
-      Config preConfig = ConfigTraj[preInd];
-      Config nextConfig = ConfigTraj[nextInd];
-      double preTime = TimeTraj[preInd];
-      double nextTime = TimeTraj[nextInd];
-      Yaw = AngleInterpolator(preConfig[3], nextConfig[3], preTime, nextTime, curTime);
-      Pitch = AngleInterpolator(preConfig[4], nextConfig[4], preTime, nextTime, curTime);
-      Roll = AngleInterpolator(preConfig[5], nextConfig[5], preTime, nextTime, curTime);
-      }
-    }
-  }
-
+  
   void setWaitTime(const double & _WaitTime) { WaitTime = _WaitTime; }
   double getWaitTime() { return WaitTime; }
   void setTouchDownConfig(const std::vector<double> _TouchDownConfig){ TouchDownConfig = _TouchDownConfig; }

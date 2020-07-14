@@ -33,14 +33,39 @@ static bool IsPathExist(const std::string &s){
   return (stat (s.c_str(), &buffer) == 0);
 }
 
-std::vector<double> YPRShifter(std::vector<double> OptConfig){
-  for (int i = 3; i < 6; i++){
-    if(OptConfig[i]>M_PI)
-      OptConfig[i]-=2.0 * M_PI;
-    if(OptConfig[i]<-M_PI)
-      OptConfig[i]+=2.0 * M_PI;
-  }
-  return OptConfig;
+static void AngleShifter(const double & AngleRef, double & AngleNew){
+  double PlusError  = AngleNew + 2.0 * M_PI - AngleRef;
+  double MinusError = AngleNew - 2.0 * M_PI - AngleRef;
+  PlusError = PlusError * PlusError;
+  MinusError = MinusError * MinusError;
+  if(PlusError>MinusError) AngleNew -= 2.0 * M_PI;
+  else AngleNew += 2.0 * M_PI;
+}
+
+void WholeBodyConfigAppender(std::vector<Config> & WholeBodyConfigTraj, const Config & UpdatedConfig){
+  // This function aims to address the problem of Euler Angle Discontinuity at boundaries.
+  Config CurrentConfig = WholeBodyConfigTraj.back();
+  Config NewConfig = UpdatedConfig;
+  double CurrentYaw = CurrentConfig[3];
+  double CurrentPitch = CurrentConfig[4];
+  double CurrentRoll = CurrentConfig[5];
+
+  double NewYaw = NewConfig[3];
+  double NewPitch = NewConfig[4];
+  double NewRoll = NewConfig[5];
+
+  if(abs(NewYaw - CurrentYaw)>(M_PI/2.0))
+    AngleShifter(CurrentYaw, NewYaw);
+  if(abs(NewPitch - CurrentPitch)>(M_PI/2.0))
+    AngleShifter(CurrentPitch, NewPitch);
+  if(abs(NewRoll - CurrentRoll)>(M_PI/2.0))
+    AngleShifter(CurrentRoll, NewRoll);
+
+  NewConfig[3] = NewYaw;
+  NewConfig[4] = NewPitch;
+  NewConfig[5] = NewRoll;
+  WholeBodyConfigTraj.push_back(NewConfig);
+  return;
 }
 
 void FilePathManager(const string & CurrentCasePath){
@@ -317,19 +342,6 @@ void getEndEffectorXYAxes(const Robot & SimRobotInner, const int & SwingLinkInfo
   EndEffectorInityDir.z = EndEffectorLink.T_World.R.data[1][2];
   return;
 }
-
-// std::vector<Config> ConfigReferenceYPRCheck(const std::vector<Config> & WholeBodyConfigTraj){
-//   int ConfigSize = WholeBodyConfigTraj.size();
-//   if(ConfigSize<2) return WholeBodyConfigTraj;
-//   std::vector<Config> WholeBodyConfigTrajNew;
-//   WholeBodyConfigTrajNew.reserve(ConfigSize);
-//
-//   Config CurConfig = WholeBodyConfigTraj[0];
-//   Config NextConfig = WholeBodyConfigTraj[1];
-//   for (int i = 0; i < ConfigSize-1; i++) {
-//
-//   }
-// }
 
 double EstimatedFailureMetric(const Robot & SimRobotInner, const std::vector<ContactStatusInfo> & GoalContactInfo, const Vector3 & COMPos, const Vector3 & COMVel){
   // This function calculates robot's estimated failure metric given new ContactStatus, COMPos, and COMVel;

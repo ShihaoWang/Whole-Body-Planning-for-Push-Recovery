@@ -41,7 +41,7 @@ Vector3 ImpulseDirectionGene(Robot & SimRobotObj, const std::vector<ContactStatu
 Vector3 FlatRandomDirection();
 void getCentroidalState(const Robot & SimRobot, Vector3 & COMPos, Vector3 & COMVel);
 std::vector<Vector3> ActiveContactFinder(const Robot & SimRobot, const std::vector<ContactStatusInfo> & RobotContactInfo);
-std::vector<double> YPRShifter(std::vector<double> OptConfig);
+// std::vector<double> YPRShifter(std::vector<double> OptConfig);
 void Vector3Writer(const std::vector<Vector3> & ContactPoints, const std::string & ContactPointFileName);
 std::vector<Vector3> BoxVertices(const Box3D & Box3DObj);
 std::vector<double> ConfigReferenceGene(const Robot & SimRobotObj,  double & InnerTime,
@@ -55,6 +55,7 @@ void SwingLinkStatePrint(const std::vector<double> & Config, const std::vector<i
 bool PenetrationTester(const Robot & SimRobotObj, const int & SwingLinkInfoIndex);
 void getEndEffectorXYAxes(const Robot & SimRobotInner, const int & SwingLinkInfoIndex, Vector3 & EndEffectorInitxDir, Vector3 & EndEffectorInityDir);
 double EstimatedFailureMetric(const Robot & SimRobotInner, const std::vector<ContactStatusInfo> & GoalContactInfo, const Vector3 & COMPos, const Vector3 & COMVel);
+void WholeBodyConfigAppender(std::vector<Config> & WholeBodyConfigTraj, const Config & UpdatedConfig);
 
 /* 4. Main Simulation*/
 LinearPath InitialSimulation(WorldSimulation & Sim, const SimPara & SimParaObj);

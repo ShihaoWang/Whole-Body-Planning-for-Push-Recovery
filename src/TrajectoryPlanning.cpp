@@ -283,7 +283,7 @@ ControlReferenceInfo TrajectoryPlanning(Robot & SimRobotInner, const InvertedPen
   double sVal = 0.0;
   double sUnit = 0.1;
   double CurrentTime = 0.0;
-  Config CurrentConfig = Config(YPRShifter(SimRobotInner.q));
+  Config CurrentConfig = Config(SimRobotInner.q);
   Config CurrentVelocity = SimRobotInner.dq;
   Vector3 CurrentContactPos = SimParaObj.getContactInit();
 
@@ -346,7 +346,7 @@ ControlReferenceInfo TrajectoryPlanning(Robot & SimRobotInner, const InvertedPen
     CurrentVelocity = Config(NextVelocity);
 
     TimeTraj.push_back(CurrentTime);
-    WholeBodyConfigTraj.push_back(CurrentConfig);
+    WholeBodyConfigAppender(WholeBodyConfigTraj, CurrentConfig);
     WholeBodyVelocityTraj.push_back(Config(NextVelocity));
     PlannedEndEffectorTraj.push_back(CurrentContactPos);
 
@@ -357,24 +357,24 @@ ControlReferenceInfo TrajectoryPlanning(Robot & SimRobotInner, const InvertedPen
 
     sIndex++;
   }
-  for (int i = 0; i < WholeBodyConfigTraj.size(); i++) {
-    std::string ConfigPath = "/home/motion/Desktop/Whole-Body-Planning-for-Push-Recovery/build/";
-    std::string OptConfigFile = "InnerOpt" + std::to_string(i) + ".config";
-    RobotConfigWriter(WholeBodyConfigTraj[i], ConfigPath, OptConfigFile);
-  }
-  for (int i = 0; i < WholeBodyConfigTraj.size(); i++) {
-    std::string ConfigPath = "/home/motion/Desktop/Whole-Body-Planning-for-Push-Recovery/build/";
-    std::string OptConfigFile = "InnerVel" + std::to_string(i) + ".config";
-    RobotConfigWriter(WholeBodyVelocityTraj[i], ConfigPath, OptConfigFile);
-  }
-  std::cout<<"Config"<<std::endl;
-  for (int i = 0; i < WholeBodyConfigTraj.size(); i++) {
-    SwingLinkStatePrint(WholeBodyConfigTraj[i], SwingLinkChain);
-  }
-  std::cout<<"Velocity"<<std::endl;
-  for (int i = 0; i < WholeBodyConfigTraj.size(); i++) {
-    SwingLinkStatePrint(WholeBodyVelocityTraj[i], SwingLinkChain);
-  }
+  // for (int i = 0; i < WholeBodyConfigTraj.size(); i++) {
+  //   std::string ConfigPath = "/home/motion/Desktop/Whole-Body-Planning-for-Push-Recovery/build/";
+  //   std::string OptConfigFile = "InnerOpt" + std::to_string(i) + ".config";
+  //   RobotConfigWriter(WholeBodyConfigTraj[i], ConfigPath, OptConfigFile);
+  // }
+  // for (int i = 0; i < WholeBodyConfigTraj.size(); i++) {
+  //   std::string ConfigPath = "/home/motion/Desktop/Whole-Body-Planning-for-Push-Recovery/build/";
+  //   std::string OptConfigFile = "InnerVel" + std::to_string(i) + ".config";
+  //   RobotConfigWriter(WholeBodyVelocityTraj[i], ConfigPath, OptConfigFile);
+  // }
+  // std::cout<<"Config"<<std::endl;
+  // for (int i = 0; i < WholeBodyConfigTraj.size(); i++) {
+  //   SwingLinkStatePrint(WholeBodyConfigTraj[i], SwingLinkChain);
+  // }
+  // std::cout<<"Velocity"<<std::endl;
+  // for (int i = 0; i < WholeBodyConfigTraj.size(); i++) {
+  //   SwingLinkStatePrint(WholeBodyVelocityTraj[i], SwingLinkChain);
+  // }
   LinearPath WholeBodyConfigTrajPath(TimeTraj, WholeBodyConfigTraj);
   std::ofstream WholeBodyConfigTrajFile;
   const string  WholeBodyConfigTrajName = "WholeBodyConfigTraj.path";

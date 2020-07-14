@@ -174,6 +174,5 @@ std::vector<double> LastStageConfigOptimazation(const Robot & SimRobot, Reachabi
   SimRobotObj.UpdateConfig(Config(OptConfig));
   SimRobotObj.UpdateGeometry();
 
-  OptConfig = YPRShifter(OptConfig);
   return OptConfig;
 }

@@ -211,11 +211,6 @@ std::vector<double> TrajConfigOptimazation(const Robot & SimRobot, ReachabilityM
     OptFlag = false;
   }
 
-  // std::string ConfigPath = "/home/motion/Desktop/Whole-Body-Planning-for-Push-Recovery/build/";
-  // std::string OptConfigFile = "SwingUpdatedConfig.config";
-  // RobotConfigWriter(OptConfig, ConfigPath, OptConfigFile);
-
   SimParaObj.setTrajConfigOptFlag(OptFlag);
-  OptConfig = YPRShifter(OptConfig);
   return OptConfig;
 }

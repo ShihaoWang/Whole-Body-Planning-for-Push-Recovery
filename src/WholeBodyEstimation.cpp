@@ -129,6 +129,5 @@ Config WholeBodyDynamicsIntegrator(Robot & SimRobot, InvertedPendulumInfo & Inve
   for (int i = 0; i < 6; i++){
     UpdatedConfig[i] = FrameConfig[i];
   }
-  UpdatedConfig = YPRShifter(UpdatedConfig);
   return Config(UpdatedConfig);
 }
