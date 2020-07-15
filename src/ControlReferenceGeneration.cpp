@@ -218,7 +218,7 @@ static std::vector<Vector3> OptimalContactSearcher( Robot SimRobot,     const PI
       SimParaObj.DataRecorderObj.setRCSData(ReachableContacts, CollisionFreeContacts, SupportiveContacts);
 
       // 3. Optimal Contact
-      int CutOffNo = 10;
+      int CutOffNo = 5;
       OptimalContact = OptimalContactFinder(SupportiveContacts, FixedContactPos, COMPos, COMVel, CutOffNo, SimParaObj);
       if(!OptimalContact.size()) return OptimalContact;
 

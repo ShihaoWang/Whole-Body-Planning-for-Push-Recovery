@@ -3,19 +3,6 @@
 #include "NonlinearOptimizerInfo.h"
 #include "gurobi_c++.h"
 
-static void LastStageTimeEst(const std::vector<double> & TimeTraj, double & StageTime){
-  switch (TimeTraj.size()) {
-    case 1:
-    return;
-    break;
-    default:
-    break;
-  }
-  double TimeTotal = TimeTraj.back();
-  int TimeSize = TimeTraj.size();
-  StageTime = TimeTotal/(1.0 * (TimeSize-1.0));
-}
-
 static std::vector<double> ProjectionLength(const Vector3 & InitDir, const Vector3 & GoalDir, const int & gridNo){
   double x = GoalDir.dot(InitDir);
   double y = (InitDir - x * GoalDir).length();
@@ -326,21 +313,19 @@ ControlReferenceInfo TrajectoryPlanning(Robot & SimRobotInner, const InvertedPen
     std::vector<double> NextConfig, NextVelocity;
     double StageTime;
     double sNew;
-    bool StageOptFlag = StageStateOptimization(sVal, sUnit, sNew, CurrentContactPos, SimRobotInner, CurrentConfig, WholeBodyVelocityTraj.back(),
-                           NextConfig, NextVelocity, RMObject, SelfLinkGeoObj, EndEffectorPathObj, SwingLinkChain,
-                           EndEffectorInitxDir, EndEffectorInityDir, SimParaObj, StageTime);
+    bool StageOptFlag = StageStateOptimization( sVal, sUnit, sNew, CurrentContactPos, SimRobotInner, CurrentConfig, WholeBodyVelocityTraj.back(),
+                                                NextConfig, NextVelocity, RMObject, SelfLinkGeoObj, EndEffectorPathObj, SwingLinkChain,
+                                                EndEffectorInitxDir, EndEffectorInityDir, SimParaObj, StageTime);
     sVal = sNew;
     if(!StageOptFlag) break;
     SimRobotInner.UpdateConfig(Config(NextConfig));
     Config UpdatedConfig  = WholeBodyDynamicsIntegrator(SimRobotInner, InvertedPendulumObj, StageTime);
     SimRobotInner.UpdateConfig(UpdatedConfig);
 
-    PenetrationFlag = PenetrationTester(SimRobotInner, SwingLinkInfoIndex);
-    if(PenetrationFlag){
-      if(sVal<0.5){
-        // The contact is made too early under this situation, so the optimazation should be conducted here.
-
-      } else UpdatedConfig = LastStageConfigOptimazation(SimRobotInner, RMObject, SelfLinkGeoObj, SimParaObj, -1);
+    if(sVal>=0.5){
+      PenetrationFlag = PenetrationTester(SimRobotInner, SwingLinkInfoIndex);
+      if(PenetrationFlag)
+        UpdatedConfig = LastStageConfigOptimazation(SimRobotInner, RMObject, SelfLinkGeoObj, SimParaObj, -1);
     }
 
     CurrentTime+=StageTime;

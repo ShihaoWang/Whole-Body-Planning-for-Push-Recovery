@@ -22,9 +22,13 @@ static std::vector<double> CurrentBaseDelta(6);
 static Vector3 EndEffectorInitxDir;
 static Vector3 EndEffectorInityDir;
 
-static double AlignmentTol = 1e-2;
-static double EndEffectorTol = 1e-3;
-static double Kx = 0.05;
+static double AlignmentTol = 1e-4;
+static double EndEffectorTol = 1e-4;
+static double K_delta_s = 10.0;
+static double K_goal = 10.0;
+static double K_fb = 0.001;
+static double K_E = 100.0;
+static double K_A = 100.0;
 
 static int DOF;
 
@@ -32,9 +36,9 @@ static Vector3 d_x_s;
 static double sCur;
 static double delta_t;
 
-struct TasKxpaceOpt: public NonlinearOptimizerInfo
+struct TaskSpaceOpt: public NonlinearOptimizerInfo
 {
-  TasKxpaceOpt():NonlinearOptimizerInfo(){};
+  TaskSpaceOpt():NonlinearOptimizerInfo(){};
 
   // This struct inherits the NonlinearOptimizerInfo struct and we just need to defined the Constraint function
   static void ObjNConstraint(int    *Status, int *n,    double x[],
@@ -48,7 +52,7 @@ struct TasKxpaceOpt: public NonlinearOptimizerInfo
       for (int i = 0; i < *n; i++)
         x_vec[i] = x[i];
 
-      std::vector<double> F_val = TasKxpaceOptNCons(*n, *neF, x_vec);
+      std::vector<double> F_val = TaskSpaceOptNCons(*n, *neF, x_vec);
       for (int i = 0; i < *neF; i++)
         F[i] = F_val[i];
     }
@@ -68,16 +72,23 @@ struct TasKxpaceOpt: public NonlinearOptimizerInfo
       delete []F;      delete []Flow;   delete []Fupp;
       delete []Fmul;   delete []Fstate;
   }
-  static std::vector<double> TasKxpaceOptNCons(const int & nVar, const int & nObjNCons, const std::vector<double> & AccelerationPluss)
+  static std::vector<double> TaskSpaceOptNCons(const int & nVar, const int & nObjNCons, const std::vector<double> & AccelerationPluss)
   {
     // This funciton provides the constraint for the configuration variable
     std::vector<double> F(nObjNCons);
-    double delta_s = AccelerationPluss.back();
-    F[0] = -delta_s;
+
+    double delta_s = AccelerationPluss[SwingLinkChain.size()];
+    double Ex = AccelerationPluss[SwingLinkChain.size() + 1];
+    double Ey = AccelerationPluss[SwingLinkChain.size() + 2];
+    double Ez = AccelerationPluss[SwingLinkChain.size() + 3];
+    double Ax = AccelerationPluss[SwingLinkChain.size() + 4];
+    double Ay = AccelerationPluss[SwingLinkChain.size() + 5];
+
+    F[0] = -K_delta_s * delta_s + K_E * (Ex * Ex + Ey * Ey + Ez * Ez) + K_A * (Ax * Ax + Ay * Ay);
 
     // Velocity Constraint
     int ConstraintIndex = 1;
-    std::vector<double> NextVelocity(nVar - 1);
+    std::vector<double> NextVelocity(SwingLinkChain.size());
     for (int i = 0; i < SwingLinkChain.size(); i++) {
       NextVelocity[i] = CurrentVelocity[SwingLinkChain[i]] + AccelerationPluss[i] * delta_t;
       F[ConstraintIndex] = NextVelocity[i];
@@ -88,7 +99,7 @@ struct TasKxpaceOpt: public NonlinearOptimizerInfo
     for (int i = 0; i < 6; i++)
       NextConfig[i]+=CurrentBaseDelta[i];
     for (int i = 0; i < SwingLinkChain.size(); i++) {
-      double CurrentSwingLinkDelta = (CurrentVelocity[SwingLinkChain[i]] + NextVelocity[i]) * delta_t;
+      double CurrentSwingLinkDelta = 0.5 * (CurrentVelocity[SwingLinkChain[i]] + NextVelocity[i]) * delta_t;
       NextConfig[SwingLinkChain[i]]+=CurrentSwingLinkDelta;
     }
     for (int i = 0; i < SwingLinkChain.size(); i++) {
@@ -106,7 +117,8 @@ struct TasKxpaceOpt: public NonlinearOptimizerInfo
       for (int j = 0; j < DOF; j++) {
         Jac_delta_q_i+=Jac(i,j) * DeltaQ[j];
       }
-      F[ConstraintIndex] = Jac_delta_q_i - delta_s * d_x_s[i];
+      double Jac_delta_q_delta_s = Jac_delta_q_i - delta_s * d_x_s[i] - AccelerationPluss[SwingLinkChain.size() + i + 1];
+      F[ConstraintIndex] = Jac_delta_q_delta_s * Jac_delta_q_delta_s;
       ConstraintIndex++;
     }
 
@@ -119,50 +131,55 @@ struct TasKxpaceOpt: public NonlinearOptimizerInfo
 
     Vector3 EndEffectorxDir, EndEffectoryDir;
     getEndEffectorXYAxes(SimRobotObj, SwingLinkInfoIndex, EndEffectorxDir, EndEffectoryDir);
-    F[ConstraintIndex] = EndEffectorxDir.dot(GoalDir) - EdgexProjVal;
+    F[ConstraintIndex] = EndEffectorxDir.dot(GoalDir) - EdgexProjVal + Ax;
     ConstraintIndex+=1;
-    F[ConstraintIndex] = EndEffectoryDir.dot(GoalDir) - EdgeyProjVal;
+    F[ConstraintIndex] = EndEffectoryDir.dot(GoalDir) - EdgeyProjVal + Ay;
     ConstraintIndex+=1;
 
     return F;
   }
 };
 
-void TasKxpaceOptimazation( double & delta_s, std::vector<double> & Acceleration,   const double & DampingRatio){
+void TaskSpaceOptimazation( double & delta_s, std::vector<double> & Acceleration, std::vector<double> & SlackVec, const double & DampingRatio){
   // This function is used to optimize robot's velocity to reach a target as soon as possible.
 
-  TasKxpaceOpt TasKxpaceOptProblem;
+  TaskSpaceOpt TaskSpaceOptProblem;
 
   // Static Variable Substitution
-  int n = SwingLinkChain.size() + 1;      // acceleration + delta_s
+  int n = SwingLinkChain.size() + 1 + 3 + 2;      // acceleration + delta_s + Ex, Ey, Ez + Ax, Ay
 
-  // Cost function on the norm difference between the reference avg position and the modified contact position.
+  // Cost function on the norm difference between the reference avg position and the modified conta`ct position.
   int neF = 1;
   neF += 2 * SwingLinkChain.size();                                                 // Velocity
-  neF += 3;                                                                     // Alignment
-  neF += 2;                                                                     // End Effector Orientation Constraint
-  TasKxpaceOptProblem.InnerVariableInitialize(n, neF);
+  neF += 3;                                                                         // Alignment
+  neF += 2;                                                                         // End Effector Orientation Constraint
+  TaskSpaceOptProblem.InnerVariableInitialize(n, neF);
 
   /*
     Initialize the bounds of variables
   */
   std::vector<double> xlow_vec(n), xupp_vec(n);
-  for (int i = 0; i < n-1; i++){
+  for (int i = 0; i < SwingLinkChain.size(); i++){
     // Velocity
     xlow_vec[i] = -SimRobotObj.accMax(SwingLinkChain[i]);
     xupp_vec[i] = SimRobotObj.accMax(SwingLinkChain[i]);
   }
-  xlow_vec[n-1] = 1e-3;
-  xupp_vec[n-1] = 0.25;
-  TasKxpaceOptProblem.VariableBoundsUpdate(xlow_vec, xupp_vec);
+  xlow_vec[SwingLinkChain.size()] = 1e-3;
+  xupp_vec[SwingLinkChain.size()] = 0.25;
+  double SlackBound = 1e-3;
+  for (int i = n - 5; i < n; i++) {
+    xlow_vec[i] = -SlackBound;
+    xupp_vec[i] = SlackBound;
+  }
+  TaskSpaceOptProblem.VariableBoundsUpdate(xlow_vec, xupp_vec);
 
   /*
     Initialize the bounds of variables
   */
   std::vector<double> Flow_vec(neF), Fupp_vec(neF);
   // Objective: delta_s
-  Flow_vec[0] = -0.25;
-  Fupp_vec[0] = 0.0;
+  Flow_vec[0] = -1e10;
+  Fupp_vec[0] = 1e10;
   int neFCount = 1;
   // Constraint: velocity
   for (int i = 0; i <SwingLinkChain.size(); i++) {
@@ -179,8 +196,8 @@ void TasKxpaceOptimazation( double & delta_s, std::vector<double> & Acceleration
   }
   // Constraint:: Alignment
   for (int i = 0; i < 3; i++) {
-    Flow_vec[neFCount] = -1.0 * AlignmentTol;
-    Fupp_vec[neFCount] = AlignmentTol;
+    Flow_vec[neFCount] = -AlignmentTol * AlignmentTol;
+    Fupp_vec[neFCount] = AlignmentTol * AlignmentTol;
     neFCount++;
   }
   Flow_vec[neF-2] = -1.0 * EndEffectorTol;
@@ -188,36 +205,42 @@ void TasKxpaceOptimazation( double & delta_s, std::vector<double> & Acceleration
   Flow_vec[neF-1] = -1.0 * EndEffectorTol;
   Fupp_vec[neF-1] = EndEffectorTol;
 
-  TasKxpaceOptProblem.ConstraintBoundsUpdate(Flow_vec, Fupp_vec);
+  TaskSpaceOptProblem.ConstraintBoundsUpdate(Flow_vec, Fupp_vec);
 
   /*
     Initialize the seed guess
   */
   std::vector<double> SeedGuess = Acceleration;
+  double SlackInit = 0.1;
   SeedGuess.push_back(0.1);
-  TasKxpaceOptProblem.SeedGuessUpdate(SeedGuess);
+  for (int i = 0; i < 5; i++)
+    SeedGuess.push_back(SlackInit);
+
+  TaskSpaceOptProblem.SeedGuessUpdate(SeedGuess);
 
   /*
     Given a name of this problem for the output
   */
-  TasKxpaceOptProblem.ProblemNameUpdate("TasKxpaceOptProblem", 0);
+  TaskSpaceOptProblem.ProblemNameUpdate("TaskSpaceOptProblem", 0);
 
   // Here we would like allow much more time to be spent on IK
-  TasKxpaceOptProblem.NonlinearProb.setIntParameter("Iterations limit", 250);
-  TasKxpaceOptProblem.NonlinearProb.setIntParameter("Major iterations limit", 25);
-  TasKxpaceOptProblem.NonlinearProb.setIntParameter("Major print level", 0);
-  TasKxpaceOptProblem.NonlinearProb.setIntParameter("Minor print level", 0);
+  TaskSpaceOptProblem.NonlinearProb.setIntParameter("Iterations limit", 1000);
+  TaskSpaceOptProblem.NonlinearProb.setIntParameter("Major iterations limit", 100);
+  TaskSpaceOptProblem.NonlinearProb.setIntParameter("Major print level", 0);
+  TaskSpaceOptProblem.NonlinearProb.setIntParameter("Minor print level", 0);
   /*
     ProblemOptions seting
   */
   // Solve with Finite-Difference
-  TasKxpaceOptProblem.ProblemOptionsUpdate(0, 3);
-  TasKxpaceOptProblem.Solve(SeedGuess);
+  TaskSpaceOptProblem.ProblemOptionsUpdate(0, 3);
+  TaskSpaceOptProblem.Solve(SeedGuess);
 
-  delta_s = SeedGuess.back();
+  delta_s = SeedGuess[SwingLinkChain.size()];
   for (int i = 0; i < SwingLinkChain.size(); i++)
     Acceleration[i] = SeedGuess[i];
-  return ;
+  for (int i = 0; i < 5; i++)
+    SlackVec.push_back(SeedGuess[SwingLinkChain.size() + i + 1]);
+  return;
 }
 
 bool TaskTrajectoryPlanningInner( const double & _sVal, double & _sNew,
@@ -225,7 +248,7 @@ bool TaskTrajectoryPlanningInner( const double & _sVal, double & _sNew,
                                   const Config & _PreVelocity,                      const std::vector<double> & _CurrentBaseDelta,
                                   const Config & _CurrentConfig,                    const Config & _CurrentVelocity,
                                   std::vector<double> & _NextConfig,                std::vector<double> & _NextVelocity,
-                                  const EndEffectorPathInfo & EndEffectorPath, const std::vector<int> & _SwingLinkChain,
+                                  const EndEffectorPathInfo & EndEffectorPath,      const std::vector<int> & _SwingLinkChain,
                                   const Vector3 & _EndEffectorInitxDir,             const Vector3 & _EndEffectorInityDir,
                                   SimPara & _SimParaObj,
                                   const double & _StageTime,                        const double & _DampingRatio){
@@ -256,7 +279,9 @@ bool TaskTrajectoryPlanningInner( const double & _sVal, double & _sNew,
   Vector3 CurrentsPos, CurrentContactsSlope;
   EndEffectorPathInfo EndEffectorPathInner = EndEffectorPath;
   EndEffectorPathInner.PosNTang(sCur, CurrentsPos, CurrentContactsSlope);
-  d_x_s = CurrentContactsSlope + Kx *  (_SimParaObj.getContactGoal() - CurrentContactPos);
+  Vector3 FeedbackPos = CurrentsPos - CurrentContactPos;
+  // d_x_s = CurrentContactsSlope + K_goal *  (_SimParaObj.getContactGoal() - CurrentContactPos) + K_fb * FeedbackPos;
+  d_x_s = K_goal *  (_SimParaObj.getContactGoal() - CurrentContactPos);
 
   double delta_s = 0.25;      // Initial Guess
   std::vector<double> NextConfig    = CurrentConfig;
@@ -265,7 +290,8 @@ bool TaskTrajectoryPlanningInner( const double & _sVal, double & _sNew,
   for (int i = 0; i < Acceleration.size(); i++)
     Acceleration[i] = (_CurrentVelocity[SwingLinkChain[i]] - _PreVelocity[SwingLinkChain[i]])/_StageTime;
 
-  TasKxpaceOptimazation(delta_s, Acceleration, _DampingRatio);
+  std::vector<double> SlackVec;
+  TaskSpaceOptimazation(delta_s, Acceleration, SlackVec, _DampingRatio);
   _sNew = _sVal + delta_s;
   // Update current configuration
   for (int i = 0; i < 6; i++)
@@ -276,10 +302,44 @@ bool TaskTrajectoryPlanningInner( const double & _sVal, double & _sNew,
   // Update current velocity
   for (int i = 0; i < 6; i++)
     NextVelocity[i] =_CurrentBaseDelta[i]/delta_t;
-  for (int i = 0; i < SwingLinkChain.size(); i++) {
+  for (int i = 0; i < SwingLinkChain.size(); i++)
     NextVelocity[SwingLinkChain[i]] = CurrentVelocity[SwingLinkChain[i]] + Acceleration[i] * delta_t;
-  }
+
+  // double Ex = SlackVec[0];
+  // double Ey = SlackVec[1];
+  // double Ez = SlackVec[2];
+  // double Ax = SlackVec[3];
+  // double Ay = SlackVec[4];
+  //
+  // std::vector<double> DeltaQ(DOF);
+  // for (int i = 0; i < DOF; i++)
+  //   DeltaQ[i] = NextConfig[i] - CurrentConfig[i];
+  //
+  // // Vector3 Jac_delta_q;
+  // for (int i = 0; i < 3; i++) {
+  //   double Jac_delta_q_i = 0.0;
+  //   for (int j = 0; j < DOF; j++) {
+  //     Jac_delta_q_i+=Jac(i,j) * DeltaQ[j];
+  //   }
+  //   double Jac_delta_q = Jac_delta_q_i - delta_s * d_x_s[i] - SlackVec[i];
+  //   std::cout<<"Jac_delta_q : " << Jac_delta_q << std::endl;
+  // }
+  //
+  // double EdgexProjVal = EdgeProjMagnitude(_sNew,  EndEffectorInitxDir,   GoalDir);
+  // double EdgeyProjVal = EdgeProjMagnitude(_sNew,  EndEffectorInityDir,   GoalDir);
+  //
+  // Vector3 EndEffectorxDir, EndEffectoryDir;
+  // SimRobotObj.UpdateConfig(Config(NextConfig));
+  //
+  // getEndEffectorXYAxes(SimRobotObj, SwingLinkInfoIndex, EndEffectorxDir, EndEffectoryDir);
+  // double AxDiff = EndEffectorxDir.dot(GoalDir) - EdgexProjVal + Ax;
+  // double AyDiff  = EndEffectoryDir.dot(GoalDir) - EdgeyProjVal + Ay;
+  //
+  // std::cout<<"AxDiff : " <<AxDiff<<std::endl;
+  // std::cout<<"AyDiff : " <<AyDiff<<std::endl;
+
   _NextConfig = NextConfig;
   _NextVelocity = NextVelocity;
+
   return true;
 }

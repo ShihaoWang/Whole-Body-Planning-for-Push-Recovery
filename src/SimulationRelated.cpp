@@ -28,6 +28,7 @@ void PushImposer(WorldSimulation & Sim, const double & CurTime, const SimPara & 
     double ImpulseScale = 1.0 * CurTime/SimParaObj.PushDuration;
     Vector3 ImpulseForce = ImpulseScale * SimParaObj.ImpulseForceMax;
     dBodyAddForceAtRelPos(Sim.odesim.robot(0)->body(LinkIndex), ImpulseForce.x, ImpulseForce.y, ImpulseForce.z, 0.0, 0.0, 0.0);
+    dBodyAddForceAtRelPos(Sim.odesim.robot(0)->body(LinkIndex-1), ImpulseForce.x, ImpulseForce.y, ImpulseForce.z, 0.0, 0.0, 0.0);
     PushInfoFileAppender(Sim.time, ImpulseForce.x, ImpulseForce.y, ImpulseForce.z, SimParaObj.CurrentCasePath);
   }
 }
