@@ -162,9 +162,9 @@ static bool Velocity2Pos(     const double & InitPos,       const double & GoalP
   return FinderFlag;
 }
 
-bool AccPhaseTimePathMethod(    const std::vector<double> & CurConfig,        const std::vector<double> & NextConfig,
-                                const std::vector<double> & CurVelocity,      std::vector<double> & NextVelocity,
-                                const std::vector<double> & VelocityBound,    const std::vector<double> & AccelerationBound,
+bool AccPhaseTimePathMethod(    const std::vector<double> & CurConfig,          const std::vector<double> & NextConfig,
+                                const std::vector<double> & CurVelocity,        std::vector<double> & NextVelocity,
+                                const std::vector<double> & VelocityBound,      const std::vector<double> & AccelerationBound,
                                 const std::vector<int> & SwingLinkChain,        double & AccTime){
   // This function solves for the time in acceleration phase.
   std::vector<double> AccPhaseTimeTotal(SwingLinkChain.size());
@@ -355,11 +355,11 @@ ControlReferenceInfo TrajectoryPlanning(Robot & SimRobotInner, const InvertedPen
     std::string OptConfigFile = "InnerOpt" + std::to_string(i) + ".config";
     RobotConfigWriter(WholeBodyConfigTraj[i], ConfigPath, OptConfigFile);
   }
-  for (int i = 0; i < WholeBodyConfigTraj.size(); i++) {
-    std::string ConfigPath = "/home/motion/Desktop/Whole-Body-Planning-for-Push-Recovery/build/";
-    std::string OptConfigFile = "InnerVel" + std::to_string(i) + ".config";
-    RobotConfigWriter(WholeBodyVelocityTraj[i], ConfigPath, OptConfigFile);
-  }
+  // for (int i = 0; i < WholeBodyConfigTraj.size(); i++) {
+  //   std::string ConfigPath = "/home/motion/Desktop/Whole-Body-Planning-for-Push-Recovery/build/";
+  //   std::string OptConfigFile = "InnerVel" + std::to_string(i) + ".config";
+  //   RobotConfigWriter(WholeBodyVelocityTraj[i], ConfigPath, OptConfigFile);
+  // }
   std::cout<<"Config"<<std::endl;
   for (int i = 0; i < WholeBodyConfigTraj.size(); i++) {
     SwingLinkStatePrint(WholeBodyConfigTraj[i], SwingLinkChain);

@@ -12,7 +12,7 @@ from OpenGL.GL import *
 import math
 import numpy as np
 
-CurCase = "flat_2Contact"
+CurCase = "flat_1Contact"
 ExpNo = 0
 
 class MyGLPlugin(vis.GLPluginInterface):

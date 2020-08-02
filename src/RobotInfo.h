@@ -1134,11 +1134,11 @@ struct EndEffectorPathInfo{
     SplineLib::Vec3f ps = Position(SplineObj[SegmentNo], sLength_i);
     SplineLib::Vec3f vs = Velocity(SplineObj[SegmentNo], sLength_i);
 
-    // This part is used for debugging.
-    int SplineIndex;
-    SplineLib::cSpline3 splines[SplineNumber];
-    for (int i = 0; i < SplineNumber; i++)  splines[i] = SplineObj[i];
-    float s_i = FindClosestPoint(ps, SplineNumber, splines, &SplineIndex);
+    // // This part is used for debugging.
+    // int SplineIndex;
+    // SplineLib::cSpline3 splines[SplineNumber];
+    // for (int i = 0; i < SplineNumber; i++)  splines[i] = SplineObj[i];
+    // float s_i = FindClosestPoint(ps, SplineNumber, splines, &SplineIndex);
 
     Pos.x = ps.x;
     Pos.y = ps.y;

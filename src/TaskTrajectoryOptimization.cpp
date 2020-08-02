@@ -25,7 +25,7 @@ static Vector3 EndEffectorInityDir;
 static double AlignmentTol = 1e-4;
 static double EndEffectorTol = 1e-4;
 static double K_delta_s = 10.0;
-static double K_goal = 10.0;
+static double K_goal = 0.1;
 static double K_fb = 0.001;
 static double K_E = 100.0;
 static double K_A = 100.0;
@@ -276,12 +276,13 @@ bool TaskTrajectoryPlanningInner( const double & _sVal, double & _sNew,
                                       NonlinearOptimizerInfo::RobotLinkInfo[SwingLinkInfoIndex].LinkIndex, Jac);
 
   sCur = _sVal;
-  Vector3 CurrentsPos, CurrentContactsSlope;
+  Vector3 CurrentsPos, CurrentContactSlope;
   EndEffectorPathInfo EndEffectorPathInner = EndEffectorPath;
-  EndEffectorPathInner.PosNTang(sCur, CurrentsPos, CurrentContactsSlope);
+  EndEffectorPathInner.PosNTang(sCur, CurrentsPos, CurrentContactSlope);
   Vector3 FeedbackPos = CurrentsPos - CurrentContactPos;
-  // d_x_s = CurrentContactsSlope + K_goal *  (_SimParaObj.getContactGoal() - CurrentContactPos) + K_fb * FeedbackPos;
-  d_x_s = K_goal *  (_SimParaObj.getContactGoal() - CurrentContactPos);
+  // d_x_s = CurrentContactSlope + K_goal *  (_SimParaObj.getContactGoal() - CurrentContactPos) + K_fb * FeedbackPos;
+  d_x_s = CurrentContactSlope + K_goal *  (_SimParaObj.getContactGoal() - CurrentContactPos);
+  // d_x_s = CurrentContactSlope;
 
   double delta_s = 0.25;      // Initial Guess
   std::vector<double> NextConfig    = CurrentConfig;

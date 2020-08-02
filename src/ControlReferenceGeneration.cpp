@@ -256,11 +256,9 @@ static ControlReferenceInfo ControlReferenceGeneInner(const Robot & SimRobot, co
       4. Based on that time, robot's whole-body configuration is updated with inverted pendulum model.
       5. The whole algorithm terminates when robot's self-collision has been triggered or no feasible IK solution can be found.
       */
-
-      // ControlReferenceObj = TrajectoryPlanning(SimRobotInner, InvertedPendulumObj, RMObject, SelfLinkGeoObj,
-      //   EndEffectorPathObj, SimParaObj);
-      ControlReferenceObj = TaskTrajectoryPlanning(SimRobotInner, InvertedPendulumObj, RMObject, SelfLinkGeoObj,
-                            EndEffectorPathObj, SimParaObj);
+      
+      ControlReferenceObj = TrajectoryPlanning(SimRobotInner, InvertedPendulumObj, RMObject, SelfLinkGeoObj,
+        EndEffectorPathObj, SimParaObj);
         if(ControlReferenceObj.getReadyFlag()) break;
       }
     }

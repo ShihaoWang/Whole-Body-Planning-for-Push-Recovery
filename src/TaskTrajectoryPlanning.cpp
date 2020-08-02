@@ -69,7 +69,7 @@ ControlReferenceInfo TaskTrajectoryPlanning(Robot & SimRobotInner, const Inverte
     Vector3 EndEffectorAvgPos;
     SimRobotInner.GetWorldPosition( NonlinearOptimizerInfo::RobotLinkInfo[SwingLinkInfoIndex].AvgLocalContact,
                                     NonlinearOptimizerInfo::RobotLinkInfo[SwingLinkInfoIndex].LinkIndex, EndEffectorAvgPos);
-    sVal = EndEffectorPathObj.Pos2s(EndEffectorAvgPos);
+    // sVal = EndEffectorPathObj.Pos2s(EndEffectorAvgPos);
 
     Config UpdatedConfig  = WholeBodyDynamicsIntegrator(SimRobotInner, InvertedPendulumObj, PhaseTimeStep);
     SimRobotInner.UpdateConfig(UpdatedConfig);
@@ -78,7 +78,7 @@ ControlReferenceInfo TaskTrajectoryPlanning(Robot & SimRobotInner, const Inverte
     // Vector3 EndEffectorAvgPosPath;
     // EndEffectorPathObj.s2Pos(sVal, EndEffectorAvgPosPath);
 
-    // sVal = sNew;
+    sVal = sNew;
     // PenetrationFlag = PenetrationTester(SimRobotInner, SwingLinkInfoIndex);
     // if(PenetrationFlag)
     //   continue;
