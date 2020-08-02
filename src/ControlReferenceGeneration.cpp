@@ -5,7 +5,7 @@
 #include <algorithm>    // std::min
 
 typedef std::pair<double, Vector3> qEle;
-
+static int LastEndEffectorIndex = -1;
 
 static std::vector<ContactForm> ContactStatusExplorer(Robot & SimRobot, const std::vector<ContactStatusInfo> & RobotContactInfo){
   // First part is for contact modification.
@@ -256,7 +256,7 @@ static ControlReferenceInfo ControlReferenceGeneInner(const Robot & SimRobot, co
       4. Based on that time, robot's whole-body configuration is updated with inverted pendulum model.
       5. The whole algorithm terminates when robot's self-collision has been triggered or no feasible IK solution can be found.
       */
-      
+
       ControlReferenceObj = TrajectoryPlanning(SimRobotInner, InvertedPendulumObj, RMObject, SelfLinkGeoObj,
         EndEffectorPathObj, SimParaObj);
         if(ControlReferenceObj.getReadyFlag()) break;
@@ -296,6 +296,7 @@ ControlReferenceInfo ControlReferenceGene(Robot & SimRobot,
    stage_planning_time+=planning_time;
    start_time = std::clock();
    ControlReferenceObj.setSwingLinkInfoIndex(ContactFormObj.SwingLinkInfoIndex);
+   ControlReferenceObj.ControlReferenceType = ContactFormObj.ContactType;
    if(ControlReferenceObj.getReadyFlag()){
      ControlReferenceObjVec.push_back(ControlReferenceObj);
      ExecutionTimeVec.push_back(ControlReferenceObj.TimeTraj.back());
@@ -315,8 +316,24 @@ ControlReferenceInfo ControlReferenceGene(Robot & SimRobot,
  // }
  // Select Estimated Failure Metric
  if(EstFailureMetricVec.size()){
-   int ObjIndex = std::distance(EstFailureMetricVec.begin(), std::max_element(EstFailureMetricVec.begin(), EstFailureMetricVec.end()));
-   ControlReferenceInfoObj = ControlReferenceObjVec[ObjIndex];
+   int ObjIndex;
+   if(LastEndEffectorIndex == -1){
+     ObjIndex = std::distance(EstFailureMetricVec.begin(), std::max_element(EstFailureMetricVec.begin(), EstFailureMetricVec.end()));
+     ControlReferenceInfoObj = ControlReferenceObjVec[ObjIndex];
+     LastEndEffectorIndex = ControlReferenceInfoObj.getSwingLinkInfoIndex();
+   }
+   else
+   {
+     ObjIndex = std::distance(EstFailureMetricVec.begin(), std::max_element(EstFailureMetricVec.begin(), EstFailureMetricVec.end()));
+     ControlReferenceInfoObj = ControlReferenceObjVec[ObjIndex];
+     if(ControlReferenceInfoObj.getSwingLinkInfoIndex() == LastEndEffectorIndex){
+       EstFailureMetricVec[ObjIndex] = -1.0;
+       ObjIndex = std::distance(EstFailureMetricVec.begin(), std::max_element(EstFailureMetricVec.begin(), EstFailureMetricVec.end()));
+       ControlReferenceInfoObj = ControlReferenceObjVec[ObjIndex];
+       LastEndEffectorIndex = ControlReferenceInfoObj.getSwingLinkInfoIndex();
+     } else
+        LastEndEffectorIndex = ControlReferenceInfoObj.getSwingLinkInfoIndex();
+   }
    PlanTimeRecorder(stage_planning_time, SimParaObj.getCurrentCasePath());
    PlanningInfoFileAppender(SimParaObj.getPlanStageIndex(), EstFailureMetricVec.size()-1, SimParaObj.getCurrentCasePath(), SimParaObj.getSimTime());
  }

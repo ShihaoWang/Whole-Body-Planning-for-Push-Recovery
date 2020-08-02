@@ -94,7 +94,7 @@ static double PositivePosNVel(  double PosDiff,
   if(AccDist<0.0){
     double AccDistOffset = -AccDist;
     PosDiff+=AccDistOffset;
-    AccTimeOffset = -(InitVelocity - VelocityBound)/AccBound;
+    AccTimeOffset = -(InitVelocity + VelocityBound)/AccBound;
     InitVelocity = -VelocityBound;
     AccDist = 0.0;
   }
@@ -157,8 +157,19 @@ static bool Velocity2Pos(     const double & InitPos,       const double & GoalP
     }
   }
   else
+  {
+    // This indicates that the current time is too large or too small.
+    double VelocityEst;
+    if(AccEst>0)  VelocityEst = InitVelocity + AccBound * DurationTime;
+    else          VelocityEst = InitVelocity - AccBound * DurationTime;
+    if(VelocityEst * VelocityEst<=VelocityBound * VelocityBound)
+      GoalVelocity = VelocityEst;
+    else{
+      if(VelocityEst>0) GoalVelocity = VelocityBound;
+      else GoalVelocity = -VelocityBound;
+    }
     FinderFlag = false;
-
+  }
   return FinderFlag;
 }
 
@@ -183,8 +194,43 @@ bool AccPhaseTimePathMethod(    const std::vector<double> & CurConfig,          
     AccPhaseTimeTotal[i] = AccPhaseTime;
     SwingLinkChainVelocity[i] = GoalVelocity;
   }
+
+  // std::string ConfigPath = "/home/motion/Desktop/Whole-Body-Planning-for-Push-Recovery/build/";
+  // std::string OptConfigFile = "CurConfig.config";
+  // RobotConfigWriter(CurConfig, ConfigPath, OptConfigFile);
+  //
+  //
+  // ConfigPath = "/home/motion/Desktop/Whole-Body-Planning-for-Push-Recovery/build/";
+  // OptConfigFile = "NextConfig.config";
+  // RobotConfigWriter(NextConfig, ConfigPath, OptConfigFile);
+
   AccTime = *max_element(AccPhaseTimeTotal.begin(), AccPhaseTimeTotal.end());
-  double AccLinkIndex = std::distance(AccPhaseTimeTotal.begin(), std::max_element(AccPhaseTimeTotal.begin(), AccPhaseTimeTotal.end()));
+  const int AccTimeGrid = 10;
+  double AccTimeStep = AccTime/(1.0 * AccTimeGrid - 1.0);
+  int AccTimeIndex = 0;
+  std::vector<int> ReachableSizeVec(AccTimeGrid);
+  while (AccTimeIndex<AccTimeGrid) {
+    double AccTimeInner = AccTime - 1.0 * AccTimeIndex * AccTimeStep;
+    int ReachableSize = 0;
+    for (int i = 0; i < SwingLinkChain.size(); i++) {
+      double InitPos = CurConfig[SwingLinkChain[i]];
+      double GoalPos = NextConfig[SwingLinkChain[i]];
+      double PosDiff = GoalPos - InitPos;
+      double InitVelocity = CurVelocity[SwingLinkChain[i]];
+      double GoalVelocity;
+      double VelBound = VelocityBound[SwingLinkChain[i]];
+      double AccBound = AccelerationBound[SwingLinkChain[i]];
+      bool FinderFlag = Velocity2Pos(InitPos, GoalPos, InitVelocity, GoalVelocity, VelBound, AccBound, AccTimeInner);
+      if(FinderFlag) ReachableSize++;
+    }
+    ReachableSizeVec[AccTimeIndex] = ReachableSize;
+    AccTimeIndex++;
+  }
+
+  std::reverse(ReachableSizeVec.begin(), ReachableSizeVec.end());
+  int ReachableSizeIndex = std::distance(ReachableSizeVec.begin(), std::max_element(ReachableSizeVec.begin(), ReachableSizeVec.end()));
+  AccTime = AccTime - AccTimeStep * (1.0 * AccTimeGrid - 1.0 - 1.0 * ReachableSizeIndex);
+  printf("AccTime: %f\n", AccTime);
   for (int i = 0; i < SwingLinkChain.size(); i++) {
     double InitPos = CurConfig[SwingLinkChain[i]];
     double GoalPos = NextConfig[SwingLinkChain[i]];
@@ -193,10 +239,7 @@ bool AccPhaseTimePathMethod(    const std::vector<double> & CurConfig,          
     double GoalVelocity;
     double VelBound = VelocityBound[SwingLinkChain[i]];
     double AccBound = AccelerationBound[SwingLinkChain[i]];
-    bool FinderFlag = Velocity2Pos(InitPos, GoalPos, InitVelocity, GoalVelocity, VelBound, AccBound, AccTime);
-    if(!FinderFlag) return false;
-    // printf("Updated Link: %d,   PosDiff: %f,  InitVelocity: %f,   GoalVelocity: %f and Valid: %d\n",
-    //         SwingLinkChain[i], PosDiff, InitVelocity, GoalVelocity,  GoalVelocity * PosDiff>0.0);
+    Velocity2Pos(InitPos, GoalPos, InitVelocity, GoalVelocity, VelBound, AccBound, AccTime);
     NextVelocity[SwingLinkChain[i]] = GoalVelocity;
   }
   return true;

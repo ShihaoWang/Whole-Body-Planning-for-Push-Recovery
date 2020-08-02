@@ -61,6 +61,10 @@ std::vector<double> ConfigReferenceGene(const Robot & SimRobotObj,  double & Inn
   if(!ControlReference.getTouchDownFlag()){
     if(ControlReference.ControlReferenceType==1){
       // Contact Addition Case
+      // if(InnerTime>=ControlReference.TimeTraj.back()){
+      //   ControlReference.setTouchDownFlag(true);
+      //   ControlReference.setTouchDownConfig(qDes);
+      // }
       if(SwingContactDist<TouchDownTol){
         ControlReference.setTouchDownFlag(true);
         ControlReference.setTouchDownConfig(qDes);
