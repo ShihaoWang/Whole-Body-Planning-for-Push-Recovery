@@ -200,7 +200,8 @@ void ContactPolytopeWriter(const std::vector<Vector3> & ActiveContact, const std
 }
 
 double FailureMetricEval(const std::vector<PIPInfo> & PIPTotal){
-  std::vector<double> pcp_pos(PIPTotal.size());
+  std::vector<double> pcp_pos;
+  pcp_pos.reserve(PIPTotal.size());
   for (int i = 0; i < PIPTotal.size(); i++){
     double L = PIPTotal[i].L;
     double theta = PIPTotal[i].theta;
@@ -210,11 +211,13 @@ double FailureMetricEval(const std::vector<PIPInfo> & PIPTotal){
     double pcp_L = L * cos(theta);
     double pcp_g = PIPTotal[i].g;
 
-    double pcp_pos_i = 0.0;
-    if(pcp_L>0.0)
+    double pcp_pos_i;
+    if(pcp_L>0.0){
       pcp_pos_i = pcp_x + pcp_xdot * sqrt(pcp_L/pcp_g);
-    pcp_pos[i] = pcp_pos_i;
+      pcp_pos.push_back(pcp_pos_i);
+    }
   }
+  if(!pcp_pos.size()) return 0.0;
   return *min_element(pcp_pos.begin(), pcp_pos.end());;
 }
 

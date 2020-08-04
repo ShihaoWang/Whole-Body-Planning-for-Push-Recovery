@@ -37,6 +37,7 @@ std::vector<double> ConfigReferenceGene(const Robot & SimRobotObj,  double & Inn
                                         ReachabilityMap & RMObject, SelfLinkGeoInfo & SelfLinkGeoObj,
                                         ControlReferenceInfo & ControlReference, SimPara & SimParaObj){
   // This function generates robot's reference configuration at each time.
+  std::printf("InnerTime: %f\n", InnerTime);
   double TouchDownTol  = 0.01;                      //  1 cm as a Touch Down Terminal Tolerance.
   std::vector<double> qDes;
   int SwingLinkInfoIndex = ControlReference.getSwingLinkInfoIndex();

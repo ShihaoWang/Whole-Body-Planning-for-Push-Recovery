@@ -62,7 +62,7 @@ static std::vector<Vector3> BasePointsGene(const Vector3 & PosInit, const Vector
   const double scale = 0.5;
   Vector3 DirGoal = -scale * NormalGoal;
   SplineInfo BaseSpline = SplinePiece3DObjGene(0.0, 1.0, PosInit, scale * NormalInit, PosGoal, -scale * NormalGoal);
-  const int segmentNo = 5;
+  const int segmentNo = 3;
   double sUnit = 1.0/(1.0 * segmentNo);
   std::vector<Vector3> BasePoints(segmentNo+1);
 
@@ -359,6 +359,8 @@ std::vector<cSpline3> TransientPathGene(const Robot & SimRobot, SelfLinkGeoInfo 
     Vector3 SplinePoint(ps.x, ps.y, ps.z);
     PathWayPoints[TransitionIndex] = SplinePoint;
     SimParaObj.DataRecorderObj.setPathWaypoints(PathWayPoints);
+    Vector3Writer(PathWayPoints, "TransitionPoints");
+
   }
   return SplineObj;
 }

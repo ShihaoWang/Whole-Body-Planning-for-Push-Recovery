@@ -144,6 +144,7 @@ static std::vector<Vector3> OptimalContactFinder(const std::vector<Vector3> & Su
   std::vector<Vector3> CandidateContacts;
   std::vector<Vector3> CandidateContactWeights;
   std::vector<double> ContactFailureMetric(SupportContact.size());
+  Vector3 CurContact = SimParaObj.getContactInit();
   const int ActContactNo = FixedContacts.size() + 1;
   for (int i = 0; i < SupportContact.size(); i++){
     std::vector<Vector3> ActContacts = FixedContacts;
@@ -151,6 +152,10 @@ static std::vector<Vector3> OptimalContactFinder(const std::vector<Vector3> & Su
     std::vector<PIPInfo> PIPTotal = PIPGenerator(ActContacts, COMPos, COMVel);
     ContactFailureMetric[i] = FailureMetricEval(PIPTotal);
     if(ContactFailureMetric[i]>0.0){
+      Vector3 ContactDiff = CurContact - SupportContact[i];
+      double ContactDiffDist = ContactDiff.norm();
+      double ContactDistCost = 0.1 * exp(-1.0 * ContactDiffDist);
+      ContactFailureMetric[i]+=ContactDistCost;
       OptimalContactQueue.push(std::make_pair(ContactFailureMetric[i], SupportContact[i]));
       CandidateContacts.push_back(SupportContact[i]);
       CandidateContactWeights.push_back(ContactFailureMetric[i] * NonlinearOptimizerInfo::SDFInfo.SignedDistanceNormal(SupportContact[i]));
@@ -171,7 +176,8 @@ static std::vector<Vector3> OptimalContactFinder(const std::vector<Vector3> & Su
       OptimalContactQueue.pop();
     }
   }
-
+  Vector3Writer(CandidateContacts, "OptimalContact");
+  Vector3Writer(CandidateContactWeights, "OptimalContactWeights");
   SimParaObj.DataRecorderObj.setCCSData(CandidateContacts, CandidateContactWeights, SelectedContacts);
   return SelectedContacts;
 }
@@ -256,7 +262,6 @@ static ControlReferenceInfo ControlReferenceGeneInner(const Robot & SimRobot, co
       4. Based on that time, robot's whole-body configuration is updated with inverted pendulum model.
       5. The whole algorithm terminates when robot's self-collision has been triggered or no feasible IK solution can be found.
       */
-
       ControlReferenceObj = TrajectoryPlanning(SimRobotInner, InvertedPendulumObj, RMObject, SelfLinkGeoObj,
         EndEffectorPathObj, SimParaObj);
         if(ControlReferenceObj.getReadyFlag()) break;

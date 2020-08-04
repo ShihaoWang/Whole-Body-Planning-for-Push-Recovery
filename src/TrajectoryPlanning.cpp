@@ -195,14 +195,14 @@ bool AccPhaseTimePathMethod(    const std::vector<double> & CurConfig,          
     SwingLinkChainVelocity[i] = GoalVelocity;
   }
 
-  // std::string ConfigPath = "/home/motion/Desktop/Whole-Body-Planning-for-Push-Recovery/build/";
-  // std::string OptConfigFile = "CurConfig.config";
-  // RobotConfigWriter(CurConfig, ConfigPath, OptConfigFile);
-  //
-  //
-  // ConfigPath = "/home/motion/Desktop/Whole-Body-Planning-for-Push-Recovery/build/";
-  // OptConfigFile = "NextConfig.config";
-  // RobotConfigWriter(NextConfig, ConfigPath, OptConfigFile);
+  std::string ConfigPath = "/home/motion/Desktop/Whole-Body-Planning-for-Push-Recovery/build/";
+  std::string OptConfigFile = "CurConfig.config";
+  RobotConfigWriter(CurConfig, ConfigPath, OptConfigFile);
+
+
+  ConfigPath = "/home/motion/Desktop/Whole-Body-Planning-for-Push-Recovery/build/";
+  OptConfigFile = "NextConfig.config";
+  RobotConfigWriter(NextConfig, ConfigPath, OptConfigFile);
 
   AccTime = *max_element(AccPhaseTimeTotal.begin(), AccPhaseTimeTotal.end());
   const int AccTimeGrid = 10;

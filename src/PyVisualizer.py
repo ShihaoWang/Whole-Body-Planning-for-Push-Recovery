@@ -54,7 +54,7 @@ def ContactDataUnplot(vis, ReachableContacts_data):
     RowStart = 0
     RowEnd = RowNo
     for i in range(RowStart, RowEnd):
-        vis.remove("Point:" + str(i))
+        vis.hide("Point:" + str(i))
 
 def ContactDataPlot(vis, ReachableContacts_data):
     RowNo, ColumnNo = ReachableContacts_data.shape
@@ -86,7 +86,7 @@ def WeightedContactDataPlot(vis, OptimalContact_data, OptimalContactWeights_data
         point_end[0] = point_start[0] + scale * ReachableContactWeight_i[0]
         point_end[1] = point_start[1] + scale * ReachableContactWeight_i[1]
         point_end[2] = point_start[2] + scale * ReachableContactWeight_i[2]
-
+        print i
         vis.add("PointWeights:" + str(i), Trajectory([0, 1], [point_start, point_end]))
         vis.hideLabel("PointWeights:" + str(i), True)
         vis.setColor("PointWeights:" + str(i), 0.0, 204.0/255.0, 0.0, 1.0)
@@ -94,7 +94,8 @@ def WeightedContactDataPlot(vis, OptimalContact_data, OptimalContactWeights_data
 
 def WeightedContactDataUnPlot(vis, OptimalContact_data):
     for i in range(OptimalContact_data.size/3):
-        vis.remove("PointWeights:" + str(i))
+        print i
+        vis.hide("PointWeights:" + str(i))
 
 def Robot_Config_Plot(world, DOF, config_init):
     robot_viewer = MyGLPlugin(world)
@@ -108,21 +109,22 @@ def Robot_Config_Plot(world, DOF, config_init):
     # 2. Active Reachable Points
     # ActiveReachableContacts_data = ContactDataLoader("ActiveReachableContact")
     # 3. Contact Free Points
-    ContactFreeContacts_data = ContactDataLoader("ContactFreeContact")
-    # 4. Supportive Points
-    SupportContacts_data = ContactDataLoader("SupportContact")
+    # ContactFreeContacts_data = ContactDataLoader("ContactFreeContact")
+    # # 4. Supportive Points
+    # SupportContacts_data = ContactDataLoader("SupportContact")
     # 5. Optimal Point
     OptimalContact_data = ContactDataLoader("OptimalContact")
 
     OptimalContactWeights_data = ContactDataLoader("OptimalContactWeights")
     # 6.
     TransitionPoints_data = ContactDataLoader("TransitionPoints")
-    # 7.
-    InitialTransitionPoints_data = ContactDataLoader("InitialTransitionPoints")
-    # 8.
-    ShiftedTransitionPoints_data = ContactDataLoader("ShiftedTransitionPoints")
-
-    ReducedOptimalContact_data = ContactDataLoader("ReducedOptimalContact")
+    import ipdb; ipdb.set_trace()
+    # # 7.
+    # InitialTransitionPoints_data = ContactDataLoader("InitialTransitionPoints")
+    # # 8.
+    # ShiftedTransitionPoints_data = ContactDataLoader("ShiftedTransitionPoints")
+    #
+    # ReducedOptimalContact_data = ContactDataLoader("ReducedOptimalContact")
 
     ContactChoice = TransitionPoints_data
     SimRobot = world.robot(0)
@@ -137,7 +139,7 @@ def Robot_Config_Plot(world, DOF, config_init):
         vis.unlock()
         time.sleep(0.1)
         WeightedContactDataUnPlot(vis, OptimalContact_data)
-        ContactDataUnplot(vis, ContactChoice)
+        # ContactDataUnplot(vis, ContactChoice)
 
 def RobotCOMPlot(SimRobot, vis):
     COMPos_start = SimRobot.getCom()
@@ -187,7 +189,6 @@ def ContactDataLoader(IdealReachableContact):
     return IdealReachableContacts_data
 
 def main(*arg):
-    import ipdb; ipdb.set_trace()
     Robot_Option = "../user/"
     world = WorldModel()                    	# WorldModel is a pre-defined class
     # The next step is to load in robot's XML file

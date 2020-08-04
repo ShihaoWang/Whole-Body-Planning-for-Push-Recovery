@@ -234,7 +234,7 @@ struct SignedDistanceFieldInfo{
     double valMABEF = (x_FloatIndex - x_leftindex*1.0) * (valMBF - valMAE) + valMAE;
     double valMDHCG = (x_FloatIndex - x_leftindex*1.0) * (valMCG - valMDH) + valMDH;
 
-    double JacDistTo_y = (valMBFCG - valMAEDH)/Envi_y_unit;
+    double JacDistTo_y = (valMDHCG - valMABEF)/Envi_y_unit;
 
     /*
       Jacobian matrix in the z-direction

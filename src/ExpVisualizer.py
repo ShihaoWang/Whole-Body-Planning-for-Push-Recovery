@@ -12,7 +12,7 @@ from OpenGL.GL import *
 import math
 import numpy as np
 
-CurCase = "flat_1Contact"
+CurCase = "flat_2Contact"
 ExpNo = 0
 
 class MyGLPlugin(vis.GLPluginInterface):
@@ -632,7 +632,6 @@ def ExperimentVisualizer(world, ContactLinkDictionary, ExpTraj, PIPInfoList, Imp
                 EndEffectorTrajPlot(vis, SimulationTime, PlanningObj, SpecificPath, PlotDuration, TimeStep)
             vis.unlock()
             time.sleep(1.0 * TimeStep)
-
             if VisMode == "PIP" and i >= (StateTrajLength - PIPTrajLength):
                 EdgeIndex = i + PIPTrajLength - StateTrajLength
                 for i in range(0, len(EdgeAList[EdgeIndex])):
