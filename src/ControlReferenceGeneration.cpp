@@ -251,9 +251,9 @@ static ControlReferenceInfo ControlReferenceGeneInner(const Robot & SimRobot, co
     Robot SimRobotInner = SimRobot;
     SimParaObj.setContactGoal(OptimalContact[i]);
     SimParaObj.setTransPathFeasiFlag(false);
-    std::vector<SplineLib::cSpline3> SplineObj = TransientPathGene(SimRobotInner, SelfLinkGeoObj, SimParaObj);
+    CubicSplineInfo CubicSplineInfoObj = TransientPathGene(SimRobotInner, SelfLinkGeoObj, SimParaObj);
     if(SimParaObj.getTransPathFeasiFlag()){
-      EndEffectorPathInfo EndEffectorPathObj(SplineObj);
+      EndEffectorPathInfo EndEffectorPathObj(CubicSplineInfoObj);
       // Here two methods will be conducted for comparison purpose.
       /*
       1. At each sampled waypoints along the end effector trajectory, an end effector position is evaluated from path.

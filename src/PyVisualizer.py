@@ -51,26 +51,30 @@ class MyGLPlugin(vis.GLPluginInterface):
 
 def ContactDataUnplot(vis, ReachableContacts_data):
     RowNo, ColumnNo = ReachableContacts_data.shape
+    print RowNo
+    print ColumnNo
     RowStart = 0
     RowEnd = RowNo
     for i in range(RowStart, RowEnd):
-        vis.hide("Point:" + str(i))
+        vis.hide("Point_" + str(i))
 
 def ContactDataPlot(vis, ReachableContacts_data):
     RowNo, ColumnNo = ReachableContacts_data.shape
     RowStart = 0
-    RowEnd = RowNo
+    RowEnd = min(RowNo, 101)
 
     for i in range(RowStart, RowEnd):
+        if i == 101:
+            a = 1
         point_start = [0.0, 0.0, 0.0]
         ReachableContact_i = ReachableContacts_data[i]
         point_start[0] = ReachableContact_i[0]
         point_start[1] = ReachableContact_i[1]
         point_start[2] = ReachableContact_i[2]
 
-        vis.add("Point:" + str(i), point_start)
-        vis.hideLabel("Point:" + str(i), True)
-        vis.setColor("Point:" + str(i),65.0/255.0, 199.0/255.0, 244.0/255.0, 1.0)
+        vis.add("Point_" + str(i), point_start)
+        vis.hideLabel("Point_" + str(i), True)
+        vis.setColor("Point_" + str(i),65.0/255.0, 199.0/255.0, 244.0/255.0, 1.0)
 
 def WeightedContactDataPlot(vis, OptimalContact_data, OptimalContactWeights_data):
     scale = 1.0
@@ -87,15 +91,15 @@ def WeightedContactDataPlot(vis, OptimalContact_data, OptimalContactWeights_data
         point_end[1] = point_start[1] + scale * ReachableContactWeight_i[1]
         point_end[2] = point_start[2] + scale * ReachableContactWeight_i[2]
         print i
-        vis.add("PointWeights:" + str(i), Trajectory([0, 1], [point_start, point_end]))
-        vis.hideLabel("PointWeights:" + str(i), True)
-        vis.setColor("PointWeights:" + str(i), 0.0, 204.0/255.0, 0.0, 1.0)
-        vis.setAttribute("PointWeights:" + str(i), 'width', 5.0)
+        vis.add("PointWeights_" + str(i), Trajectory([0, 1], [point_start, point_end]))
+        vis.hideLabel("PointWeights_" + str(i), True)
+        vis.setColor("PointWeights_" + str(i), 0.0, 204.0/255.0, 0.0, 1.0)
+        vis.setAttribute("PointWeights_" + str(i), 'width', 5.0)
 
 def WeightedContactDataUnPlot(vis, OptimalContact_data):
     for i in range(OptimalContact_data.size/3):
         print i
-        vis.hide("PointWeights:" + str(i))
+        vis.hide("PointWeights_" + str(i))
 
 def Robot_Config_Plot(world, DOF, config_init):
     robot_viewer = MyGLPlugin(world)
@@ -118,27 +122,29 @@ def Robot_Config_Plot(world, DOF, config_init):
     OptimalContactWeights_data = ContactDataLoader("OptimalContactWeights")
     # 6.
     TransitionPoints_data = ContactDataLoader("TransitionPoints")
-    import ipdb; ipdb.set_trace()
+    # import ipdb; ipdb.set_trace()
     # # 7.
-    # InitialTransitionPoints_data = ContactDataLoader("InitialTransitionPoints")
+    InitialTransitionPoints_data = ContactDataLoader("InitialPathWayPoints")
     # # 8.
-    # ShiftedTransitionPoints_data = ContactDataLoader("ShiftedTransitionPoints")
+    ShiftedTransitionPoints_data = ContactDataLoader("ShiftedPathWayPoints")
+    # # 9.
+    FineShiftedPathWayPoints_data = ContactDataLoader("FineShiftedPathWayPoints")
     #
     # ReducedOptimalContact_data = ContactDataLoader("ReducedOptimalContact")
 
     ContactChoice = TransitionPoints_data
     SimRobot = world.robot(0)
     SimRobot.setConfig(config_init)
-    # import ipdb; ipdb.set_trace()
+    import ipdb; ipdb.set_trace()
     while vis.shown():
         # This is the main plot program
         vis.lock()
         SimRobot.setConfig(config_init)
-        WeightedContactDataPlot(vis, OptimalContact_data, OptimalContactWeights_data)
+        # WeightedContactDataPlot(vis, OptimalContact_data, OptimalContactWeights_data)
         ContactDataPlot(vis, ContactChoice)
         vis.unlock()
         time.sleep(0.1)
-        WeightedContactDataUnPlot(vis, OptimalContact_data)
+        # WeightedContactDataUnPlot(vis, OptimalContact_data)
         # ContactDataUnplot(vis, ContactChoice)
 
 def RobotCOMPlot(SimRobot, vis):

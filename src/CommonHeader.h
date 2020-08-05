@@ -14,7 +14,7 @@
 #include <KrisLibrary/meshing/VolumeGrid.h>
 #include <KrisLibrary/meshing/PointCloud.h>
 #include "RobotInfo.h"
-#include "Splines.h"
+#include "Spline.h"
 
 /* 0. Robot Info Initiaization */
 std::vector<LinkInfo> ContactInfoLoader(const string & ContactLinkFile, int & ContactPointNo);
@@ -77,7 +77,7 @@ Config WholeBodyDynamicsIntegrator(Robot & SimRobot, InvertedPendulumInfo & Inve
 std::vector<double> CurrentBaseDeltaCal(const Robot & _SimRobot, const InvertedPendulumInfo & _InvertedPendulumObj, const double & TimeDuration);
 
 /* 8. Transient Path Generation*/
-std::vector<SplineLib::cSpline3> TransientPathGene(const Robot & SimRobot, SelfLinkGeoInfo & SelfLinkGeoObj, SimPara & SimParaObj);
+CubicSplineInfo TransientPathGene(const Robot & SimRobot, SelfLinkGeoInfo & SelfLinkGeoObj, SimPara & SimParaObj);
 ControlReferenceInfo TrajectoryPlanning(Robot & SimRobotInner, const InvertedPendulumInfo & InvertedPendulumObj, ReachabilityMap & RMObject,SelfLinkGeoInfo & SelfLinkGeoObj,
                                         EndEffectorPathInfo & EndEffectorPathObj, SimPara & SimParaObj);
 std::vector<double> TrajConfigOptimazation(const Robot & SimRobot, ReachabilityMap & RMObject, SelfLinkGeoInfo & _SelfLinkGeoObj, SimPara & SimParaObj, const double & EndEffectorProjx, const double & EndEffectorProjy);

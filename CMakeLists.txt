@@ -73,13 +73,10 @@ add_executable(MyApp
 	       src/ConvexPolytope.cpp
 	       src/ControlReferenceGeneration.cpp
 	       src/WholeBodyEstimation.cpp
-	       src/Splines.cpp
 	       src/TransientPathGeneration.cpp
 	       src/TrajectoryPlanning.cpp
 	       src/TrajectoryConfigOptimization.cpp
-	       src/LastStageConfigOptimization.cpp
-	       src/TaskTrajectoryPlanning.cpp
-	       src/TaskTrajectoryOptimization.cpp)
+	       src/LastStageConfigOptimization.cpp)
 
 
 target_link_libraries(MyApp  ${KLAMPT_LIBRARIES} ${SNOPT_LIBRARIES} ${GUROBI_LIBRARIES} ${CILANTRO_LIBRARIES} ${GLEW_LIBRARY})
