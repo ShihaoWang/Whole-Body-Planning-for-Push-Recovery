@@ -51,8 +51,6 @@ class MyGLPlugin(vis.GLPluginInterface):
 
 def ContactDataUnplot(vis, ReachableContacts_data):
     RowNo, ColumnNo = ReachableContacts_data.shape
-    print RowNo
-    print ColumnNo
     RowStart = 0
     RowEnd = RowNo
     for i in range(RowStart, RowEnd):
@@ -61,11 +59,9 @@ def ContactDataUnplot(vis, ReachableContacts_data):
 def ContactDataPlot(vis, ReachableContacts_data):
     RowNo, ColumnNo = ReachableContacts_data.shape
     RowStart = 0
-    RowEnd = min(RowNo, 101)
+    RowEnd = min(RowNo, 99)
 
     for i in range(RowStart, RowEnd):
-        if i == 101:
-            a = 1
         point_start = [0.0, 0.0, 0.0]
         ReachableContact_i = ReachableContacts_data[i]
         point_start[0] = ReachableContact_i[0]
@@ -75,6 +71,29 @@ def ContactDataPlot(vis, ReachableContacts_data):
         vis.add("Point_" + str(i), point_start)
         vis.hideLabel("Point_" + str(i), True)
         vis.setColor("Point_" + str(i),65.0/255.0, 199.0/255.0, 244.0/255.0, 1.0)
+
+def ContactDataRefine(ContactPts, ContactWeights_array):
+    # This function is used to address the Klampt visualization problem
+    ContactPointSize = ContactWeights_array.size/3
+    if ContactPointSize>100:
+        ContactWeightLists = []
+        for i in range(ContactPointSize):
+            ContactWeight_i = ContactWeights_array[i]
+            ContactWeight_i_value = ContactWeight_i[0]**2 + ContactWeight_i[1]**2 + ContactWeight_i[2]**2
+            ContactWeightLists.append(ContactWeight_i_value)
+        sorted_indices = sorted(range(len(ContactWeightLists)), key=lambda k: ContactWeightLists[k])
+        sorted_indices.reverse()
+        ContactPts_ = []
+        ContactWeights_ = []
+        for i in range(0, 50):
+            sorted_index = sorted_indices[i]
+            ContactPt_i = ContactPts[sorted_index]
+            ContactWeight_i = ContactWeights_array[sorted_index]
+            ContactPts_.append(ContactPt_i.tolist())
+            ContactWeights_.append(ContactWeight_i.tolist())
+        return np.array(ContactPts_), np.array(ContactWeights_)
+    else:
+        return ContactPts, ContactWeights_array
 
 def WeightedContactDataPlot(vis, OptimalContact_data, OptimalContactWeights_data):
     scale = 1.0
@@ -98,7 +117,6 @@ def WeightedContactDataPlot(vis, OptimalContact_data, OptimalContactWeights_data
 
 def WeightedContactDataUnPlot(vis, OptimalContact_data):
     for i in range(OptimalContact_data.size/3):
-        print i
         vis.hide("PointWeights_" + str(i))
 
 def Robot_Config_Plot(world, DOF, config_init):
@@ -120,6 +138,8 @@ def Robot_Config_Plot(world, DOF, config_init):
     OptimalContact_data = ContactDataLoader("OptimalContact")
 
     OptimalContactWeights_data = ContactDataLoader("OptimalContactWeights")
+
+    OptimalContact_data, OptimalContactWeights_data = ContactDataRefine(OptimalContact_data, OptimalContactWeights_data)
     # 6.
     TransitionPoints_data = ContactDataLoader("TransitionPoints")
     # import ipdb; ipdb.set_trace()
@@ -135,17 +155,16 @@ def Robot_Config_Plot(world, DOF, config_init):
     ContactChoice = TransitionPoints_data
     SimRobot = world.robot(0)
     SimRobot.setConfig(config_init)
-    import ipdb; ipdb.set_trace()
     while vis.shown():
         # This is the main plot program
         vis.lock()
         SimRobot.setConfig(config_init)
-        # WeightedContactDataPlot(vis, OptimalContact_data, OptimalContactWeights_data)
+        WeightedContactDataPlot(vis, OptimalContact_data, OptimalContactWeights_data)
         ContactDataPlot(vis, ContactChoice)
         vis.unlock()
         time.sleep(0.1)
-        # WeightedContactDataUnPlot(vis, OptimalContact_data)
-        # ContactDataUnplot(vis, ContactChoice)
+        WeightedContactDataUnPlot(vis, OptimalContact_data)
+        ContactDataUnplot(vis, ContactChoice)
 
 def RobotCOMPlot(SimRobot, vis):
     COMPos_start = SimRobot.getCom()

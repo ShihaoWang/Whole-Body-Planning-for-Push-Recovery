@@ -139,10 +139,61 @@ static double AccPhaseTimeInner(const double & PosDiff,
   }
 }
 
-static bool Velocity2Pos(     const double & InitPos,       const double & GoalPos,
+static void AccVioPosNVel2Time( double InitPos,       double & GoalPos,
+                                double InitVelocity,  double & GoalVelocity,
+                                double VelocityBound, double AccBound,
+                                double DurationTime,  double AccEst){
+  // Update GoalPos and GoalVelocity according to DurationTime when the violation is at acceleration level
+  if(AccEst<=0){
+    AccBound = -AccBound;
+    VelocityBound = -VelocityBound;
+  }
+  double VelocityEst = InitVelocity + DurationTime * AccBound;
+  if(VelocityEst * VelocityEst <=VelocityBound * VelocityBound){
+    GoalPos = InitPos + (VelocityEst * VelocityEst - InitVelocity * InitVelocity)/(2.0 * AccBound);
+    GoalVelocity = VelocityEst;
+  }
+  else{
+      // Then the velocity first reaches maximum and then remains there for the rest of the time.
+      double AccTime = (VelocityBound - InitVelocity)/AccBound;
+      double RestTime = DurationTime - AccTime;
+      double AccDist = (VelocityBound * VelocityBound - InitVelocity * InitVelocity)/(2.0 * AccBound);
+      double FlatDist = GoalVelocity * RestTime;
+      GoalPos = InitPos + AccDist + FlatDist;
+      GoalVelocity = VelocityBound;
+  }
+  return;
+}
+
+static void VelVioPosNVel2Time( double InitPos,       double & GoalPos,
+                                double InitVelocity,  double & GoalVelocity,
+                                double VelocityBound, double AccBound,
+                                double DurationTime,  double AccEst){
+  // Update GoalPos and GoalVelocity according to DurationTime when the violation is at velocity level so AccEst should be within AccBound
+  if(AccEst<=0){
+    AccBound = -AccBound;
+    VelocityBound = -VelocityBound; 
+  }
+  // First compare the time needed to accelerate to velocity bound
+  double AccTime = (VelocityBound - InitVelocity)/AccBound;
+  if(AccTime<=DurationTime){
+    // First to maximum and then remain there.
+    double AccDist = (VelocityBound * VelocityBound - InitVelocity * InitVelocity)/(2.0 * AccBound);
+    double RestTime = DurationTime - AccTime;
+    double RestDist = RestTime * VelocityBound;
+    GoalPos = InitPos + AccDist + RestDist;
+    GoalVelocity = VelocityBound;
+  } else {
+    // Just need to accelerate to DurationTime then
+    GoalVelocity = InitVelocity + AccBound * DurationTime;
+    GoalPos = InitPos + (GoalVelocity * GoalVelocity - InitVelocity * InitVelocity)/(2.0 * AccBound);
+  }
+}
+
+static bool Velocity2Pos(     const double & InitPos,       double & GoalPos,
                               const double & InitVelocity,  double & GoalVelocity,
                               const double & VelocityBound, const double & AccBound,
-                              const double & DurationTime){
+                              const double & DurationTime, bool ModiFlag){
   bool FinderFlag = true;
   double AccTol = 1e-3;
   double PosDiff = GoalPos - InitPos;
@@ -152,31 +203,33 @@ static bool Velocity2Pos(     const double & InitPos,       const double & GoalP
     if(VelocityEst * VelocityEst<=VelocityBound * VelocityBound)
       GoalVelocity = VelocityEst;
     else{
-      if(VelocityEst>0) GoalVelocity = VelocityBound;
-      else GoalVelocity = -VelocityBound;
+      double MinDurationTime = AccPhaseTimeInner(PosDiff, InitVelocity, GoalVelocity, VelocityBound, AccBound);
+      if(MinDurationTime<=DurationTime){
+        if(VelocityEst>0) GoalVelocity = VelocityBound;
+        else GoalVelocity = -VelocityBound;
+      }
+      else {
+        if(ModiFlag)
+        VelVioPosNVel2Time( InitPos, GoalPos, InitVelocity, GoalVelocity,
+                            VelocityBound, AccBound, DurationTime, AccEst);
+        FinderFlag = false;
+      }
     }
   }
-  else
-  {
+  else {
     // This indicates that the current time is too large or too small.
-    double VelocityEst;
-    if(AccEst>0)  VelocityEst = InitVelocity + AccBound * DurationTime;
-    else          VelocityEst = InitVelocity - AccBound * DurationTime;
-    if(VelocityEst * VelocityEst<=VelocityBound * VelocityBound)
-      GoalVelocity = VelocityEst;
-    else{
-      if(VelocityEst>0) GoalVelocity = VelocityBound;
-      else GoalVelocity = -VelocityBound;
-    }
+    if(ModiFlag)
+    AccVioPosNVel2Time( InitPos, GoalPos, InitVelocity, GoalVelocity, 
+                        VelocityBound, AccBound, DurationTime, AccEst);
     FinderFlag = false;
   }
   return FinderFlag;
 }
 
-bool AccPhaseTimePathMethod(    const std::vector<double> & CurConfig,          const std::vector<double> & NextConfig,
-                                const std::vector<double> & CurVelocity,        std::vector<double> & NextVelocity,
-                                const std::vector<double> & VelocityBound,      const std::vector<double> & AccelerationBound,
-                                const std::vector<int> & SwingLinkChain,        double & AccTime){
+static bool AccPhaseTimePathMethod( const std::vector<double> & CurConfig,          std::vector<double> & NextConfig,
+                                    const std::vector<double> & CurVelocity,        std::vector<double> & NextVelocity,
+                                    const std::vector<double> & VelocityBound,      const std::vector<double> & AccelerationBound,
+                                    const std::vector<int> & SwingLinkChain,        double & AccTime){
   // This function solves for the time in acceleration phase.
   std::vector<double> AccPhaseTimeTotal(SwingLinkChain.size());
   std::vector<double> SwingLinkChainVelocity(SwingLinkChain.size());
@@ -220,7 +273,7 @@ bool AccPhaseTimePathMethod(    const std::vector<double> & CurConfig,          
       double GoalVelocity;
       double VelBound = VelocityBound[SwingLinkChain[i]];
       double AccBound = AccelerationBound[SwingLinkChain[i]];
-      bool FinderFlag = Velocity2Pos(InitPos, GoalPos, InitVelocity, GoalVelocity, VelBound, AccBound, AccTimeInner);
+      bool FinderFlag = Velocity2Pos(InitPos, GoalPos, InitVelocity, GoalVelocity, VelBound, AccBound, AccTimeInner, false);
       if(FinderFlag) ReachableSize++;
     }
     ReachableSizeVec[AccTimeIndex] = ReachableSize;
@@ -239,7 +292,8 @@ bool AccPhaseTimePathMethod(    const std::vector<double> & CurConfig,          
     double GoalVelocity;
     double VelBound = VelocityBound[SwingLinkChain[i]];
     double AccBound = AccelerationBound[SwingLinkChain[i]];
-    Velocity2Pos(InitPos, GoalPos, InitVelocity, GoalVelocity, VelBound, AccBound, AccTime);
+    Velocity2Pos(InitPos, GoalPos, InitVelocity, GoalVelocity, VelBound, AccBound, AccTime, true);
+    NextConfig[SwingLinkChain[i]] = GoalPos;
     NextVelocity[SwingLinkChain[i]] = GoalVelocity;
   }
   return true;
@@ -344,14 +398,6 @@ ControlReferenceInfo TrajectoryPlanning(Robot & SimRobotInner, const InvertedPen
   bool PenetrationFlag = false;
   int sIndex = 0;
 
-  double ThetaPre, ThetadotPre;
-  Vector3 COMVelPre, COMPosPre;
-
-  ThetaPre = InvertedPendulumObj.Theta;
-  ThetadotPre = InvertedPendulumObj.Thetadot;
-  COMVelPre = InvertedPendulumObj.COMVel;
-  COMPosPre = InvertedPendulumObj.COMPos;
-
   while ((sVal<1.0)&& (!PenetrationFlag)){
     std::vector<double> NextConfig, NextVelocity;
     double StageTime;
@@ -362,7 +408,7 @@ ControlReferenceInfo TrajectoryPlanning(Robot & SimRobotInner, const InvertedPen
     sVal = sNew;
     if(!StageOptFlag) break;
     SimRobotInner.UpdateConfig(Config(NextConfig));
-    Config UpdatedConfig  = WholeBodyDynamicsIntegrator(SimRobotInner, InvertedPendulumObj, StageTime);
+    Config UpdatedConfig  = WholeBodyDynamicsIntegrator(SimRobotInner, InvertedPendulumObj, 0.0);
     SimRobotInner.UpdateConfig(UpdatedConfig);
 
     if(sVal>=0.5){
@@ -380,15 +426,11 @@ ControlReferenceInfo TrajectoryPlanning(Robot & SimRobotInner, const InvertedPen
     WholeBodyVelocityTraj.push_back(Config(NextVelocity));
     PlannedEndEffectorTraj.push_back(CurrentContactPos);
 
-    ThetaPre = InvertedPendulumObj.Theta;
-    ThetadotPre = InvertedPendulumObj.Thetadot;
-    COMVelPre = InvertedPendulumObj.COMVel;
-    COMPosPre = InvertedPendulumObj.COMPos;
-
     SelfLinkGeoObj.LinkBBsUpdate(SimRobotInner);
 
     sIndex++;
   }
+
   std::cout<<"TimeTraj: "<<std::endl;
   for(int i = 0; i<TimeTraj.size(); i++){
     std::cout<<TimeTraj[i]<<std::endl;

@@ -152,10 +152,11 @@ static std::vector<Vector3> OptimalContactFinder(const std::vector<Vector3> & Su
     std::vector<PIPInfo> PIPTotal = PIPGenerator(ActContacts, COMPos, COMVel);
     ContactFailureMetric[i] = FailureMetricEval(PIPTotal);
     if(ContactFailureMetric[i]>0.0){
+      printf("ContactFailureMetric[%d]: %f\n", OptimalContactQueue.size(), ContactFailureMetric[i]);
       Vector3 ContactDiff = CurContact - SupportContact[i];
-      double ContactDiffDist = ContactDiff.norm();
-      double ContactDistCost = 0.1 * exp(-1.0 * ContactDiffDist);
-      ContactFailureMetric[i]+=ContactDistCost;
+      double ContactDiffDist = ContactDiff.normSquared();
+      double ContactDistCost = 1.0 * exp(-1.25 * ContactDiffDist);
+      ContactFailureMetric[i]*= ContactDistCost;
       OptimalContactQueue.push(std::make_pair(ContactFailureMetric[i], SupportContact[i]));
       CandidateContacts.push_back(SupportContact[i]);
       CandidateContactWeights.push_back(ContactFailureMetric[i] * NonlinearOptimizerInfo::SDFInfo.SignedDistanceNormal(SupportContact[i]));
@@ -324,6 +325,7 @@ ControlReferenceInfo ControlReferenceGene(Robot & SimRobot,
    int ObjIndex;
    if(LastEndEffectorIndex == -1){
      ObjIndex = std::distance(EstFailureMetricVec.begin(), std::max_element(EstFailureMetricVec.begin(), EstFailureMetricVec.end()));
+    //  ObjIndex = 1;
      ControlReferenceInfoObj = ControlReferenceObjVec[ObjIndex];
      LastEndEffectorIndex = ControlReferenceInfoObj.getSwingLinkInfoIndex();
    }

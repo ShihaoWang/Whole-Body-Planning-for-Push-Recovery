@@ -41,9 +41,9 @@ int main(){
   double InitDuration    = 2.0;
   double TotalDuration   = 5.0;                     // Simulation lasts for 5s after initial duration
   double FowardDuration = 0.5;                      // Used to optimal contact point planning
-  double PhaseRatio     = 0.6;
+  double PhaseRatio     = 0.8;
   double PhaseTimeStep  = 0.05;                     // Reserved to be used for time discretization method.
-  double ReductionRatio = 0.5;
+  double ReductionRatio = 0.6;
 
   SimPara SimParaObj(ForceMax, PushDuration, DetectionWait, TimeStep, InitDuration, TotalDuration, FowardDuration, PhaseRatio, PhaseTimeStep, ReductionRatio);
 

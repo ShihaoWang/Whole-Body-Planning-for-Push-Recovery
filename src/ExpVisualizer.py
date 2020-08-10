@@ -12,7 +12,7 @@ from OpenGL.GL import *
 import math
 import numpy as np
 
-CurCase = "flat_2Contact"
+CurCase = "flat_1Contact"
 ExpNo = 0
 
 class MyGLPlugin(vis.GLPluginInterface):
@@ -471,6 +471,28 @@ def PlanningInterval(SimulationTime, PlanningTimeList, TimeStep):
                     return i-1
                 else:
                     return i
+def ContactDataRefine(ContactPts, ContactWeights_array):
+    # This function is used to address the Klampt visualization problem
+    ContactPointSize = ContactWeights_array.size/3
+    if ContactPointSize>100:
+        ContactWeightLists = []
+        for i in range(ContactPointSize):
+            ContactWeight_i = ContactWeights_array[i]
+            ContactWeight_i_value = ContactWeight_i[0]**2 + ContactWeight_i[1]**2 + ContactWeight_i[2]**2
+            ContactWeightLists.append(ContactWeight_i_value)
+        sorted_indices = sorted(range(len(ContactWeightLists)), key=lambda k: ContactWeightLists[k])
+        sorted_indices.reverse()
+        ContactPts_ = []
+        ContactWeights_ = []
+        for i in range(0, 35):
+            sorted_index = sorted_indices[i]
+            ContactPt_i = ContactPts[sorted_index]
+            ContactWeight_i = ContactWeights_array[sorted_index]
+            ContactPts_.append(ContactPt_i.tolist())
+            ContactWeights_.append(ContactWeight_i.tolist())
+        return np.array(ContactPts_), np.array(ContactWeights_)
+    else:
+        return ContactPts, ContactWeights_array
 
 def WeightedContactDataPlot(vis, StepNo, LimbNo, OptimalContact_data, OptimalContactWeights_data):
     scale = 1.0
@@ -488,6 +510,7 @@ def WeightedContactDataPlot(vis, StepNo, LimbNo, OptimalContact_data, OptimalCon
         point_end[2] = point_start[2] + scale * ReachableContactWeight_i[2]
 
         ContactName = "Stage" + str(StepNo) +"LinkNo" + str(LimbNo) + "Point:" + str(i)
+        print i
         vis.add(ContactName, Trajectory([0, 1], [point_start, point_end]))
         vis.hideLabel(ContactName, True)
         vis.setColor(ContactName, 0.0, 204.0/255.0, 0.0, 1.0)
@@ -510,6 +533,8 @@ def EndEffectorTrajPlot(vis, SimulationTime, PlanningObj, SpecificPath, PlotDura
         for i in range(0, LimbNo+1):
             CandidateContacts_data = ContactDataLoader(SpecificPath, StepNo, i, "CandidateContacts")
             CandidateContactWeights_data = ContactDataLoader(SpecificPath, StepNo, i, "CandidateContactWeights")
+            CandidateContacts_data, CandidateContactWeights_data = ContactDataRefine(CandidateContacts_data, CandidateContactWeights_data)
+
             WeightedContactDataPlot(vis, StepNo, LimbNo, CandidateContacts_data, CandidateContactWeights_data)
 
             PathWaypoints_data = ContactDataLoader(SpecificPath, StepNo, i, "PathWaypoints")
@@ -525,6 +550,8 @@ def EndEffectorTrajPlot(vis, SimulationTime, PlanningObj, SpecificPath, PlotDura
         for i in range(0, LimbNo+1):
             CandidateContacts_data = ContactDataLoader(SpecificPath, StepNo, i, "CandidateContacts")
             CandidateContactWeights_data = ContactDataLoader(SpecificPath, StepNo, i, "CandidateContactWeights")
+            CandidateContacts_data, CandidateContactWeights_data = ContactDataRefine(CandidateContacts_data, CandidateContactWeights_data)
+
             WeightedContactDataPlot(vis, StepNo, i, CandidateContacts_data, CandidateContactWeights_data)
 
             PathWaypoints_data = ContactDataLoader(SpecificPath, StepNo, i, "PathWaypoints")
@@ -536,6 +563,9 @@ def EndEffectorTrajPlot(vis, SimulationTime, PlanningObj, SpecificPath, PlotDura
                 LimbNo = StepLimbPair[1]
                 for j in range(0, LimbNo+1):
                     CandidateContacts_data = ContactDataLoader(SpecificPath, StepNo, j, "CandidateContacts")
+                    CandidateContactWeights_data = ContactDataLoader(SpecificPath, StepNo, j, "CandidateContactWeights")
+                    CandidateContacts_data, CandidateContactWeights_data = ContactDataRefine(CandidateContacts_data, CandidateContactWeights_data)
+
                     WeightedContactDataUnPlot(vis, StepNo, j, CandidateContacts_data)
                     TransitionDataUnplot(vis, StepNo, j)
 
@@ -584,6 +614,7 @@ def ExperimentVisualizer(world, ContactLinkDictionary, ExpTraj, PIPInfoList, Imp
         StateTraj = PlanStateTraj.milestones
 
     SimulationTime = 0.0
+    import ipdb; ipdb.set_trace()
     while vis.shown():
         # This is the main plot program
         for i in range(0, StateTrajLength):
@@ -644,6 +675,10 @@ def ExperimentVisualizer(world, ContactLinkDictionary, ExpTraj, PIPInfoList, Imp
             LimbNo = StepLimbPair[1]
             for i in range(0, LimbNo+1):
                 CandidateContacts_data = ContactDataLoader(SpecificPath, StepNo, i, "CandidateContacts")
+                CandidateContactWeights_data = ContactDataLoader(SpecificPath, StepNo, i, "CandidateContactWeights")
+
+                CandidateContacts_data, CandidateContactWeights_data = ContactDataRefine(CandidateContacts_data, CandidateContactWeights_data)
+
                 WeightedContactDataUnPlot(vis, StepNo, i, CandidateContacts_data)
                 TransitionDataUnplot(vis, StepNo, i)
         if VisMode == "Poly":

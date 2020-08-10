@@ -12,9 +12,9 @@ int SimulationTest(WorldSimulation & Sim, const std::vector<ContactStatusInfo> &
   double  DetectionWait   = SimParaObj.DetectionWait;
   double  DetectionCount  = DetectionWait;
   int     PlanStageIndex  = 0;
-  double  MPCDuration     = 0.25;                 // Duration for MPC executation until next planning
-  double  MPCCounter      = MPCDuration;
-  bool    MPCFlag         = false;                // True means MPC planning is working.
+  double  RHPDuration     = 0.25;                 // Duration for MPC executation until next planning
+  double  RHPCounter      = RHPDuration;
+  bool    RHPFlag         = false;                // True means MPC planning is working.
   bool    TouchDownFlag   = false;
   bool    CtrlFlag        = false;
   double  CtrlStartTime   = 0.0;
@@ -57,8 +57,8 @@ int SimulationTest(WorldSimulation & Sim, const std::vector<ContactStatusInfo> &
     SelfLinkGeoObj.LinkBBsUpdate(SimRobot);
     if(!OverallFailureFlag){
       if(!CtrlFlag){
+        FailureMetric = FailureMetricEval(PIPTotal);
         if(DetectionCount>=DetectionWait){
-          FailureMetric = FailureMetricEval(PIPTotal);
           std::printf("Simulation Time: %f, and Failure Metric Value: %f\n", Sim.time, FailureMetric);
           if(FailureMetric < 0.0){
             if(!FailureStateObj.FailureStateFlag)  FailureStateObj.FailureStateUpdate(SimTime, SimRobot.q, SimRobot.dq);
@@ -76,6 +76,7 @@ int SimulationTest(WorldSimulation & Sim, const std::vector<ContactStatusInfo> &
           }
         } else{
           DetectionCount+=SimParaObj.TimeStep;
+          std::printf("Simulation Time: %f, and Failure Metric Value: %f\n", Sim.time, FailureMetric);
         }
        } else {
         double InnerTime = SimTime - CtrlStartTime;

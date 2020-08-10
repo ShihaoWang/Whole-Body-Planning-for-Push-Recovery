@@ -128,9 +128,9 @@ Vector3 ImpulseDirectionGene(Robot & SimRobotObj, const std::vector<ContactStatu
       ImpulseDirection = -SPObj.EdgeNorms[MinIndex];
     } else ImpulseDirection = FlatRandomDirection();
   }
-  ImpulseDirection.x = 1.0;
-  ImpulseDirection.y = 0.0;
-  ImpulseDirection.z = 0.0;
+  // ImpulseDirection.x = 1.0;
+  // ImpulseDirection.y = 0.0;
+  // ImpulseDirection.z = 0.0;
 
   ImpulseDirection.setNormalized(ImpulseDirection);
   return ImpulseDirection;

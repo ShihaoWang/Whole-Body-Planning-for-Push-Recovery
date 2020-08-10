@@ -248,7 +248,7 @@ static CubicSplineInfo SplineObjGene(SelfLinkGeoInfo & SelfLinkGeoObj, const int
   Vector3 NormalGoal  = SimParaObj.DirectionGoal;
 
   double Init2GoalDist = (PosGoal - PosInit).norm();
-  int PointAtLeast = 15;
+  int PointAtLeast = 11;
   double PointPerDist = 0.025;    // every 2.5cm should be a point
   int PointNo = std::max(PointAtLeast, int(Init2GoalDist/PointPerDist));
 
