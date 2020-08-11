@@ -484,7 +484,7 @@ def ContactDataRefine(ContactPts, ContactWeights_array):
         sorted_indices.reverse()
         ContactPts_ = []
         ContactWeights_ = []
-        for i in range(0, 35):
+        for i in range(0, 20):
             sorted_index = sorted_indices[i]
             ContactPt_i = ContactPts[sorted_index]
             ContactWeight_i = ContactWeights_array[sorted_index]
@@ -614,7 +614,6 @@ def ExperimentVisualizer(world, ContactLinkDictionary, ExpTraj, PIPInfoList, Imp
         StateTraj = PlanStateTraj.milestones
 
     SimulationTime = 0.0
-    import ipdb; ipdb.set_trace()
     while vis.shown():
         # This is the main plot program
         for i in range(0, StateTrajLength):

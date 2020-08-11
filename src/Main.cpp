@@ -41,7 +41,7 @@ int main(){
   double InitDuration    = 2.0;
   double TotalDuration   = 5.0;                     // Simulation lasts for 5s after initial duration
   double FowardDuration = 0.5;                      // Used to optimal contact point planning
-  double PhaseRatio     = 0.8;
+  double PhaseRatio     = 0.6;
   double PhaseTimeStep  = 0.05;                     // Reserved to be used for time discretization method.
   double ReductionRatio = 0.6;
 
@@ -113,7 +113,7 @@ int main(){
     Sim.controlSimulators[0].oderobot->SetConfig(Config(InitConfig));
     Sim.controlSimulators[0].oderobot->SetVelocities(Config(InitVelocity));
 
-    Vector3 ImpulseDirection = ImpulseDirectionGene(*Sim.world->robots[0], InitContactInfo, 1);
+    Vector3 ImpulseDirection = ImpulseDirectionGene(*Sim.world->robots[0], InitContactInfo, 3);
     SimParaObj.setImpulseForceMax(ImpulseDirection);
     FilePathManager(SimParaObj.CurrentCasePath);
 

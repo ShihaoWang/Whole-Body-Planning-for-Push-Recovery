@@ -195,9 +195,9 @@ std::vector<double> TrajConfigOptimazation(const Robot & SimRobot, ReachabilityM
   }
   double SelfCollisionDistTol = *std::min_element(SelfCollisionDistVec.begin(), SelfCollisionDistVec.end());
 
-  std::string ConfigPath = "/home/motion/Desktop/Whole-Body-Planning-for-Push-Recovery/build/";
-  std::string OptConfigFile = "TrajOptConfig.config";
-  RobotConfigWriter(OptConfig, ConfigPath, OptConfigFile);
+  // std::string ConfigPath = "/home/motion/Desktop/Whole-Body-Planning-for-Push-Recovery/build/";
+  // std::string OptConfigFile = "TrajOptConfig.config";
+  // RobotConfigWriter(OptConfig, ConfigPath, OptConfigFile);
 
   bool OptFlag = true;
   if(SelfCollisionDistTol<-0.0025){

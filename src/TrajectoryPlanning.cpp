@@ -248,14 +248,14 @@ static bool AccPhaseTimePathMethod( const std::vector<double> & CurConfig,      
     SwingLinkChainVelocity[i] = GoalVelocity;
   }
 
-  std::string ConfigPath = "/home/motion/Desktop/Whole-Body-Planning-for-Push-Recovery/build/";
-  std::string OptConfigFile = "CurConfig.config";
-  RobotConfigWriter(CurConfig, ConfigPath, OptConfigFile);
+  // std::string ConfigPath = "/home/motion/Desktop/Whole-Body-Planning-for-Push-Recovery/build/";
+  // std::string OptConfigFile = "CurConfig.config";
+  // RobotConfigWriter(CurConfig, ConfigPath, OptConfigFile);
 
 
-  ConfigPath = "/home/motion/Desktop/Whole-Body-Planning-for-Push-Recovery/build/";
-  OptConfigFile = "NextConfig.config";
-  RobotConfigWriter(NextConfig, ConfigPath, OptConfigFile);
+  // ConfigPath = "/home/motion/Desktop/Whole-Body-Planning-for-Push-Recovery/build/";
+  // OptConfigFile = "NextConfig.config";
+  // RobotConfigWriter(NextConfig, ConfigPath, OptConfigFile);
 
   AccTime = *max_element(AccPhaseTimeTotal.begin(), AccPhaseTimeTotal.end());
   const int AccTimeGrid = 10;
@@ -408,7 +408,7 @@ ControlReferenceInfo TrajectoryPlanning(Robot & SimRobotInner, const InvertedPen
     sVal = sNew;
     if(!StageOptFlag) break;
     SimRobotInner.UpdateConfig(Config(NextConfig));
-    Config UpdatedConfig  = WholeBodyDynamicsIntegrator(SimRobotInner, InvertedPendulumObj, 0.0);
+    Config UpdatedConfig  = WholeBodyDynamicsIntegrator(SimRobotInner, InvertedPendulumObj, StageTime);
     SimRobotInner.UpdateConfig(UpdatedConfig);
 
     if(sVal>=0.5){
@@ -431,34 +431,34 @@ ControlReferenceInfo TrajectoryPlanning(Robot & SimRobotInner, const InvertedPen
     sIndex++;
   }
 
-  std::cout<<"TimeTraj: "<<std::endl;
-  for(int i = 0; i<TimeTraj.size(); i++){
-    std::cout<<TimeTraj[i]<<std::endl;
-  }
-  for (int i = 0; i < WholeBodyConfigTraj.size(); i++) {
-    std::string ConfigPath = "/home/motion/Desktop/Whole-Body-Planning-for-Push-Recovery/build/";
-    std::string OptConfigFile = "InnerOpt" + std::to_string(i) + ".config";
-    RobotConfigWriter(WholeBodyConfigTraj[i], ConfigPath, OptConfigFile);
-  }
+  // std::cout<<"TimeTraj: "<<std::endl;
+  // for(int i = 0; i<TimeTraj.size(); i++){
+  //   std::cout<<TimeTraj[i]<<std::endl;
+  // }
+  // for (int i = 0; i < WholeBodyConfigTraj.size(); i++) {
+  //   std::string ConfigPath = "/home/motion/Desktop/Whole-Body-Planning-for-Push-Recovery/build/";
+  //   std::string OptConfigFile = "InnerOpt" + std::to_string(i) + ".config";
+  //   RobotConfigWriter(WholeBodyConfigTraj[i], ConfigPath, OptConfigFile);
+  // }
   // for (int i = 0; i < WholeBodyConfigTraj.size(); i++) {
   //   std::string ConfigPath = "/home/motion/Desktop/Whole-Body-Planning-for-Push-Recovery/build/";
   //   std::string OptConfigFile = "InnerVel" + std::to_string(i) + ".config";
   //   RobotConfigWriter(WholeBodyVelocityTraj[i], ConfigPath, OptConfigFile);
   // }
-  std::cout<<"Config"<<std::endl;
-  for (int i = 0; i < WholeBodyConfigTraj.size(); i++) {
-    SwingLinkStatePrint(WholeBodyConfigTraj[i], SwingLinkChain);
-  }
-  std::cout<<"Velocity"<<std::endl;
-  for (int i = 0; i < WholeBodyConfigTraj.size(); i++) {
-    SwingLinkStatePrint(WholeBodyVelocityTraj[i], SwingLinkChain);
-  }
-  LinearPath WholeBodyConfigTrajPath(TimeTraj, WholeBodyConfigTraj);
-  std::ofstream WholeBodyConfigTrajFile;
-  const string  WholeBodyConfigTrajName = "WholeBodyConfigTraj.path";
-  WholeBodyConfigTrajFile.open(WholeBodyConfigTrajName.c_str());
-  WholeBodyConfigTrajPath.Save(WholeBodyConfigTrajFile);
-  WholeBodyConfigTrajFile.close();
+  // std::cout<<"Config"<<std::endl;
+  // for (int i = 0; i < WholeBodyConfigTraj.size(); i++) {
+  //   SwingLinkStatePrint(WholeBodyConfigTraj[i], SwingLinkChain);
+  // }
+  // std::cout<<"Velocity"<<std::endl;
+  // for (int i = 0; i < WholeBodyConfigTraj.size(); i++) {
+  //   SwingLinkStatePrint(WholeBodyVelocityTraj[i], SwingLinkChain);
+  // }
+  // LinearPath WholeBodyConfigTrajPath(TimeTraj, WholeBodyConfigTraj);
+  // std::ofstream WholeBodyConfigTrajFile;
+  // const string  WholeBodyConfigTrajName = "WholeBodyConfigTraj.path";
+  // WholeBodyConfigTrajFile.open(WholeBodyConfigTrajName.c_str());
+  // WholeBodyConfigTrajPath.Save(WholeBodyConfigTrajFile);
+  // WholeBodyConfigTrajFile.close();
 
   if(SimParaObj.getTrajConfigOptFlag()){
     std::vector<ContactStatusInfo> GoalContactInfo = SimParaObj.FixedContactStatusInfo;
