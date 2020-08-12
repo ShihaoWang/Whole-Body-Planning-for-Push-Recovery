@@ -331,7 +331,7 @@ static bool StageStateOptimization( const double & sVal, const double & sUnit, d
     SimParaObj.setCurrentContactPos(PlannedCurrentContactPos);
     double EndEffectorProjx = EdgeProjMagnitude(sCur, EndEffectorInitxDir, EndEffectorGoalDir);
     double EndEffectorProjy = EdgeProjMagnitude(sCur, EndEffectorInityDir, EndEffectorGoalDir);
-    NextConfig = TrajConfigOptimazation(SimRobotInner, RMObject, SelfLinkGeoObj, SimParaObj, EndEffectorProjx, EndEffectorProjy);
+    NextConfig = TrajConfigOptimazation(SimRobotInner, RMObject, SelfLinkGeoObj, SimParaObj, EndEffectorProjx, EndEffectorProjy, sCur);
     NextVelocity = CurrentVelocity;
     Config UpdatedConfig;
     bool FinderFlag;
@@ -427,7 +427,6 @@ ControlReferenceInfo TrajectoryPlanning(Robot & SimRobotInner, const InvertedPen
     PlannedEndEffectorTraj.push_back(CurrentContactPos);
 
     SelfLinkGeoObj.LinkBBsUpdate(SimRobotInner);
-
     sIndex++;
   }
 

@@ -57,7 +57,7 @@ static SplineInfo SplinePiece3DObjGene(const double & sInit, const double & sGoa
 
 static std::vector<Vector3> BasePointsGene(const Vector3 & PosInit, const Vector3 & NormalInit, const Vector3 & PosGoal, const Vector3 & NormalGoal, int segmentNo ){
   // This function is used to generate the spline for given robot's end effector path.
-  const double scale = 0.75;
+  const double scale = 0.5;
   Vector3 DirGoal = -scale * NormalGoal;
   SplineInfo BaseSpline = SplinePiece3DObjGene(0.0, 1.0, PosInit, scale * NormalInit, PosGoal, -scale * NormalGoal);
   double sUnit = 1.0/(1.0 * segmentNo - 1.0);
@@ -71,8 +71,8 @@ static std::vector<Vector3> BasePointsGene(const Vector3 & PosInit, const Vector
 
   for (int i = 0; i < segmentNo; i++){
     double s = 1.0 * i * sUnit;
-    // Vector3 BasePoint = BaseSpline.SplinePosVector(s);
-    Vector3 BasePoint = a * s * s + b * s + c;
+    Vector3 BasePoint = BaseSpline.SplinePosVector(s);
+    // Vector3 BasePoint = a * s * s + b * s + c;
     BasePoints[i] = BasePoint;
   }
   return BasePoints;

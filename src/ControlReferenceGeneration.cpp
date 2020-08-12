@@ -145,10 +145,29 @@ static std::vector<Vector3> OptimalContactFinder(const std::vector<Vector3> & Su
   std::vector<Vector3> CandidateContactWeights;
   std::vector<double> ContactFailureMetric(SupportContact.size());
   Vector3 CurContact = SimParaObj.getContactInit();
-  const int ActContactNo = FixedContacts.size() + 1;
+  LinkInfo SwingLinkInfo = NonlinearOptimizerInfo::RobotLinkInfo[SimParaObj.getSwingLinkInfoIndex()];
+  const int RobotLinkIndex = SwingLinkInfo.LinkIndex;
   for (int i = 0; i < SupportContact.size(); i++){
     std::vector<Vector3> ActContacts = FixedContacts;
     ActContacts.push_back(SupportContact[i]);
+    switch (RobotLinkIndex){      // Attach four vertices
+    case 11:{
+      for (int j = 0; j < SwingLinkInfo.LocalContacts.size(); j++){
+        Vector3 Vertex = SupportContact[i] + SwingLinkInfo.LocalContacts[j] - SwingLinkInfo.AvgLocalContact;
+        ActContacts.push_back(Vertex);
+      }
+    }
+    break;
+    case 17:{
+      for (int j = 0; j < SwingLinkInfo.LocalContacts.size(); j++){
+        Vector3 Vertex = SupportContact[i] + SwingLinkInfo.LocalContacts[j] - SwingLinkInfo.AvgLocalContact;
+        ActContacts.push_back(Vertex);
+      }
+    }
+    break;
+    default:
+      break;
+    }
     std::vector<PIPInfo> PIPTotal = PIPGenerator(ActContacts, COMPos, COMVel);
     ContactFailureMetric[i] = FailureMetricEval(PIPTotal);
     if(ContactFailureMetric[i]>0.0){
@@ -223,6 +242,10 @@ static std::vector<Vector3> OptimalContactSearcher( Robot SimRobot,     const PI
       if(!SupportiveContacts.size()) return OptimalContact;
 
       SimParaObj.DataRecorderObj.setRCSData(ReachableContacts, CollisionFreeContacts, SupportiveContacts);
+
+      // Vector3Writer(ReachableContacts, "ReachableContacts");
+      // Vector3Writer(CollisionFreeContacts, "CollisionFreeContacts");
+      // Vector3Writer(SupportiveContacts, "SupportiveContacts");
 
       // 3. Optimal Contact
       int CutOffNo = 5;
@@ -309,6 +332,7 @@ ControlReferenceInfo ControlReferenceGene(Robot & SimRobot,
      EstFailureMetricVec.push_back(ControlReferenceObj.getFailueMetric());
      SimParaObj.DataRecorderObj.PlannedConfigTraj = ControlReferenceObj.PlannedConfigTraj;
      SimParaObj.DataRecorderObj.EndEffectorTraj = ControlReferenceObj.EndEffectorTraj;
+     SimParaObj.DataRecorderObj.FailureMetric = ControlReferenceObj.getFailueMetric();
      SimParaObj.DataRecorderObj.Write2File(SimParaObj.getCurrentCasePath());
      PlanEndEffectorIndex++;
    }

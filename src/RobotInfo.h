@@ -573,6 +573,7 @@ struct DataRecorderInfo{
   DataRecorderInfo(){
     PlanStageIndex = -1;
     LinkNo = -1;
+    FailureMetric = 0.0;
   };
   void setPlanStageIndexNLinkNo(const int & _PlanStageIndex, const int & _LinkNo){
     PlanStageIndex = _PlanStageIndex;
@@ -629,6 +630,12 @@ struct DataRecorderInfo{
     Vector3Writer(SelectedContacts,       InnerPath + "SelectedContacts");
     Vector3Writer(PathWaypoints,          InnerPath + "PathWaypoints");
 
+    // Failure Metric for strategy selection
+    const string FailureMetricFileName = InnerPath + "FailureMetric.txt";
+    std::ofstream FailureMetricFile (FailureMetricFileName);
+    FailureMetricFile << FailureMetric;
+    FailureMetricFile.close();
+
     // Write these two trajectories into files.
     std::ofstream PlannedConfigTrajFile;
     const string PlannedConfigTrajName = InnerPath + "PlannedConfigTraj.path";
@@ -655,6 +662,7 @@ struct DataRecorderInfo{
 
   int PlanStageIndex;
   int LinkNo;
+  double FailureMetric;
 };
 
 struct SimPara{

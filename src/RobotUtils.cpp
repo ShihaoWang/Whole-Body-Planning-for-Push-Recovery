@@ -83,6 +83,7 @@ void FilePathManager(const string & CurrentCasePath){
   str+="rm -f *.path && ";
   str+="rm -f *InfoFile.txt && ";
   str+="rm -f PlanTime.txt && ";
+  str+="rm -f *FailureMetric.txt && ";
   str+="rm -f *.bin && ";
   str+="rm -f *OptConfig*.config && ";
   str+="rm -f PlanRes.txt";
@@ -128,9 +129,9 @@ Vector3 ImpulseDirectionGene(Robot & SimRobotObj, const std::vector<ContactStatu
       ImpulseDirection = -SPObj.EdgeNorms[MinIndex];
     } else ImpulseDirection = FlatRandomDirection();
   }
-  // ImpulseDirection.x = 1.0;
-  // ImpulseDirection.y = 0.0;
-  // ImpulseDirection.z = 0.0;
+  ImpulseDirection.x = 1.0;
+  ImpulseDirection.y = 0.0;
+  ImpulseDirection.z = 0.0;
 
   ImpulseDirection.setNormalized(ImpulseDirection);
   return ImpulseDirection;

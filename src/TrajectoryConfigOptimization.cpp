@@ -100,7 +100,7 @@ struct TrajConfigOpt: public NonlinearOptimizerInfo
   }
 };
 
-std::vector<double> TrajConfigOptimazation(const Robot & SimRobot, ReachabilityMap & RMObject, SelfLinkGeoInfo & _SelfLinkGeoObj, SimPara & SimParaObj, const double & EndEffectorProjx, const double & EndEffectorProjy){
+std::vector<double> TrajConfigOptimazation(const Robot & SimRobot, ReachabilityMap & RMObject, SelfLinkGeoInfo & _SelfLinkGeoObj, SimPara & SimParaObj, const double & EndEffectorProjx, const double & EndEffectorProjy, double sVal){
   // This function is used to optimize robot's configuration such that a certain contact can be reached for that end effector.
   SimRobotObj = SimRobot;
   SwingLinkInfoIndex = SimParaObj.getSwingLinkInfoIndex();
@@ -208,13 +208,15 @@ std::vector<double> TrajConfigOptimazation(const Robot & SimRobot, ReachabilityM
   Vector3 EndEffectorAvgPos;
   SimRobotObj.GetWorldPosition(NonlinearOptimizerInfo::RobotLinkInfo[SwingLinkInfoIndex].AvgLocalContact, NonlinearOptimizerInfo::RobotLinkInfo[SwingLinkInfoIndex].LinkIndex, EndEffectorAvgPos);
   Vector3 AvgDiff = EndEffectorAvgPos - GoalPos;
-  double DistTestTol = 0.0225;
+  double DistTestTol = 0.0625;
   double DistTest = AvgDiff.normSquared();
-  if(DistTest>DistTestTol){
-    std::printf("TrajConfigOptimazation Failure due to Goal Contact Non-reachability for Link %d! \n", NonlinearOptimizerInfo::RobotLinkInfo[SwingLinkInfoIndex].LinkIndex);
-    OptFlag = false;
+  double sTol = 1e-3;
+  if(sVal * sVal>=(1.0 - sTol)){
+    if(DistTest>DistTestTol){
+      std::printf("TrajConfigOptimazation Failure due to Goal Contact Non-reachability for Link %d! \n", NonlinearOptimizerInfo::RobotLinkInfo[SwingLinkInfoIndex].LinkIndex);
+      OptFlag = false;
+      }
   }
-
   SimParaObj.setTrajConfigOptFlag(OptFlag);
   return OptConfig;
 }

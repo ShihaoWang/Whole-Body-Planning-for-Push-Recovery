@@ -12,7 +12,7 @@ from OpenGL.GL import *
 import math
 import numpy as np
 
-CurCase = "flat_1Contact"
+CurCase = "flat_2Contact"
 ExpNo = 0
 
 class MyGLPlugin(vis.GLPluginInterface):
@@ -474,7 +474,7 @@ def PlanningInterval(SimulationTime, PlanningTimeList, TimeStep):
 def ContactDataRefine(ContactPts, ContactWeights_array):
     # This function is used to address the Klampt visualization problem
     ContactPointSize = ContactWeights_array.size/3
-    if ContactPointSize>100:
+    if ContactPointSize>20:
         ContactWeightLists = []
         for i in range(ContactPointSize):
             ContactWeight_i = ContactWeights_array[i]

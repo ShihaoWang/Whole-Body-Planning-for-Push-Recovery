@@ -59,7 +59,8 @@ def ContactDataUnplot(vis, ReachableContacts_data):
 def ContactDataPlot(vis, ReachableContacts_data):
     RowNo, ColumnNo = ReachableContacts_data.shape
     RowStart = 0
-    RowEnd = min(RowNo, 99)
+    # RowEnd = min(RowNo, 99)
+    RowEnd = RowNo
 
     for i in range(RowStart, RowEnd):
         point_start = [0.0, 0.0, 0.0]
@@ -129,12 +130,12 @@ def Robot_Config_Plot(world, DOF, config_init):
     # 1. All Reachable Points
     # IdealReachableContacts_data = ContactDataLoader("IdealReachableContact")
     # 2. Active Reachable Points
-    # ActiveReachableContacts_data = ContactDataLoader("ActiveReachableContact")
+    ReachableContacts_data = ContactDataLoader("ReachableContacts")
     # 3. Contact Free Points
-    # ContactFreeContacts_data = ContactDataLoader("ContactFreeContact")
-    # # 4. Supportive Points
-    # SupportContacts_data = ContactDataLoader("SupportContact")
-    # 5. Optimal Point
+    CollisionFreeContacts_data = ContactDataLoader("CollisionFreeContacts")
+    # 4. Supportive Points
+    SupportiveContacts_data = ContactDataLoader("SupportiveContacts")
+
     OptimalContact_data = ContactDataLoader("OptimalContact")
 
     OptimalContactWeights_data = ContactDataLoader("OptimalContactWeights")
@@ -144,15 +145,16 @@ def Robot_Config_Plot(world, DOF, config_init):
     TransitionPoints_data = ContactDataLoader("TransitionPoints")
     # import ipdb; ipdb.set_trace()
     # # 7.
-    InitialTransitionPoints_data = ContactDataLoader("InitialPathWayPoints")
-    # # 8.
-    ShiftedTransitionPoints_data = ContactDataLoader("ShiftedPathWayPoints")
-    # # 9.
-    FineShiftedPathWayPoints_data = ContactDataLoader("FineShiftedPathWayPoints")
+    # InitialTransitionPoints_data = ContactDataLoader("InitialPathWayPoints")
+    # # # 8.
+    # ShiftedTransitionPoints_data = ContactDataLoader("ShiftedPathWayPoints")
+    # # # 9.
+    # FineShiftedPathWayPoints_data = ContactDataLoader("FineShiftedPathWayPoints")
     #
     # ReducedOptimalContact_data = ContactDataLoader("ReducedOptimalContact")
 
     ContactChoice = TransitionPoints_data
+    # ContactChoice = SupportiveContacts_data
     SimRobot = world.robot(0)
     SimRobot.setConfig(config_init)
     while vis.shown():
@@ -161,8 +163,10 @@ def Robot_Config_Plot(world, DOF, config_init):
         SimRobot.setConfig(config_init)
         WeightedContactDataPlot(vis, OptimalContact_data, OptimalContactWeights_data)
         ContactDataPlot(vis, ContactChoice)
+
         vis.unlock()
         time.sleep(0.1)
+        import ipdb; ipdb.set_trace()
         WeightedContactDataUnPlot(vis, OptimalContact_data)
         ContactDataUnplot(vis, ContactChoice)
 
