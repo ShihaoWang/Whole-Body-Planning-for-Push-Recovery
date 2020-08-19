@@ -30,24 +30,23 @@ static void mainInner(string ExperimentFolderPath, int FileIndex, string Type, i
 
   if(RandIter<0){
     CurrentCasePath+= Type + "/" + ForceMax + "/";
-    struct stat buffer; 
-    if(stat (CurrentCasePath.c_str(), &buffer) != 0){
+    // struct stat buffer; 
+    // if(stat (CurrentCasePath.c_str(), &buffer) != 0){
     string mkdir_call = "mkdir " + CurrentCasePath;
     std::system(mkdir_call.c_str()); // note the slash after accounts!
-    }
+    // }
   }
   else {
     string CurrentCasePathTemp = CurrentCasePath + Type + "/" + ForceMax + "/" + to_string(RandIter) + "/";
-    struct stat buffer; 
-    if(stat (CurrentCasePathTemp.c_str(), &buffer) != 0){
+    // struct stat buffer; 
+    // if(stat (CurrentCasePathTemp.c_str(), &buffer) != 0){
     string mkdir_call = "mkdir " + CurrentCasePath +  Type + "/" + ForceMax + "/";
     std::system(mkdir_call.c_str()); // note the slash after accounts!
     CurrentCasePath+= Type + "/" + ForceMax + "/" + to_string(RandIter) + "/";
     mkdir_call = "mkdir " + CurrentCasePath;
     std::system(mkdir_call.c_str()); // note the slash after accounts!
-    }
+    // }
   }
-
 
   SimParaObj.CurrentCasePathUpdate(CurrentCasePath);
   FilePathManager(SimParaObj.CurrentCasePath);
@@ -93,17 +92,17 @@ int main(){
       2.  Random: Given a fixed force magnitude,    the impulsive force is imposed in randomized direction.
   */
 
-  // string Type = "Grad";
-  string Type = "Random";
+  string Type = "Grad";
+  // string Type = "Random";
     
-  std::vector<int> DisturbForceVec1Contact{ 2500, 3000, 3500, 4000, 4500, 5000, 5500}; 
-  std::vector<int> DisturbForceVec2Contact{ 3000, 3500, 4000, 4500, 5000, 5500, 6000}; 
+  std::vector<int> DisturbForceVec1Contact{ 1500, 2000, 2500, 3000, 3500, 4000, 4500}; 
+  std::vector<int> DisturbForceVec2Contact{ 3500, 4000, 4500, 5000, 0500, 6000, 6500}; 
   
   const int RandTotal     = 10;    // How many randomized impulses will be tested
   int Rand1Contact     = 3500;
   int Rand2Contact     = 4500;
 
-  double PushDuration     = 0.5;
+  double PushDuration     = 0.25;
   double DetectionWait    = 0.25;
 
   // Three inner variables
@@ -120,7 +119,8 @@ int main(){
   Vector3 FixedDirectionY(0.0, 1.0, 0.0);
   Vector3 FixedDirectionXY(1.0, 1.0, 0.0);    FixedDirectionXY.setNormalized(FixedDirectionXY);
 
-  std::vector<std::string> ScenarioVec = { "flat_1Contact", "flat_2Contact", "uneven_1Contact", "uneven_2Contact"};  
+  // std::vector<std::string> ScenarioVec = { "flat_1Contact", "flat_2Contact", "uneven_1Contact", "uneven_2Contact"};  
+  std::vector<std::string> ScenarioVec = {"flat_2Contact", "uneven_1Contact", "uneven_2Contact"};  
 
   const int GradTotal = 25;
 

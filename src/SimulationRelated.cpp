@@ -30,6 +30,11 @@ LinearPath InitialSimulation(WorldSimulation & Sim, const SimPara & SimParaObj){
     KineticEnergyAppender(SimParaObj.CtrlKETrajStr.c_str(), Sim.time, KE);
     KineticEnergyAppender(SimParaObj.FailureKETrajStr.c_str(), Sim.time, KE);
 
+    Vector3 COMPos, COMVel;
+    getCentroidalState(*Sim.world->robots[0], COMPos, COMVel);
+    ContactForceAppender(SimParaObj.CtrlVelTrajStr.c_str(), Sim.time, COMVel);
+    ContactForceAppender(SimParaObj.FailureVelTrajStr.c_str(), Sim.time, COMVel);
+
     Sim.Advance(SimParaObj.TimeStep);
     Sim.UpdateModel();
 

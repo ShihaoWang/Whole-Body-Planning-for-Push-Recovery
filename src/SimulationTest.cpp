@@ -61,8 +61,8 @@ int SimulationTest(WorldSimulation & Sim, const std::vector<ContactStatusInfo> &
         FailureMetric = FailureMetricEval(PIPTotal);
         if(DetectionCount>=DetectionWait){
           std::printf("Simulation Time: %f, and Failure Metric Value: %f\n", Sim.time, FailureMetric);
-          if(FailureMetric < 0.0){
-          // if((FailureMetric < 0.0)&&((SimTime - InitTime)>=SimParaObj.PushDuration)){
+          // if(FailureMetric < 0.0){
+          if((FailureMetric < 0.0)&&((SimTime - InitTime)>=SimParaObj.PushDuration)){
             if(!FailureStateObj.FailureStateFlag)  FailureStateObj.FailureStateUpdate(SimTime, SimRobot.q, SimRobot.dq);
             FailureFlag = true;
           }
@@ -98,10 +98,12 @@ int SimulationTest(WorldSimulation & Sim, const std::vector<ContactStatusInfo> &
     
     if(!FailureStateObj.FailureStateFlag){
       ContactForceAppender(SimParaObj.FailureCFTrajStr.c_str(), Sim.time, CF);
+      ContactForceAppender(SimParaObj.FailureVelTrajStr.c_str(), Sim.time, COMVel);
       KineticEnergyAppender(SimParaObj.FailureKETrajStr.c_str(), Sim.time, KE);
     } 
     
     ContactForceAppender(SimParaObj.CtrlCFTrajStr.c_str(), Sim.time, CF);
+    ContactForceAppender(SimParaObj.CtrlVelTrajStr.c_str(), Sim.time, COMVel);
     KineticEnergyAppender(SimParaObj.CtrlKETrajStr.c_str(), Sim.time, KE);
 
     NewControllerPtr->SetConstant(Config(qDes));
@@ -133,10 +135,13 @@ int SimulationTest(WorldSimulation & Sim, const std::vector<ContactStatusInfo> &
     NewControllerPtr->SetConstant(FailureStateObj.FailureConfig);
     while(Sim.time <= CtrlStateTraj.EndTime()){
       FailureStateTraj.Append(Sim.time,    Sim.world->robots[0]->q);
+      Vector3 COMPos, COMVel;
+      getCentroidalState(*Sim.world->robots[0], COMPos, COMVel);
       StateTrajAppender(SimParaObj.FailureStateTrajStr.c_str(), Sim.time, Sim.world->robots[0]->q);
       Vector3 CF = ContactForceFinder(Sim);
       double KE = Sim.world->robots[0]->GetKineticEnergy();
       ContactForceAppender(SimParaObj.FailureCFTrajStr.c_str(), Sim.time, CF);
+      ContactForceAppender(SimParaObj.FailureVelTrajStr.c_str(), Sim.time, COMVel);
       KineticEnergyAppender(SimParaObj.FailureKETrajStr.c_str(), Sim.time, KE);
       Sim.Advance(SimParaObj.TimeStep);
       Sim.UpdateModel();

@@ -196,8 +196,8 @@ static std::vector<Vector3> OptimalContactFinder(const std::vector<Vector3> & Su
       OptimalContactQueue.pop();
     }
   }
-  Vector3Writer(CandidateContacts, "OptimalContact");
-  Vector3Writer(CandidateContactWeights, "OptimalContactWeights");
+  // Vector3Writer(CandidateContacts, "OptimalContact");
+  // Vector3Writer(CandidateContactWeights, "OptimalContactWeights");
   SimParaObj.DataRecorderObj.setCCSData(CandidateContacts, CandidateContactWeights, SelectedContacts);
   return SelectedContacts;
 }

@@ -736,6 +736,9 @@ struct SimPara{
     CtrlCFTrajStr = CurrentCasePath + "CtrlCFTraj.txt";
     FailureCFTrajStr = CurrentCasePath + "FailureCFTraj.txt";
 
+    CtrlVelTrajStr = CurrentCasePath + "CtrlVelTraj.txt";
+    FailureVelTrajStr = CurrentCasePath + "FailureVelTraj.txt";
+
     CtrlKETrajStr = CurrentCasePath + "CtrlKETraj.txt";
     FailureKETrajStr = CurrentCasePath + "FailureKETraj.txt";
   }
@@ -788,6 +791,7 @@ struct SimPara{
   std::vector<string> EdgeFileNames;
   string CtrlCFTrajStr, FailureCFTrajStr;
   string CtrlKETrajStr, FailureKETrajStr;
+  string CtrlVelTrajStr, FailureVelTrajStr;
   string FailureStateTrajStr, CtrlStateTrajStr, PlanStateTrajStr;
   Vector3 ContactInit, ContactGoal;
   Vector3 DirectionInit, DirectionGoal;
