@@ -8,7 +8,8 @@
 
 int SimulationTest(WorldSimulation & Sim, const std::vector<ContactStatusInfo> & InitContactInfo, ReachabilityMap & RMObject, SelfLinkGeoInfo & SelfLinkGeoObj, SimPara & SimParaObj){
   /* Simulation parameters */
-  int     DOF             = Sim.world->robots[0]->q.size();
+  Config  InitConfig      = Sim.world->robots[0]->q;
+  int     DOF             = InitConfig.size();
   double  DetectionWait   = SimParaObj.DetectionWait;
   double  DetectionCount  = DetectionWait;
   int     PlanStageIndex  = 0;
@@ -22,7 +23,7 @@ int SimulationTest(WorldSimulation & Sim, const std::vector<ContactStatusInfo> &
   /* Override the default controller with a PolynomialPathController */
   auto NewControllerPtr = std::make_shared<PolynomialPathController>(*Sim.world->robots[0]);
   Sim.SetController(0, NewControllerPtr);
-  NewControllerPtr->SetConstant(Sim.world->robots[0]->q);
+  NewControllerPtr->SetConstant(InitConfig);
 
   // Initial Simulation
   LinearPath InitTraj, FailureStateTraj, CtrlStateTraj, PlanStateTraj;
@@ -61,6 +62,7 @@ int SimulationTest(WorldSimulation & Sim, const std::vector<ContactStatusInfo> &
         if(DetectionCount>=DetectionWait){
           std::printf("Simulation Time: %f, and Failure Metric Value: %f\n", Sim.time, FailureMetric);
           if(FailureMetric < 0.0){
+          // if((FailureMetric < 0.0)&&((SimTime - InitTime)>=SimParaObj.PushDuration)){
             if(!FailureStateObj.FailureStateFlag)  FailureStateObj.FailureStateUpdate(SimTime, SimRobot.q, SimRobot.dq);
             FailureFlag = true;
           }
@@ -91,6 +93,16 @@ int SimulationTest(WorldSimulation & Sim, const std::vector<ContactStatusInfo> &
     }
 
     OverallFailureFlag = FailureChecker(SimRobot, RMObject);
+    Vector3 CF = ContactForceFinder(Sim);
+    double KE = Sim.world->robots[0]->GetKineticEnergy();
+    
+    if(!FailureStateObj.FailureStateFlag){
+      ContactForceAppender(SimParaObj.FailureCFTrajStr.c_str(), Sim.time, CF);
+      KineticEnergyAppender(SimParaObj.FailureKETrajStr.c_str(), Sim.time, KE);
+    } 
+    
+    ContactForceAppender(SimParaObj.CtrlCFTrajStr.c_str(), Sim.time, CF);
+    KineticEnergyAppender(SimParaObj.CtrlKETrajStr.c_str(), Sim.time, KE);
 
     NewControllerPtr->SetConstant(Config(qDes));
     StateLogger(Sim, FailureStateObj, CtrlStateTraj, PlanStateTraj, FailureStateTraj, qDes, SimParaObj);
@@ -122,6 +134,10 @@ int SimulationTest(WorldSimulation & Sim, const std::vector<ContactStatusInfo> &
     while(Sim.time <= CtrlStateTraj.EndTime()){
       FailureStateTraj.Append(Sim.time,    Sim.world->robots[0]->q);
       StateTrajAppender(SimParaObj.FailureStateTrajStr.c_str(), Sim.time, Sim.world->robots[0]->q);
+      Vector3 CF = ContactForceFinder(Sim);
+      double KE = Sim.world->robots[0]->GetKineticEnergy();
+      ContactForceAppender(SimParaObj.FailureCFTrajStr.c_str(), Sim.time, CF);
+      KineticEnergyAppender(SimParaObj.FailureKETrajStr.c_str(), Sim.time, KE);
       Sim.Advance(SimParaObj.TimeStep);
       Sim.UpdateModel();
     }

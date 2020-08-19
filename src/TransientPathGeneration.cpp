@@ -145,7 +145,7 @@ static std::vector<Vector3> SpatialPointShifter(const std::vector<Vector3> & Poi
 
   int PointCount = 1;
   while (PointCount<Points.size()-1){
-    bool SelfShitFlag, EnviShitFlag;
+    bool SelfShiftFlag, EnviShiftFlag;
     Vector3 CurPt = Points[PointCount];
     // Self-Collision Distance
     double  CurSelfPtDist;
@@ -159,18 +159,18 @@ static std::vector<Vector3> SpatialPointShifter(const std::vector<Vector3> & Poi
       double ShiftDistUnit = 0.005;     // 5mm for example
       while (ShiftTime<TotalShiftTime){
         Vector3 SelfDirection(0.0, 0.0, 0.0);
-        SelfShitFlag = false;
+        SelfShiftFlag = false;
         if(CurSelfPtDist<SelfTol){
           SelfDirection = CurSelfPtGrad;
-          SelfShitFlag = true;
+          SelfShiftFlag = true;
         }
         Vector3 EnviDirection(0.0, 0.0, 0.0);
-        EnviShitFlag = false;
+        EnviShiftFlag = false;
         if(CurEnvPtDist<0){
           EnviDirection = NonlinearOptimizerInfo::SDFInfo.SignedDistanceNormal(NewPt);
-          EnviShitFlag = true;
+          EnviShiftFlag = true;
         }
-        if((!SelfShitFlag)&&(!EnviShitFlag))
+        if((!SelfShiftFlag)&&(!EnviShiftFlag))
           break;
         Vector3 ShiftDirection = SelfDirection + EnviDirection;
         ShiftDirection.setNormalized(ShiftDirection);
@@ -179,7 +179,7 @@ static std::vector<Vector3> SpatialPointShifter(const std::vector<Vector3> & Poi
         CurEnvPtDist = NonlinearOptimizerInfo::SDFInfo.SignedDistance(CurPt);
         ShiftTime++;
       }
-      if((!SelfShitFlag)&&(!EnviShitFlag))
+      if((!SelfShiftFlag)&&(!EnviShiftFlag))
         NewPoints.push_back(NewPt);
       else {
         ShiftFeasFlag = false;
@@ -200,7 +200,7 @@ static Vector3 SinglePointShifter(const Vector3 & Point, const int & SwingLinkIn
   const int TotalShiftTime = 25;
   int CurShiftTime = 0;
 
-  bool SelfShitFlag, EnviShitFlag;
+  bool SelfShiftFlag, EnviShiftFlag;
   double  CurSelfPtDist;
   Vector3 CurSelfPtGrad;
   SelfLinkGeoObj.SelfCollisionDistNGrad(SwingLinkInfoIndex, Point, CurSelfPtDist, CurSelfPtGrad);
@@ -209,20 +209,20 @@ static Vector3 SinglePointShifter(const Vector3 & Point, const int & SwingLinkIn
   while(CurShiftTime<TotalShiftTime)
   {
     Vector3 SelfDirection(0.0, 0.0, 0.0);
-    SelfShitFlag = false;
+    SelfShiftFlag = false;
     if(CurSelfPtDist<SelfTol)
     {
       SelfDirection = CurSelfPtGrad;
-      SelfShitFlag = true;
+      SelfShiftFlag = true;
     }
     Vector3 EnviDirection(0.0, 0.0, 0.0);
-    EnviShitFlag = false;
+    EnviShiftFlag = false;
     if(CurEnvPtDist<0)
     {
       EnviDirection = NonlinearOptimizerInfo::SDFInfo.SignedDistanceNormal(NewPoint);
-      EnviShitFlag = true;
+      EnviShiftFlag = true;
     }
-    if((!SelfShitFlag)&&(!EnviShitFlag))
+    if((!SelfShiftFlag)&&(!EnviShiftFlag))
     {
       break;
     }
@@ -233,7 +233,7 @@ static Vector3 SinglePointShifter(const Vector3 & Point, const int & SwingLinkIn
     CurEnvPtDist = NonlinearOptimizerInfo::SDFInfo.SignedDistance(NewPoint);
     CurShiftTime++;
   }
-  if((!SelfShitFlag)&&(!EnviShitFlag))
+  if((!SelfShiftFlag)&&(!EnviShiftFlag))
   {
     ShiftFeasFlag = true;
   }
@@ -253,15 +253,16 @@ static CubicSplineInfo SplineObjGene(SelfLinkGeoInfo & SelfLinkGeoObj, const int
   int PointNo = std::max(PointAtLeast, int(Init2GoalDist/PointPerDist));
 
   std::vector<Vector3> Points = BasePointsGene(PosInit, NormalInit, PosGoal, NormalGoal, PointNo);
-  // Vector3Writer(Points, "InitialPathWayPoints");
+  Vector3Writer(Points, "InitialPathWayPoints");
   double SelfTol = SelfCollisionDist(SelfLinkGeoObj, SwingLinkInfoIndex, Points);
   bool InitShiftFeasFlag;     // For the shift of initial pts.
   Points = SpatialPointShifter(Points, SwingLinkInfoIndex, SelfTol, SelfLinkGeoObj, InitShiftFeasFlag);
-  // Vector3Writer(Points, "ShiftedPathWayPoints");
+  Vector3Writer(Points, "ShiftedPathWayPoints");
   bool FeasiFlag = false;
   SimParaObj.setTransPathFeasiFlag(FeasiFlag);
+  CubicSplineInfo CubicSplineInfoObjEmpty;
+  if(!InitShiftFeasFlag) return CubicSplineInfoObjEmpty;
   CubicSplineInfo CubicSplineInfoObj(Points);
-  if(!InitShiftFeasFlag) return CubicSplineInfoObj;
   // // Then the task is to generate a path which is collision-free.
   // const int TotalIter = 10;
   // int CurrentIter = 0;
@@ -325,7 +326,7 @@ CubicSplineInfo TransientPathGene(const Robot & SimRobot, SelfLinkGeoInfo & Self
       TransitionIndex++;
     }
     SimParaObj.DataRecorderObj.setPathWaypoints(PathWayPoints);
-    // Vector3Writer(PathWayPoints, "TransitionPoints");
+    Vector3Writer(PathWayPoints, "TransitionPoints");
   }
   return CubicSplineInfoObj;
 }

@@ -12,7 +12,7 @@ from OpenGL.GL import *
 import math
 import numpy as np
 
-CurCase = "flat_2Contact"
+CurCase = "uneven_1Contact"
 ExpNo = 0
 
 class MyGLPlugin(vis.GLPluginInterface):
@@ -474,7 +474,7 @@ def PlanningInterval(SimulationTime, PlanningTimeList, TimeStep):
 def ContactDataRefine(ContactPts, ContactWeights_array):
     # This function is used to address the Klampt visualization problem
     ContactPointSize = ContactWeights_array.size/3
-    if ContactPointSize>20:
+    if ContactPointSize>50:
         ContactWeightLists = []
         for i in range(ContactPointSize):
             ContactWeight_i = ContactWeights_array[i]
@@ -569,6 +569,8 @@ def EndEffectorTrajPlot(vis, SimulationTime, PlanningObj, SpecificPath, PlotDura
                     WeightedContactDataUnPlot(vis, StepNo, j, CandidateContacts_data)
                     TransitionDataUnplot(vis, StepNo, j)
 
+
+
 def ExperimentVisualizer(world, ContactLinkDictionary, ExpTraj, PIPInfoList, ImpulseObj, PlanningObj, SpecificPath, Para):
 
     ExpViewer = MyGLPlugin(world)
@@ -590,9 +592,6 @@ def ExperimentVisualizer(world, ContactLinkDictionary, ExpTraj, PIPInfoList, Imp
     EdgezList = PIPInfoList[5]
     EdgeVertexList = PIPInfoList[6]
 
-    PlanningTimeList = PlanningObj[0]
-    PlanningResList = PlanningObj[1]
-
     TimeStep = CtrlStateTraj.times[1] - CtrlStateTraj.times[0]
     PlotDuration = 10 * TimeStep
     StateTrajLength = len(CtrlStateTraj.times)
@@ -612,6 +611,24 @@ def ExperimentVisualizer(world, ContactLinkDictionary, ExpTraj, PIPInfoList, Imp
     else:
         print "Planned State Traj!"
         StateTraj = PlanStateTraj.milestones
+
+    if(len(PlanningObj)==0):
+        while vis.shown():
+            # This is the main plot program
+            for i in range(0, StateTrajLength):
+                SimulationTime = 1.0 * i * TimeStep
+                vis.lock()
+                Config = StateTraj[i]
+                SimRobot.setConfig(Config)
+                ImpulsePlot(vis, SimRobot, SimulationTime, ImpulseObj)
+                vis.unlock()
+                time.sleep(1.0 * TimeStep)
+        return
+    else:
+        pass
+
+    PlanningTimeList = PlanningObj[0]
+    PlanningResList = PlanningObj[1]
 
     SimulationTime = 0.0
     while vis.shown():
@@ -715,6 +732,7 @@ def main():
     PlanStateTraj = Trajectory(world.robot(0))
     CtrlStateTraj = Trajectory(world.robot(0))
     FailureStateTraj = Trajectory(world.robot(0))
+    # SpecificPath = CurCasePath + "/" + str(ExpNo) + '/Backup'
     SpecificPath = CurCasePath + "/" + str(ExpNo)
     PlanStateTraj.load(SpecificPath + "/PlanStateTraj.path")
     CtrlStateTraj.load(SpecificPath+ "/CtrlStateTraj.path")
@@ -723,8 +741,12 @@ def main():
     PIPInfoList = PIPTrajReader(SpecificPath)
     StartTime, EndTime, ImpulForce = ImpulseInfoReader(SpecificPath)
     ImpulseObj = [StartTime, EndTime, ImpulForce]
-    PlanningTimeList, PlanningResList = PlanningInfoReader(SpecificPath)
-    PlanningObj = [PlanningTimeList, PlanningResList]
+    PlanningObj = []
+    try:
+        PlanningTimeList, PlanningResList = PlanningInfoReader(SpecificPath)
+        PlanningObj = [PlanningTimeList, PlanningResList]
+    except IOError:
+        print "Initial Push Does Not Cause Fall!"
     ExperimentVisualizer(world, ContactLinkDictionary, ExpTraj, PIPInfoList, ImpulseObj, PlanningObj, SpecificPath, [StateType, VisMode])
 
 if __name__ == "__main__":

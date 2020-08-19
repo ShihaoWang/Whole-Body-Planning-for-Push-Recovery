@@ -171,7 +171,7 @@ static std::vector<Vector3> OptimalContactFinder(const std::vector<Vector3> & Su
     std::vector<PIPInfo> PIPTotal = PIPGenerator(ActContacts, COMPos, COMVel);
     ContactFailureMetric[i] = FailureMetricEval(PIPTotal);
     if(ContactFailureMetric[i]>0.0){
-      printf("ContactFailureMetric[%d]: %f\n", OptimalContactQueue.size(), ContactFailureMetric[i]);
+      // printf("ContactFailureMetric[%d]: %f\n", OptimalContactQueue.size(), ContactFailureMetric[i]);
       Vector3 ContactDiff = CurContact - SupportContact[i];
       double ContactDiffDist = ContactDiff.normSquared();
       double ContactDistCost = 1.0 * exp(-1.25 * ContactDiffDist);
@@ -196,8 +196,8 @@ static std::vector<Vector3> OptimalContactFinder(const std::vector<Vector3> & Su
       OptimalContactQueue.pop();
     }
   }
-  // Vector3Writer(CandidateContacts, "OptimalContact");
-  // Vector3Writer(CandidateContactWeights, "OptimalContactWeights");
+  Vector3Writer(CandidateContacts, "OptimalContact");
+  Vector3Writer(CandidateContactWeights, "OptimalContactWeights");
   SimParaObj.DataRecorderObj.setCCSData(CandidateContacts, CandidateContactWeights, SelectedContacts);
   return SelectedContacts;
 }

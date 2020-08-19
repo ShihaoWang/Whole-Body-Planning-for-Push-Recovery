@@ -129,31 +129,31 @@ def Robot_Config_Plot(world, DOF, config_init):
    # Here we would like to read point cloud for visualization of planning.
     # 1. All Reachable Points
     # IdealReachableContacts_data = ContactDataLoader("IdealReachableContact")
-    # 2. Active Reachable Points
-    ReachableContacts_data = ContactDataLoader("ReachableContacts")
-    # 3. Contact Free Points
-    CollisionFreeContacts_data = ContactDataLoader("CollisionFreeContacts")
-    # 4. Supportive Points
-    SupportiveContacts_data = ContactDataLoader("SupportiveContacts")
+    # # 2. Active Reachable Points
+    # ReachableContacts_data = ContactDataLoader("ReachableContacts")
+    # # 3. Contact Free Points
+    # CollisionFreeContacts_data = ContactDataLoader("CollisionFreeContacts")
+    # # 4. Supportive Points
+    # SupportiveContacts_data = ContactDataLoader("SupportiveContacts")
 
     OptimalContact_data = ContactDataLoader("OptimalContact")
 
     OptimalContactWeights_data = ContactDataLoader("OptimalContactWeights")
 
     OptimalContact_data, OptimalContactWeights_data = ContactDataRefine(OptimalContact_data, OptimalContactWeights_data)
-    # 6.
-    TransitionPoints_data = ContactDataLoader("TransitionPoints")
+    # # 6.
+    # TransitionPoints_data = ContactDataLoader("TransitionPoints")
     # import ipdb; ipdb.set_trace()
-    # # 7.
-    # InitialTransitionPoints_data = ContactDataLoader("InitialPathWayPoints")
-    # # # 8.
-    # ShiftedTransitionPoints_data = ContactDataLoader("ShiftedPathWayPoints")
-    # # # 9.
+    # 7.
+    InitialTransitionPoints_data = ContactDataLoader("InitialPathWayPoints")
+    # 8.
+    ShiftedTransitionPoints_data = ContactDataLoader("ShiftedPathWayPoints")
+    # 9.
     # FineShiftedPathWayPoints_data = ContactDataLoader("FineShiftedPathWayPoints")
     #
     # ReducedOptimalContact_data = ContactDataLoader("ReducedOptimalContact")
 
-    ContactChoice = TransitionPoints_data
+    ContactChoice = ShiftedTransitionPoints_data
     # ContactChoice = SupportiveContacts_data
     SimRobot = world.robot(0)
     SimRobot.setConfig(config_init)
@@ -221,12 +221,12 @@ def main(*arg):
     Robot_Option = "../user/"
     world = WorldModel()                    	# WorldModel is a pre-defined class
     # The next step is to load in robot's XML file
-    XML_path = "/home/motion/Desktop/Whole-Body-Planning-for-Push-Recovery-Data/result/flat_1Contact/Environment.xml"
+    XML_path = "/home/motion/Desktop/Whole-Body-Planning-for-Push-Recovery-Data/result/uneven_1Contact/Environment.xml"
     result = world.readFile(XML_path)         	# Here result is a boolean variable indicating the result of this loading operation
     if not result:
         raise RuntimeError("Unable to load model " + XML_path)
     # In this case, what we have is a config
-    ConfigName = "/home/motion/Desktop/Whole-Body-Planning-for-Push-Recovery-Data/result/flat_1Contact/1/InitConfig.config"
+    ConfigName = "/home/motion/Desktop/Whole-Body-Planning-for-Push-Recovery-Data/result/uneven_1Contact/3/InitConfig.config"
     DOF, Config_Init = Configuration_Loader_fn(ConfigName)
     Robot_Config_Plot(world, DOF, Config_Init)
 if __name__ == "__main__":

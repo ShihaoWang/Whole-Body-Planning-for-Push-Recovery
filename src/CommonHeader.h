@@ -56,6 +56,9 @@ bool PenetrationTester(const Robot & SimRobotObj, const int & SwingLinkInfoIndex
 void getEndEffectorXYAxes(const Robot & SimRobotInner, const int & SwingLinkInfoIndex, Vector3 & EndEffectorInitxDir, Vector3 & EndEffectorInityDir);
 double EstimatedFailureMetric(const Robot & SimRobotInner, const std::vector<ContactStatusInfo> & GoalContactInfo, const Vector3 & COMPos, const Vector3 & COMVel);
 void WholeBodyConfigAppender(std::vector<Config> & WholeBodyConfigTraj, const Config & UpdatedConfig);
+Vector3 ContactForceFinder(WorldSimulation & Sim);
+void ContactForceAppender(const char *CFFile_Name, double Time_t, Vector3 Force);
+void KineticEnergyAppender(const char *KEFile_Name, double Time_t, double KE);
 
 /* 4. Main Simulation*/
 LinearPath InitialSimulation(WorldSimulation & Sim, const SimPara & SimParaObj);

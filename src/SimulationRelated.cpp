@@ -9,15 +9,30 @@ LinearPath InitialSimulation(WorldSimulation & Sim, const SimPara & SimParaObj){
   const char *FailureStateTrajStr_Name  = SimParaObj.FailureStateTrajStr.c_str();
   const char *CtrlStateTrajStr_Name     = SimParaObj.CtrlStateTrajStr.c_str();
   const char *PlanStateTrajStr_Name     = SimParaObj.PlanStateTrajStr.c_str();
+
+  const char *CtrlCFTrajStr_Name        = SimParaObj.CtrlCFTrajStr.c_str();
+  const char *FailureCFTrajStr_Name     = SimParaObj.FailureCFTrajStr.c_str();
+  
   LinearPath InitTraj;
+  Vector3 F1, F2, F3, F4;
+  bool contacted=false;
   while(Sim.time <= SimParaObj.InitDuration){
     InitTraj.Append(Sim.time, Sim.world->robots[0]->q);
     std::printf("Initial Simulation Time: %f\n", Sim.time);
     StateTrajAppender(FailureStateTrajStr_Name, Sim.time, Sim.world->robots[0]->q);
     StateTrajAppender(CtrlStateTrajStr_Name,    Sim.time, Sim.world->robots[0]->q);
     StateTrajAppender(PlanStateTrajStr_Name,    Sim.time, Sim.world->robots[0]->q);
+    Vector3 CF = ContactForceFinder(Sim);
+    ContactForceAppender(CtrlCFTrajStr_Name, Sim.time, CF);
+    ContactForceAppender(FailureCFTrajStr_Name, Sim.time, CF);
+    
+    double KE = Sim.world->robots[0]->GetKineticEnergy();
+    KineticEnergyAppender(SimParaObj.CtrlKETrajStr.c_str(), Sim.time, KE);
+    KineticEnergyAppender(SimParaObj.FailureKETrajStr.c_str(), Sim.time, KE);
+
     Sim.Advance(SimParaObj.TimeStep);
     Sim.UpdateModel();
+
   }
   return InitTraj;
 }
@@ -37,7 +52,7 @@ std::vector<double> ConfigReferenceGene(const Robot & SimRobotObj,  double & Inn
                                         ReachabilityMap & RMObject, SelfLinkGeoInfo & SelfLinkGeoObj,
                                         ControlReferenceInfo & ControlReference, SimPara & SimParaObj){
   // This function generates robot's reference configuration at each time.
-  std::printf("InnerTime: %f\n", InnerTime);
+  // std::printf("InnerTime: %f\n", InnerTime);
   double TouchDownTol  = 0.01;                      //  1 cm as a Touch Down Terminal Tolerance.
   std::vector<double> qDes;
   int SwingLinkInfoIndex = ControlReference.getSwingLinkInfoIndex();

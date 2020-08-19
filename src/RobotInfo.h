@@ -675,7 +675,6 @@ struct SimPara{
     TotalDuration = -1.0;
     ForwardDuration = -1.0;
     PhaseRatio = -1.0;
-    PhaseTimeStep = 0.05;
     PlanStageIndex = -1;
     SimTime = -1.0;
     TransPathFeasiFlag = false;
@@ -691,7 +690,6 @@ struct SimPara{
           const double & _TotalDuration,
           const double & _ForwardDuration,
           const double & _PhaseRatio,
-          const double & _PhaseTimeStep,
           const double & _ReductionRatio):    ForceMax(_ForceMax),
                                               PushDuration(_PushDuration),
                                               DetectionWait(_DetectionWait),
@@ -700,7 +698,6 @@ struct SimPara{
                                               TotalDuration(_TotalDuration),
                                               ForwardDuration(_ForwardDuration),
                                               PhaseRatio(_PhaseRatio),
-                                              PhaseTimeStep(_PhaseTimeStep),
                                               ReductionRatio(_ReductionRatio){}
   void CurrentCasePathUpdate(const string _CurrentCasePath){
     CurrentCasePath = _CurrentCasePath;
@@ -735,6 +732,12 @@ struct SimPara{
     // const char *CtrlStateTrajStr_Name = CtrlStateTrajStr.c_str();
     PlanStateTrajStr = CurrentCasePath + "PlanStateTraj.path";
     // const char *PlanStateTrajStr_Name = PlanStateTrajStr.c_str();
+    
+    CtrlCFTrajStr = CurrentCasePath + "CtrlCFTraj.txt";
+    FailureCFTrajStr = CurrentCasePath + "FailureCFTraj.txt";
+
+    CtrlKETrajStr = CurrentCasePath + "CtrlKETraj.txt";
+    FailureKETrajStr = CurrentCasePath + "FailureKETraj.txt";
   }
   string getCurrentCasePath(){ return CurrentCasePath; }
   void setImpulseForceMax(const Vector3 & ImpulseDirection){ ImpulseForceMax = ForceMax * ImpulseDirection; }
@@ -770,7 +773,6 @@ struct SimPara{
   double  TotalDuration;
   double  ForwardDuration;
   double  PhaseRatio;             // This ratio determines the boundary between acceleration and deceleration.
-  double  PhaseTimeStep;
   double  ReductionRatio;
   int     PlanStageIndex;
   int     PlanEndEffectorIndex;    // This PlanEndEffectorIndex saves successful end effector for push recovery.
@@ -784,6 +786,8 @@ struct SimPara{
   Vector3 ImpulseForceMax;
   std::string CurrentCasePath;
   std::vector<string> EdgeFileNames;
+  string CtrlCFTrajStr, FailureCFTrajStr;
+  string CtrlKETrajStr, FailureKETrajStr;
   string FailureStateTrajStr, CtrlStateTrajStr, PlanStateTrajStr;
   Vector3 ContactInit, ContactGoal;
   Vector3 DirectionInit, DirectionGoal;

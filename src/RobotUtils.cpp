@@ -137,6 +137,28 @@ Vector3 ImpulseDirectionGene(Robot & SimRobotObj, const std::vector<ContactStatu
   return ImpulseDirection;
 }
 
+Vector3 ContactForceFinder(WorldSimulation & Sim){
+  // All Contact Force
+  Vector3 fC; fC.setZero();
+  bool contacted=false;
+  for (int i=0;i<Sim.world->NumIDs();i++){
+    for (int j = i+1; j<Sim.world->NumIDs();j++) {
+    if(Sim.HadContact(i,j)) {
+      // if(!contacted) { printf("Touching bodies:\n"); contacted=true; }
+      Vector3 f = Sim.MeanContactForce(i,j);
+      fC+=f;
+      // Vector3 t = Sim.MeanContactTorque(i,j);
+      // string iName = Sim.world->GetName(i).c_str();
+      // string jName = Sim.world->GetName(j).c_str();
+      // std::cout<<iName << " - " << jName <<std::endl;
+      // printf("force %f %f %f, torque %f %f %f\n", f.x,f.y,f.z,t.x,t.y,t.z);
+      }
+    }
+  }
+  // printf("Overall contact force: %f, %f, %f\n", fC.x,fC.y,fC.z);
+  return fC;
+}
+
 static double RandomBoundedValue(const double &bound){
   std::uniform_real_distribution<double> unif(-1.0 * bound, 1.0 * bound);
   std::random_device rand_dev;          // Use random_device to get a random seed.

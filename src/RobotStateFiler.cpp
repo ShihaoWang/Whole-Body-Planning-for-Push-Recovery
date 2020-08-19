@@ -91,6 +91,24 @@ std::vector<int> TorsoLinkReader(const string & TorsoLinkFilePath){
   return TorsoLinkVec;
 }
 
+void KineticEnergyAppender(const char *KEFile_Name, double Time_t, double KE){
+  std::ofstream KEWriter;
+  KEWriter.open(KEFile_Name, std::ios_base::app);
+  KEWriter<<std::to_string(Time_t)<<" ";
+  KEWriter<<std::to_string(KE)<<"\n";
+  KEWriter.close(); 
+}
+
+void ContactForceAppender(const char *CFFile_Name, double Time_t, Vector3 Force){
+  std::ofstream CFWriter;
+  CFWriter.open(CFFile_Name, std::ios_base::app);
+  CFWriter<<std::to_string(Time_t)<<" ";
+  CFWriter<<std::to_string(Force.x)<<" ";
+  CFWriter<<std::to_string(Force.y)<<" ";
+  CFWriter<<std::to_string(Force.z)<<"\n";
+  CFWriter.close();  
+}
+
 void StateTrajAppender(const char *stateTrajFile_Name, const double & Time_t, const std::vector<double> & Configuration){
   std::ofstream StateTrajWriter;
   StateTrajWriter.open(stateTrajFile_Name, std::ios_base::app);
